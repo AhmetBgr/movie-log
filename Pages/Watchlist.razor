@@ -18,7 +18,7 @@
                 <i class="bi bi-list-nested me-3 text-secondary"></i> Watchlist
                 <span class="badge bg-light text-secondary ms-3 rounded-pill fs-6 fw-normal border shadow-sm">@WatchlistSvc.FilteredItems.Count() Items</span>
             </h2>
-            <button class="btn btn-sm @(showFilters ? "btn-dark shadow" : "btn-outline-secondary") rounded-pill px-4 py-2 transition-all fw-medium" @onclick="() => showFilters = !showFilters">
+            <button class="btn btn-sm @(showFilters ? "btn-dark shadow" : "btn-outline-secondary") rounded-pill px-4 py-2 transition-all fw-medium" @onclick="ToggleFilters">
                 <i class="bi @(showFilters ? "bi-chevron-left" : "bi-funnel") me-2"></i> 
                 @(showFilters ? "Hide Filters" : "Show Filters")
             </button>
@@ -260,6 +260,12 @@
     private bool showFilters = false;
     private List<WatchlistItem> _filteredItems = new();
 
+    private void ToggleFilters()
+    {
+        showFilters = !showFilters;
+        StateHasChanged();
+    }
+
     protected override void OnInitialized()
     {
         WatchlistSvc.OnStateChanged += HandleStateChanged;
@@ -293,7 +299,7 @@
     }
 
     private List<string> AvailableGenres => WatchlistSvc.Items
-        .SelectMany(m => m.Genres.Split(','))
+        .SelectMany(m => (m.Genres ?? "").Split(','))
         .Select(g => g.Trim())
         .Where(g => !string.IsNullOrEmpty(g))
         .Distinct()

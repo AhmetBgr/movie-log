@@ -17,6 +17,7 @@ public class WatchlistService
     private List<WatchlistItem> _watchingCached = new();
     private List<WatchlistItem> _watchedCached = new();
     private List<WatchlistItem> _filteredCached = new();
+    private List<WatchlistItem> _filteredWatchedCached = new();
 
     private string _selectedType = "All";
     public string SelectedType 
@@ -56,6 +57,23 @@ public class WatchlistService
     public string SortColumn { get; set; } = "Title";
     public bool SortDescending { get; set; } = false;
 
+    public string WatchedSortColumn { get; set; } = "DateAdded";
+    public bool WatchedSortDescending { get; set; } = true;
+
+    private int _filterMinRating20 = 0;
+    public int FilterMinRating20 
+    { 
+        get => _filterMinRating20; 
+        set { _filterMinRating20 = value; NotifyStateChanged(); } 
+    }
+
+    private int _filterMaxRating20 = 20;
+    public int FilterMaxRating20 
+    { 
+        get => _filterMaxRating20; 
+        set { _filterMaxRating20 = value; NotifyStateChanged(); } 
+    }
+
     private RatingSystem _ratingSystem = RatingSystem.TenPoint;
     public RatingSystem RatingSystem 
     { 
@@ -73,9 +91,8 @@ public class WatchlistService
     private void RefreshCalculatedLists()
     {
         _watchingCached = Items.Where(i => i.Status == WatchlistStatus.Watching).ToList();
-        _watchedCached = Items.Where(i => i.Status == WatchlistStatus.Watched).OrderByDescending(i => i.DateAdded).ToList();
         
-        // Recalculate Filtered
+        // --- Shared Filter Base ---
         int sYear = 0, eYear = 0;
         bool hasStart = int.TryParse(StartYear, out sYear);
         bool hasEnd = int.TryParse(EndYear, out eYear);
@@ -83,33 +100,43 @@ public class WatchlistService
         bool checkGenre = SelectedGenre != "All";
         bool checkSearch = !string.IsNullOrWhiteSpace(SearchQuery);
 
-        var query = Items.Where(m => m.Status == WatchlistStatus.Pending).Where(m =>
+        Func<WatchlistItem, bool> filterPredicate = m =>
         {
             if (checkType && !m.TitleType.Equals(SelectedType, StringComparison.OrdinalIgnoreCase))
                 return false;
-
             if (checkGenre && !m.Genres.Contains(SelectedGenre, StringComparison.OrdinalIgnoreCase))
                 return false;
-
             if (hasStart && m.ParsedYear < sYear)
                 return false;
-
             if (hasEnd && m.ParsedYear > eYear)
                 return false;
-
             if (checkSearch && !m.Title.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase) && 
                 !(m.Director != null && m.Director.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase)))
                 return false;
-
             return true;
-        });
+        };
 
+        // --- Calculate Filtered Pending (Watchlist) ---
+        var pendingQuery = Items.Where(m => m.Status == WatchlistStatus.Pending).Where(filterPredicate);
         _filteredCached = (SortColumn switch
         {
-            "Year" => SortDescending ? query.OrderByDescending(m => m.ParsedYear) : query.OrderBy(m => m.ParsedYear),
-            "Type" => SortDescending ? query.OrderByDescending(m => m.TitleType) : query.OrderBy(m => m.TitleType),
-            "DateAdded" => SortDescending ? query.OrderByDescending(m => m.DateAdded) : query.OrderBy(m => m.DateAdded),
-            _ => SortDescending ? query.OrderByDescending(m => m.Title) : query.OrderBy(m => m.Title)
+            "Year" => SortDescending ? pendingQuery.OrderByDescending(m => m.ParsedYear) : pendingQuery.OrderBy(m => m.ParsedYear),
+            "Type" => SortDescending ? pendingQuery.OrderByDescending(m => m.TitleType) : pendingQuery.OrderBy(m => m.TitleType),
+            "DateAdded" => SortDescending ? pendingQuery.OrderByDescending(m => m.DateAdded) : pendingQuery.OrderBy(m => m.DateAdded),
+            _ => SortDescending ? pendingQuery.OrderByDescending(m => m.Title) : pendingQuery.OrderBy(m => m.Title)
+        }).ToList();
+
+        // --- Calculate Filtered Watched (History) ---
+        var watchedQuery = Items.Where(m => m.Status == WatchlistStatus.Watched)
+                                .Where(filterPredicate)
+                                .Where(m => (m.Rating20 ?? 0) >= FilterMinRating20 && (m.Rating20 ?? 0) <= FilterMaxRating20);
+        _filteredWatchedCached = (WatchedSortColumn switch
+        {
+            "Rating" => WatchedSortDescending ? watchedQuery.OrderByDescending(m => m.Rating20 ?? 0) : watchedQuery.OrderBy(m => m.Rating20 ?? 0),
+            "Year" => WatchedSortDescending ? watchedQuery.OrderByDescending(m => m.ParsedYear) : watchedQuery.OrderBy(m => m.ParsedYear),
+            "Type" => WatchedSortDescending ? watchedQuery.OrderByDescending(m => m.TitleType) : watchedQuery.OrderBy(m => m.TitleType),
+            "DateAdded" => WatchedSortDescending ? watchedQuery.OrderByDescending(m => m.DateAdded) : watchedQuery.OrderBy(m => m.DateAdded),
+            _ => WatchedSortDescending ? watchedQuery.OrderByDescending(m => m.Title) : watchedQuery.OrderBy(m => m.Title)
         }).ToList();
     }
 
@@ -179,7 +206,7 @@ public class WatchlistService
     }
 
     public IEnumerable<WatchlistItem> WatchingItems => _watchingCached;
-    public IEnumerable<WatchlistItem> WatchedItems => _watchedCached;
+    public IEnumerable<WatchlistItem> WatchedItems => _filteredWatchedCached; // Now using filtered cache!
     public IEnumerable<WatchlistItem> FilteredItems => _filteredCached;
 
 
@@ -380,6 +407,14 @@ public class WatchlistService
         }
     }
 
+    public async Task ClearAllDataAsync()
+    {
+        Items.Clear();
+        await _storage.SaveListAsync("watchlist_data", Items);
+        RefreshCalculatedLists();
+        NotifyStateChanged();
+    }
+
     public async Task UpdateRatingAsync(WatchlistItem item, int? rating20)
     {
         var existing = Items.FirstOrDefault(i => i.ImdbId == item.ImdbId);
@@ -443,6 +478,20 @@ public class WatchlistService
     {
         return Items.Any(i => i.Title.Equals(title, StringComparison.OrdinalIgnoreCase) && 
                               (string.IsNullOrEmpty(year) || i.Year.Contains(year)));
+    }
+
+    public void ToggleWatchedSort(string column)
+    {
+        if (WatchedSortColumn == column)
+        {
+            WatchedSortDescending = !WatchedSortDescending;
+        }
+        else
+        {
+            WatchedSortColumn = column;
+            WatchedSortDescending = (column == "DateAdded" || column == "Year" || column == "Rating");
+        }
+        NotifyStateChanged();
     }
 }
 
