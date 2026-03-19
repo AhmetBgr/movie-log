@@ -59,7 +59,7 @@ public class TmdbMovie
     public List<string> Actors { get; set; } = new();
 
     public string FullPosterUrl => string.IsNullOrEmpty(PosterPath)
-        ? "https://via.placeholder.com/500x750?text=No+Poster"
+        ? "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" 
         : $"https://image.tmdb.org/t/p/w500{PosterPath}";
 }
 
@@ -165,7 +165,9 @@ public class TmdbSearchResultItem
     }
 
     public string DisplayDate => ReleaseDate ?? FirstAirDate ?? "Unknown Date";
-    public string FullPosterUrl => string.IsNullOrEmpty(PosterPath) ? "https://via.placeholder.com/300x450?text=No+Poster" : $"https://image.tmdb.org/t/p/w300{PosterPath}";
+    public string FullPosterUrl => string.IsNullOrEmpty(PosterPath) 
+        ? "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" 
+        : $"https://image.tmdb.org/t/p/w300{PosterPath}";
 }
 
 public class TmdbGenre
