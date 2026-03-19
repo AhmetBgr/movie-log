@@ -13,70 +13,22 @@
     }
     else
     {
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h4 class="mb-0 fw-bold text-dark">Watchlist</h4>
-            <button class="btn btn-sm @(showFilters ? "btn-secondary" : "btn-outline-secondary") rounded-pill px-3 shadow-none" @onclick="() => showFilters = !showFilters">
-                <i class="bi @(showFilters ? "bi-chevron-up" : "bi-funnel") me-1"></i> 
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="mb-0 fw-bolder text-dark d-flex align-items-center">
+                <i class="bi bi-list-nested me-3 text-secondary"></i> Watchlist
+                <span class="badge bg-light text-secondary ms-3 rounded-pill fs-6 fw-normal border shadow-sm">@WatchlistSvc.FilteredItems.Count() Items</span>
+            </h2>
+            <button class="btn btn-sm @(showFilters ? "btn-dark shadow" : "btn-outline-secondary") rounded-pill px-4 py-2 transition-all fw-medium" @onclick="() => showFilters = !showFilters">
+                <i class="bi @(showFilters ? "bi-chevron-left" : "bi-funnel") me-2"></i> 
                 @(showFilters ? "Hide Filters" : "Show Filters")
             </button>
         </div>
 
-        @if (showFilters)
-        {
-            <!-- Filter Bar -->
-            <div class="card shadow-sm border-0 mb-4 rounded-2 bg-white">
-                <div class="card-body p-3">
-                <div class="row g-2 align-items-end">
-                    <div class="col-md-3">
-                        <label class="form-label small fw-bold text-secondary text-uppercase tracking-wider">Search Title</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-light border-0"><i class="bi bi-search"></i></span>
-                            <input type="text" class="form-control border-0 bg-light shadow-none" placeholder="Search..." 
-                                   @bind="WatchlistSvc.SearchQuery" @bind:event="oninput" />
-                        </div>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label small fw-bold text-secondary text-uppercase tracking-wider">Genre</label>
-                        <select class="form-select border-0 bg-light shadow-none" @bind="WatchlistSvc.SelectedGenre">
-                            <option value="All">All Genres</option>
-                            @foreach (var genre in AvailableGenres)
-                            {
-                                <option value="@genre">@genre</option>
-                            }
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label small fw-bold text-secondary text-uppercase tracking-wider">Type</label>
-                        <select class="form-select border-0 bg-light shadow-none" @bind="WatchlistSvc.SelectedType">
-                            <option value="All">All Types</option>
-                            <option value="Movie">Movies</option>
-                            <option value="TV Series">TV Series</option>
-                        </select>
-                    </div>
-                    <div class="col-md-1">
-                        <label class="form-label small fw-bold text-secondary text-uppercase tracking-wider">From</label>
-                        <input type="number" class="form-control border-0 bg-light shadow-none px-2" placeholder="Year" 
-                               @bind="WatchlistSvc.StartYear" />
-                    </div>
-                    <div class="col-md-1">
-                        <label class="form-label small fw-bold text-secondary text-uppercase tracking-wider">To</label>
-                        <input type="number" class="form-control border-0 bg-light shadow-none px-2" placeholder="Year" 
-                               @bind="WatchlistSvc.EndYear" />
-                    </div>
-                    <div class="col-md-3 text-end d-flex gap-2 justify-content-end">
-                        <button class="btn btn-dark btn-sm rounded-pill px-3 shadow-sm border-0" @onclick="ShowRandomMovie">
-                            <i class="bi bi-dice-5 me-1"></i> Random
-                        </button>
-                        <button class="btn btn-outline-secondary btn-sm border-0" @onclick="ClearFilters">Clear All</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    }
-
-        <div class="card shadow border-0 overflow-hidden rounded-2">
-            <div class="card-body p-0 bg-white" style="max-height: @(showFilters ? "70vh" : "88vh"); @(showFilters ? "" : "min-height: 80vh;"); overflow-y: auto;">
-                <table class="table table-hover align-middle mb-0 border-light">
+        <div class="row g-4 h-100">
+            <div class="@(showFilters ? "col-md-9" : "col-12")">
+                <div class="card shadow border-0 overflow-hidden rounded-2">
+                    <div class="card-body p-0 bg-white" style="height: 88vh; min-height: 80vh; overflow-y: auto;">
+                        <table class="table table-hover align-middle mb-0 border-light">
                     <thead class="bg-light text-secondary fw-semibold" style="position: sticky; top: 0; z-index: 1;">
                         <tr>
                             <th scope="col" style="width: 5%;" class="border-bottom py-2.5 px-3 text-center"></th>
@@ -116,13 +68,15 @@
                                 <td style="cursor: pointer;" class="px-3" @onclick="() => ShowMovieDetails(item)">
                                     <span class="fw-bold text-dark" style="transition: opacity 0.2s;" onmouseover="this.style.opacity='0.6'" onmouseout="this.style.opacity='1'">
                                         @item.Title
-                                        @if (!string.IsNullOrEmpty(item.DisplayOriginalTitle))
-                                        {
-                                            <span class="text-secondary small fw-normal ms-2">(@item.DisplayOriginalTitle)</span>
-                                        }
                                     </span>
+                                    @if (item.DisplayOriginalTitle != null)
+                                    {
+                                        <span class="text-secondary small ms-2 opacity-50 fw-normal">(@item.DisplayOriginalTitle)</span>
+                                    }
                                 </td>
-                                <td class="text-secondary small px-3">@item.Director</td>
+                                <td class="text-secondary small px-3">
+                                    @item.Director
+                                </td>
                                 <td class="text-secondary fw-medium">
                                     @item.Year
                                 </td>
@@ -137,7 +91,69 @@
                 </table>
             </div>
         </div>
+    </div>
+
+            @if (showFilters)
+            {
+                <div class="col-md-3 position-sticky top-0 h-100" style="max-height: 88vh; overflow-y: auto;">
+                    <div class="card shadow-sm border-0 rounded-2 bg-white sticky-top">
+                        <div class="card-body p-4">
+                            <h5 class="fw-bold text-dark mb-4 border-bottom pb-2">Refine List</h5>
+                            
+                            <div class="mb-4">
+                                <label class="form-label small fw-bold text-secondary text-uppercase tracking-wider">Search Title</label>
+                                <div class="input-group shadow-none border rounded-2 overflow-hidden">
+                                    <span class="input-group-text bg-light border-0"><i class="bi bi-search"></i></span>
+                                    <input type="text" class="form-control border-0 bg-light shadow-none" placeholder="Search..." 
+                                           @bind="WatchlistSvc.SearchQuery" @bind:event="oninput" />
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label small fw-bold text-secondary text-uppercase tracking-wider">Genre</label>
+                                <select class="form-select border rounded-2 bg-light shadow-none" @bind="WatchlistSvc.SelectedGenre">
+                                    <option value="All">All Genres</option>
+                                    @foreach (var genre in AvailableGenres)
+                                    {
+                                        <option value="@genre">@genre</option>
+                                    }
+                                </select>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label small fw-bold text-secondary text-uppercase tracking-wider">Type</label>
+                                <select class="form-select border rounded-2 bg-light shadow-none" @bind="WatchlistSvc.SelectedType">
+                                    <option value="All">All Types</option>
+                                    <option value="Movie">Movies</option>
+                                    <option value="TV Series">TV Series</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label small fw-bold text-secondary text-uppercase tracking-wider">Year Range</label>
+                                <div class="d-flex gap-2">
+                                    <input type="number" class="form-control border rounded-2 bg-light shadow-none px-2" placeholder="From" 
+                                           @bind="WatchlistSvc.StartYear" />
+                                    <input type="number" class="form-control border rounded-2 bg-light shadow-none px-2" placeholder="To" 
+                                           @bind="WatchlistSvc.EndYear" />
+                                </div>
+                            </div>
+
+                            <div class="d-grid gap-2 pt-2">
+                                <button class="btn btn-dark rounded-pill py-2 shadow-sm border-0 fw-semibold" @onclick="ShowRandomMovie">
+                                    <i class="bi bi-dice-5 me-2"></i> Pick Random Movie
+                                </button>
+                                <button class="btn btn-outline-secondary btn-sm border-0 py-2" @onclick="ClearFilters">
+                                    <i class="bi bi-eraser me-2"></i> Clear All Filters
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
     }
+
 
     @if (selectedMovie != null)
     {
