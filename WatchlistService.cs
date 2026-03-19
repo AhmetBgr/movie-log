@@ -343,7 +343,7 @@ public class WatchlistService
     {
         if (!Items.Any(i => i.ImdbId == item.ImdbId))
         {
-            item.Status = WatchlistStatus.Pending;
+
             Items.Add(item);
             await UpdateListAsync(Items);
             NotifyStateChanged();

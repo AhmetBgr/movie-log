@@ -47,11 +47,18 @@
                                 <td class="text-center px-3">
                                     @if (!IsAlreadyInWatchlist(item))
                                     {
-                                        <button class="btn btn-sm btn-outline-dark rounded-circle shadow-none p-1 d-inline-flex align-items-center justify-content-center show-on-row-hover" 
-                                                style="width: 30px; height: 30px;"
-                                                @onclick="() => HandleAddClick(item)" @onclick:stopPropagation="true" title="Add to Watchlist">
-                                            <i class="bi bi-plus-lg"></i>
-                                        </button>
+                                        <div class="d-flex align-items-center justify-content-center gap-1">
+                                            <button class="btn btn-sm btn-outline-success border-0 rounded-circle shadow-none p-1 d-inline-flex align-items-center justify-content-center show-on-row-hover" 
+                                                    style="width: 30px; height: 30px;"
+                                                    @onclick="() => HandleStartWatchingClick(item)" @onclick:stopPropagation="true" title="Start Watching">
+                                                <i class="bi bi-play-fill fs-5"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-dark border-0 rounded-circle shadow-none p-1 d-inline-flex align-items-center justify-content-center show-on-row-hover" 
+                                                    style="width: 30px; height: 30px;"
+                                                    @onclick="() => HandleAddClick(item)" @onclick:stopPropagation="true" title="Add to Watchlist">
+                                                <i class="bi bi-plus-lg"></i>
+                                            </button>
+                                        </div>
                                     }
                                     else
                                     {
@@ -127,6 +134,9 @@
                                         </span>
                                         @if (!WatchlistSvc.IsInWatchlist(selectedMovie.ImdbId))
                                         {
+                                            <button class="btn btn-success rounded-pill px-4 fw-bold shadow-sm" @onclick="StartWatchingFromModal">
+                                                <i class="bi bi-play-fill me-2 fs-5"></i> Start Watching
+                                            </button>
                                             <button class="btn btn-outline-dark rounded-pill px-4 fw-bold" @onclick="AddToWatchlistFromModal">
                                                 <i class="bi bi-plus-lg me-2"></i> Add to Watchlist
                                             </button>
@@ -293,10 +303,56 @@
                 Year = movie.ReleaseDate ?? "",
                 ParsedYear = int.TryParse(movie.ReleaseDate?.Split('-')[0], out var y) ? y : 0,
                 Genres = "",
-                Director = movie.Directors.Any() ? string.Join(", ", movie.Directors) : null
+                Director = movie.Directors.Any() ? string.Join(", ", movie.Directors) : null,
+                Status = WatchlistStatus.Pending
             });
         }
         StateHasChanged();
+    }
+
+    private async Task HandleStartWatchingClick(TmdbSearchResultItem item)
+    {
+        var movie = await WatchlistSvc.GetTmdbDetailsByIdAsync(item.Id, item.MediaType);
+        if (movie != null && !string.IsNullOrEmpty(movie.ImdbId))
+        {
+            await WatchlistSvc.AddToWatchlistAsync(new WatchlistItem
+            {
+                ImdbId = movie.ImdbId,
+                Title = movie.Title,
+                OriginalTitle = movie.OriginalTitle != movie.Title ? movie.OriginalTitle : null,
+                TitleType = item.MediaType == "movie" ? "Movie" : "TV Series",
+                Year = movie.ReleaseDate ?? "",
+                ParsedYear = int.TryParse(movie.ReleaseDate?.Split('-')[0], out var y) ? y : 0,
+                Genres = "",
+                Director = movie.Directors.Any() ? string.Join(", ", movie.Directors) : null,
+                Status = WatchlistStatus.Watching,
+                CurrentSeason = item.MediaType == "tv" ? 1 : null,
+                CurrentEpisode = item.MediaType == "tv" ? 1 : null
+            });
+        }
+        StateHasChanged();
+    }
+
+    private async Task StartWatchingFromModal()
+    {
+        if (selectedMovie != null && selectedItem != null && !string.IsNullOrEmpty(selectedMovie.ImdbId))
+        {
+            await WatchlistSvc.AddToWatchlistAsync(new WatchlistItem
+            {
+                ImdbId = selectedMovie.ImdbId,
+                Title = selectedMovie.Title,
+                OriginalTitle = selectedMovie.OriginalTitle != selectedMovie.Title ? selectedMovie.OriginalTitle : null,
+                TitleType = selectedItem.MediaType == "movie" ? "Movie" : "TV Series",
+                Year = selectedMovie.ReleaseDate ?? "",
+                ParsedYear = int.TryParse(selectedMovie.ReleaseDate?.Split('-')[0], out var y) ? y : 0,
+                Genres = "",
+                Director = selectedMovie.Directors.Any() ? string.Join(", ", selectedMovie.Directors) : null,
+                Status = WatchlistStatus.Watching,
+                CurrentSeason = selectedItem.MediaType == "tv" ? 1 : null,
+                CurrentEpisode = selectedItem.MediaType == "tv" ? 1 : null
+            });
+            StateHasChanged();
+        }
     }
 
     private async Task AddToWatchlistFromModal()
