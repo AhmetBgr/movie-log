@@ -10,4 +10,9 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 builder.Services.AddScoped<LocalStorageService>();
 builder.Services.AddScoped<WatchlistService>();
-await builder.Build().RunAsync();
+var host = builder.Build();
+
+var watchlistSvc = host.Services.GetRequiredService<WatchlistService>();
+await watchlistSvc.InitializeAsync();
+
+await host.RunAsync();

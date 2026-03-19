@@ -2,6 +2,13 @@ using System.Text.Json.Serialization;
 
 namespace MyPrivateWatchlist.Models;
 
+public enum RatingSystem
+{
+    TenPoint,
+    HundredPoint,
+    FiveStar
+}
+
 public enum WatchlistStatus
 {
     Pending,
@@ -24,6 +31,7 @@ public class WatchlistItem
     public int? CurrentEpisode { get; set; }
     public DateTime DateAdded { get; set; } = DateTime.Now;
     public int? UserRating { get; set; }
+    public int? Rating20 { get; set; }
 
     public string? DisplayOriginalTitle 
     {

@@ -56,6 +56,13 @@ public class WatchlistService
     public string SortColumn { get; set; } = "Title";
     public bool SortDescending { get; set; } = false;
 
+    private RatingSystem _ratingSystem = RatingSystem.TenPoint;
+    public RatingSystem RatingSystem 
+    { 
+        get => _ratingSystem; 
+        set { _ratingSystem = value; _ = _storage.SaveAsync("rating_system", value); NotifyStateChanged(); } 
+    }
+
     public event Action? OnStateChanged;
     public void NotifyStateChanged() 
     {
@@ -115,6 +122,7 @@ public class WatchlistService
 
     public async Task InitializeAsync()
     {
+        _ratingSystem = await _storage.GetAsync<RatingSystem>("rating_system");
         var saved = await _storage.GetListAsync<WatchlistItem>("my_movie_list");
         if (saved != null) 
         {
@@ -125,6 +133,12 @@ public class WatchlistService
                     var yearDigits = new string(item.Year.TakeWhile(char.IsDigit).ToArray());
                     int.TryParse(yearDigits, out int parsed);
                     item.ParsedYear = parsed;
+                }
+
+                // Data Migration: UserRating (1-10) -> Rating20 (2-20)
+                if (item.Rating20 == null && item.UserRating != null)
+                {
+                    item.Rating20 = item.UserRating * 2;
                 }
             }
             Items = saved;
@@ -366,14 +380,15 @@ public class WatchlistService
         }
     }
 
-    public async Task UpdateRatingAsync(WatchlistItem item, int? rating)
+    public async Task UpdateRatingAsync(WatchlistItem item, int? rating20)
     {
         var existing = Items.FirstOrDefault(i => i.ImdbId == item.ImdbId);
         if (existing != null)
         {
-            existing.UserRating = rating;
+            existing.Rating20 = rating20;
+            // Sync legacy field for backward compatibility
+            existing.UserRating = rating20.HasValue ? (int)Math.Round(rating20.Value / 2.0) : null;
             await UpdateListAsync(Items);
-            NotifyStateChanged();
         }
     }
 

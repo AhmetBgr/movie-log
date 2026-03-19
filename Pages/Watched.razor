@@ -70,16 +70,42 @@
                                 </td>
                                 <td class="text-center">
                                     <div class="d-flex align-items-center justify-content-center">
-                                        <select class="form-select form-select-sm border-0 bg-light shadow-none fw-bold text-center rounded-pill" 
-                                                style="width: 65px; height: 32px; -webkit-appearance: none; appearance: none; cursor: pointer;"
-                                                value="@item.UserRating"
-                                                @onchange="(e) => UpdateRating(item, e)">
-                                            <option value="">-</option>
-                                            @for (int i = 10; i >= 1; i--)
-                                            {
-                                                <option value="@i">@i</option>
-                                            }
-                                        </select>
+                                        @if (WatchlistSvc.RatingSystem == RatingSystem.TenPoint)
+                                        {
+                                            <select class="form-select form-select-sm border-0 bg-light shadow-none fw-bold text-center rounded-pill" 
+                                                    style="width: 65px; height: 32px; -webkit-appearance: none; appearance: none; cursor: pointer;"
+                                                    value="@(item.Rating20 / 2)"
+                                                    @onchange="(e) => UpdateRating20(item, string.IsNullOrEmpty(e.Value?.ToString()) ? null : int.Parse(e.Value.ToString()!) * 2)">
+                                                <option value="">-</option>
+                                                @for (int i = 10; i >= 1; i--)
+                                                {
+                                                    <option value="@i">@i</option>
+                                                }
+                                            </select>
+                                        }
+                                        else if (WatchlistSvc.RatingSystem == RatingSystem.HundredPoint)
+                                        {
+                                            <input type="number" class="form-control form-control-sm border-0 bg-light shadow-none fw-bold text-center rounded-pill" 
+                                                   style="width: 65px; height: 32px;"
+                                                   min="0" max="100" step="5"
+                                                   value="@(item.Rating20 * 5)"
+                                                   @onchange="(e) => UpdateRating20(item, string.IsNullOrEmpty(e.Value?.ToString()) ? null : (int)Math.Round(int.Parse(e.Value.ToString()!) / 5.0))" />
+                                        }
+                                        else if (WatchlistSvc.RatingSystem == RatingSystem.FiveStar)
+                                        {
+                                            <select class="form-select form-select-sm border-0 bg-light shadow-none fw-bold text-center rounded-pill" 
+                                                    style="width: 90px; height: 32px; -webkit-appearance: none; appearance: none; cursor: pointer;"
+                                                    value="@item.Rating20"
+                                                    @onchange="(e) => UpdateRating20(item, string.IsNullOrEmpty(e.Value?.ToString()) ? null : int.Parse(e.Value.ToString()!))">
+                                                <option value="">-</option>
+                                                @for (int i = 10; i >= 1; i--)
+                                                {
+                                                    float starVal = i / 2.0f;
+                                                    int r20 = i * 2;
+                                                    <option value="@r20">@starVal.ToString("0.0") ⭐</option>
+                                                }
+                                            </select>
+                                        }
                                     </div>
                                 </td>
                                 <td class="text-secondary fw-medium px-3">
@@ -211,16 +237,9 @@
         CloseModal();
     }
 
-    private async Task UpdateRating(WatchlistItem item, ChangeEventArgs e)
+    private async Task UpdateRating20(WatchlistItem item, int? rating20)
     {
-        if (int.TryParse(e.Value?.ToString(), out int rating))
-        {
-            await WatchlistSvc.UpdateRatingAsync(item, rating);
-        }
-        else
-        {
-            await WatchlistSvc.UpdateRatingAsync(item, null);
-        }
+        await WatchlistSvc.UpdateRatingAsync(item, rating20);
     }
 
     private async Task ShowMovieDetails(WatchlistItem item)

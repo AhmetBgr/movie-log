@@ -3,7 +3,7 @@
 @using MyPrivateWatchlist.Models
 @inject HttpClient Http
 @inject IConfiguration Config
-@inject MyPrivateWatchlist.Services.WatchlistService Watchlist
+@inject MyPrivateWatchlist.Services.WatchlistService WatchlistSvc
 
 <PageTitle>Setup & Data</PageTitle>
 
@@ -11,6 +11,44 @@
     <h2 class="mb-4 fw-bold text-dark d-flex align-items-center">
         <i class="bi bi-gear-fill me-3 text-secondary"></i> Setup & Data Management
     </h2>
+
+    <div class="row g-4 mb-5">
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0 rounded-2 h-100">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-3 d-flex align-items-center">
+                        <i class="bi bi-gear-wide-connected me-2 text-primary"></i> Preferences
+                    </h5>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary text-uppercase mb-2">Rating System</label>
+                        <select class="form-select border-0 bg-light shadow-none" 
+                                value="@WatchlistSvc.RatingSystem"
+                                @onchange="@(e => WatchlistSvc.RatingSystem = Enum.Parse<RatingSystem>(e.Value?.ToString() ?? "TenPoint"))">
+                            <option value="@RatingSystem.TenPoint">1-10 Scale</option>
+                            <option value="@RatingSystem.HundredPoint">1-100 Scale</option>
+                            <option value="@RatingSystem.FiveStar">5 Stars (with half-steps)</option>
+                        </select>
+                        <div class="form-text small opacity-75 mt-2">
+                            Choose how you want to rate your movies. All ratings are converted automatically.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0 rounded-2 h-100 bg-primary text-white">
+                <div class="card-body p-4 d-flex flex-column justify-content-center">
+                    <h5 class="fw-bold mb-2">Import Library</h5>
+                    <p class="mb-3 small opacity-90">Upload your IMDb, Criticker, or custom CSV list to get started.</p>
+                    <InputFile id="fileInput" OnChange="HandleFileSelected" class="d-none" accept=".csv" />
+                    <label for="fileInput" class="btn btn-white text-primary border-0 rounded-pill px-4 fw-bold">
+                        <i class="bi bi-file-earmark-arrow-up me-2"></i> Select CSV File
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div class="row g-4">
         <!-- Import Section -->
@@ -141,7 +179,7 @@
                 return null;
             }
 
-            var mergedItems = new List<WatchlistItem>(Watchlist.Items);
+            var mergedItems = new List<WatchlistItem>(WatchlistSvc.Items);
             importTotal = records.Count;
             importProgress = 0;
             int importErrorCount = 0;
@@ -179,7 +217,7 @@
                 // Hydration: If ID is missing, resolve it asynchronously
                 if (string.IsNullOrEmpty(finalImdbId))
                 {
-                    finalImdbId = await Watchlist.ResolveImdbIdAsync(title, parsedYear);
+                    finalImdbId = await WatchlistSvc.ResolveImdbIdAsync(title, parsedYear);
                 }
 
                 if (!string.IsNullOrEmpty(finalImdbId))
@@ -189,14 +227,19 @@
                         continue;
                     }
 
-                    int? userRating = null;
+                    int? rating20 = null;
                     if (!string.IsNullOrEmpty(rating))
                     {
-                        var ratingDigits = new string(rating.TakeWhile(char.IsDigit).ToArray());
-                        if (int.TryParse(ratingDigits, out int pr)) {
-                            userRating = pr > 10 ? (int)Math.Round(pr / 10.0) : pr;
-                            if (userRating > 10) userRating = 10;
-                            if (userRating < 1) userRating = 1;
+                        var ratingDigits = new string(rating.TakeWhile(c => char.IsDigit(c) || c == '.').ToArray());
+                        if (double.TryParse(ratingDigits, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double pr)) {
+                            // Detect scale
+                            if (pr > 10) // Assume 1-100
+                                rating20 = (int)Math.Round(pr / 5.0);
+                            else // Assume 1-10
+                                rating20 = (int)Math.Round(pr * 2.0);
+                            
+                            if (rating20 > 20) rating20 = 20;
+                            if (rating20 < 1) rating20 = 1;
                         }
                     }
 
@@ -213,9 +256,10 @@
                         Year = year?.Trim() ?? "",
                         Director = directors?.Trim() ?? "",
                         ParsedYear = parsedYear ?? 0,
-                        Status = importAsWatched ? WatchlistStatus.Watched : WatchlistStatus.Pending,
+                        Status = WatchlistStatus.Watched,
                         DateAdded = DateTime.Now,
-                        UserRating = userRating
+                        Rating20 = rating20,
+                        UserRating = rating20.HasValue ? (int)Math.Round(rating20.Value / 2.0) : null
                     });
                     newItemsCount++;
                 }
@@ -225,7 +269,7 @@
             }
 
             if (newItemsCount > 0) {
-                await Watchlist.UpdateListAsync(mergedItems);
+                await WatchlistSvc.UpdateListAsync(mergedItems);
                 statusMessage = $"Success: Added {newItemsCount} new items. (Skipped {duplicateCount} duplicates, {importErrorCount} failures)";
             }
             else {

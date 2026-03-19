@@ -260,13 +260,9 @@
     private bool showFilters = false;
     private List<WatchlistItem> _filteredItems = new();
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         WatchlistSvc.OnStateChanged += HandleStateChanged;
-        if (!WatchlistSvc.Items.Any())
-        {
-            await WatchlistSvc.InitializeAsync();
-        }
         UpdateLocalList();
     }
 
