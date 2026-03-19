@@ -8,6 +8,7 @@ public class WatchlistService
     private readonly HttpClient _http;
     private readonly LocalStorageService _storage;
     private readonly IConfiguration _config;
+    private readonly Dictionary<string, TmdbMovie> _movieCache = new();
 
     public List<WatchlistItem> Items { get; private set; } = new();
 
@@ -26,7 +27,19 @@ public class WatchlistService
     public async Task InitializeAsync()
     {
         var saved = await _storage.GetListAsync<WatchlistItem>("my_movie_list");
-        if (saved != null) Items = saved;
+        if (saved != null) 
+        {
+            foreach (var item in saved)
+            {
+                if (item.ParsedYear == 0 && !string.IsNullOrEmpty(item.Year))
+                {
+                    var yearDigits = new string(item.Year.TakeWhile(char.IsDigit).ToArray());
+                    int.TryParse(yearDigits, out int parsed);
+                    item.ParsedYear = parsed;
+                }
+            }
+            Items = saved;
+        }
     }
 
     public async Task UpdateListAsync(List<WatchlistItem> newList)
@@ -39,31 +52,38 @@ public class WatchlistService
     {
         get
         {
+            int sYear = 0, eYear = 0;
+            bool hasStart = int.TryParse(StartYear, out sYear);
+            bool hasEnd = int.TryParse(EndYear, out eYear);
+            bool checkType = SelectedType != "All";
+            bool checkGenre = SelectedGenre != "All";
+
             return Items.Where(m =>
             {
-                bool typeMatch = SelectedType == "All" ||
-                                 m.TitleType.Equals(SelectedType, StringComparison.OrdinalIgnoreCase);
+                if (checkType && !m.TitleType.Equals(SelectedType, StringComparison.OrdinalIgnoreCase))
+                    return false;
 
-                bool genreMatch = SelectedGenre == "All" ||
-                                  m.Genres.Contains(SelectedGenre, StringComparison.OrdinalIgnoreCase);
+                if (checkGenre && !m.Genres.Contains(SelectedGenre, StringComparison.OrdinalIgnoreCase))
+                    return false;
 
-                int sYear = 0, eYear = 0;
-                bool hasStart = int.TryParse(StartYear, out sYear);
-                bool hasEnd = int.TryParse(EndYear, out eYear);
+                if (hasStart && m.ParsedYear < sYear)
+                    return false;
 
-                var yearDigits = new string(m.Year.TakeWhile(char.IsDigit).ToArray());
-                int.TryParse(yearDigits, out int itemYear);
+                if (hasEnd && m.ParsedYear > eYear)
+                    return false;
 
-                bool yearMatch = (!hasStart || itemYear >= sYear) &&
-                                 (!hasEnd || itemYear <= eYear);
-
-                return typeMatch && genreMatch && yearMatch;
+                return true;
             });
         }
     }
 
     public async Task<TmdbMovie?> GetTmdbDetailsAsync(string imdbId)
     {
+        if (_movieCache.TryGetValue(imdbId, out var cachedMovie))
+        {
+            return cachedMovie;
+        }
+
         var apiKey = _config["TmdbApiKey"];
         var url = $"https://api.themoviedb.org/3/find/{imdbId}?api_key={apiKey}&external_source=imdb_id";
 
@@ -74,7 +94,6 @@ public class WatchlistService
             if (response?.MovieResults?.Any() == true) 
             {
                 var movie = response.MovieResults.First();
-                // Add credits fetching
                 try 
                 {
                     var creditsUrl = $"https://api.themoviedb.org/3/movie/{movie.Id}/credits?api_key={apiKey}";
@@ -84,8 +103,9 @@ public class WatchlistService
                         movie.Directors = credits.Crew.Where(c => c.Job == "Director").Select(c => c.Name).Distinct().ToList();
                         movie.Actors = credits.Cast.Take(5).Select(c => c.Name).ToList();
                     }
-                } catch { } // Ignore credits error
+                } catch { } 
 
+                _movieCache[imdbId] = movie;
                 return movie;
             }
             
@@ -102,7 +122,6 @@ public class WatchlistService
                     ReleaseDate = tv.FirstAirDate
                 };
 
-                // Add credits fetching for TV
                 try 
                 {
                     var creditsUrl = $"https://api.themoviedb.org/3/tv/{tv.Id}/credits?api_key={apiKey}";
@@ -112,8 +131,9 @@ public class WatchlistService
                         movie.Directors = credits.Crew.Where(c => c.Job == "Executive Producer" || c.Job == "Director").Select(c => c.Name).Distinct().ToList();
                         movie.Actors = credits.Cast.Take(5).Select(c => c.Name).ToList();
                     }
-                } catch { } // Ignore credits error
+                } catch { } 
 
+                _movieCache[imdbId] = movie;
                 return movie;
             }
         }

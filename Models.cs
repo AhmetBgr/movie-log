@@ -9,6 +9,7 @@ public class WatchlistItem
     public string TitleType { get; set; } = null!;
     public string Year { get; set; } = null!;
     public string Genres { get; set; } = null!;
+    public int ParsedYear { get; set; }
 }
 
 public class TmdbFindResult

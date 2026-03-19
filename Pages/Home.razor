@@ -209,12 +209,17 @@
 
                 if (!string.IsNullOrEmpty(imdbId) && !string.IsNullOrEmpty(title))
                 {
+                    var cleanYear = year?.Trim() ?? "";
+                    var yearDigits = new string(cleanYear.TakeWhile(char.IsDigit).ToArray());
+                    int.TryParse(yearDigits, out int parsedYear);
+
                     tempItems.Add(new WatchlistItem {
                         ImdbId = imdbId.Trim(),
                         Title = title.Trim(),
                         TitleType = type?.Trim() ?? "",
-                        Year = year?.Trim() ?? "",
-                        Genres = genres?.Trim() ?? ""
+                        Year = cleanYear,
+                        Genres = genres?.Trim() ?? "",
+                        ParsedYear = parsedYear
                     });
                 }
             }
