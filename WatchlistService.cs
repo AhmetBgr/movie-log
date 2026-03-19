@@ -249,10 +249,10 @@ public class WatchlistService
                     try 
                     {
                         var extUrl = $"https://api.themoviedb.org/3/movie/{tmdbId}/external_ids?api_key={apiKey}";
-                        var ext = await _http.GetFromJsonAsync<dynamic>(extUrl);
-                        if (ext != null)
+                        var ext = await _http.GetFromJsonAsync<System.Text.Json.JsonElement>(extUrl);
+                        if (ext.ValueKind != System.Text.Json.JsonValueKind.Undefined && ext.TryGetProperty("imdb_id", out var imdbProp))
                         {
-                            movie.ImdbId = ext.GetProperty("imdb_id").GetString();
+                            movie.ImdbId = imdbProp.GetString();
                         }
 
                         var creditsUrl = $"https://api.themoviedb.org/3/movie/{tmdbId}/credits?api_key={apiKey}";
@@ -286,10 +286,10 @@ public class WatchlistService
                     try 
                     {
                         var extUrl = $"https://api.themoviedb.org/3/tv/{tmdbId}/external_ids?api_key={apiKey}";
-                        var ext = await _http.GetFromJsonAsync<dynamic>(extUrl);
-                        if (ext != null)
+                        var ext = await _http.GetFromJsonAsync<System.Text.Json.JsonElement>(extUrl);
+                        if (ext.ValueKind != System.Text.Json.JsonValueKind.Undefined && ext.TryGetProperty("imdb_id", out var imdbProp))
                         {
-                            movie.ImdbId = ext.GetProperty("imdb_id").GetString();
+                            movie.ImdbId = imdbProp.GetString();
                         }
 
                         var creditsUrl = $"https://api.themoviedb.org/3/tv/{tmdbId}/credits?api_key={apiKey}";

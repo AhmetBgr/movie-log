@@ -170,7 +170,16 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await Watchlist.InitializeAsync();
+        Watchlist.OnStateChanged += StateHasChanged;
+        if (!Watchlist.Items.Any())
+        {
+            await Watchlist.InitializeAsync();
+        }
+    }
+
+    public void Dispose()
+    {
+        Watchlist.OnStateChanged -= StateHasChanged;
     }
 
     private async Task PickRandomMovie()
@@ -218,7 +227,7 @@
             var tempItems = new List<WatchlistItem>();
 
             await csv.ReadAsync();
-            csv.ReadHeader(); // This is synchronous but usually fine once headers are read, but let's be safe.
+            csv.ReadHeader(); 
             
             while (await csv.ReadAsync())
             {
