@@ -12,10 +12,46 @@ public class WatchlistService
 
     public List<WatchlistItem> Items { get; private set; } = new();
 
-    public string SelectedType { get; set; } = "All";
-    public string SelectedGenre { get; set; } = "All";
-    public string StartYear { get; set; } = "";
-    public string EndYear { get; set; } = "";
+    private string _selectedType = "All";
+    public string SelectedType 
+    { 
+        get => _selectedType; 
+        set { _selectedType = value; NotifyStateChanged(); } 
+    }
+
+    private string _selectedGenre = "All";
+    public string SelectedGenre 
+    { 
+        get => _selectedGenre; 
+        set { _selectedGenre = value; NotifyStateChanged(); } 
+    }
+
+    private string _startYear = "";
+    public string StartYear 
+    { 
+        get => _startYear; 
+        set { _startYear = value; NotifyStateChanged(); } 
+    }
+
+    private string _endYear = "";
+    public string EndYear 
+    { 
+        get => _endYear; 
+        set { _endYear = value; NotifyStateChanged(); } 
+    }
+
+    private string _searchQuery = "";
+    public string SearchQuery 
+    { 
+        get => _searchQuery; 
+        set { _searchQuery = value; NotifyStateChanged(); } 
+    }
+
+    public string SortColumn { get; set; } = "Title";
+    public bool SortDescending { get; set; } = false;
+
+    public event Action? OnStateChanged;
+    public void NotifyStateChanged() => OnStateChanged?.Invoke();
 
     public WatchlistService(HttpClient http, LocalStorageService storage, IConfiguration config)
     {
@@ -57,8 +93,9 @@ public class WatchlistService
             bool hasEnd = int.TryParse(EndYear, out eYear);
             bool checkType = SelectedType != "All";
             bool checkGenre = SelectedGenre != "All";
+            bool checkSearch = !string.IsNullOrWhiteSpace(SearchQuery);
 
-            return Items.Where(m =>
+            var query = Items.Where(m =>
             {
                 if (checkType && !m.TitleType.Equals(SelectedType, StringComparison.OrdinalIgnoreCase))
                     return false;
@@ -72,9 +109,33 @@ public class WatchlistService
                 if (hasEnd && m.ParsedYear > eYear)
                     return false;
 
+                if (checkSearch && !m.Title.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase))
+                    return false;
+
                 return true;
             });
+
+            return SortColumn switch
+            {
+                "Year" => SortDescending ? query.OrderByDescending(m => m.ParsedYear) : query.OrderBy(m => m.ParsedYear),
+                "Type" => SortDescending ? query.OrderByDescending(m => m.TitleType) : query.OrderBy(m => m.TitleType),
+                _ => SortDescending ? query.OrderByDescending(m => m.Title) : query.OrderBy(m => m.Title)
+            };
         }
+    }
+
+    public void ToggleSort(string column)
+    {
+        if (SortColumn == column)
+        {
+            SortDescending = !SortDescending;
+        }
+        else
+        {
+            SortColumn = column;
+            SortDescending = false;
+        }
+        NotifyStateChanged();
     }
 
     public async Task<TmdbMovie?> GetTmdbDetailsAsync(string imdbId)
