@@ -220,6 +220,11 @@ tr:hover .show-on-row-hover {
     opacity: 1;
 }
 
+/* --- Row Striping --- */
+.table tbody tr:nth-child(even) > td {
+    background-color: rgba(0, 0, 0, 0.05) !important;
+}
+
 .show-on-row-hover:focus {
     opacity: 1;
 }
