@@ -64,6 +64,10 @@
                                 <td style="cursor: pointer;" class="px-4" @onclick="() => ShowMovieDetails(item)">
                                     <span class="fw-bold text-dark" style="transition: opacity 0.2s;" onmouseover="this.style.opacity='0.6'" onmouseout="this.style.opacity='1'">
                                         @item.DisplayTitle
+                                        @if (!string.IsNullOrEmpty(item.DisplayOriginalTitle))
+                                        {
+                                            <span class="text-secondary small fw-normal ms-2">(@item.DisplayOriginalTitle)</span>
+                                        }
                                     </span>
                                 </td>
                                 <td class="text-secondary fw-medium">
@@ -85,20 +89,9 @@
         </div>
     }
 
-    @if (isModalLoading)
+    @if (selectedMovie != null && selectedItem != null)
     {
-        <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.85);">
-            <div class="modal-dialog modal-dialog-centered justify-content-center">
-                <div class="spinner-border text-light" style="width: 3rem; height: 3rem;" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-            </div>
-        </div>
-    }
-
-    @if (selectedMovie != null && !isModalLoading && selectedItem != null)
-    {
-        <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.85);" @onclick="CloseModal">
+        <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.85);" @onclick="CloseModal">
             <div class="modal-dialog modal-dialog-centered modal-xl" @onclick:stopPropagation="true">
                 <div class="modal-content bg-transparent border-0">
                     <div class="card bg-white text-dark shadow-lg border-0 rounded-2 overflow-hidden">
@@ -157,7 +150,17 @@
                                     }
                                     
                                     <p class="card-text fs-6 text-secondary flex-grow-1" style="line-height: 1.7;">
-                                        @(string.IsNullOrEmpty(selectedMovie.Overview) ? "No overview available." : selectedMovie.Overview)
+                                        @if (string.IsNullOrEmpty(selectedMovie.Overview) && !selectedMovie.Directors.Any())
+                                        {
+                                            <div class="d-flex align-items-center gap-2 text-secondary">
+                                                <div class="spinner-border spinner-border-sm" role="status"></div>
+                                                <span>Loading full details...</span>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            @(string.IsNullOrEmpty(selectedMovie.Overview) ? "No overview available." : selectedMovie.Overview)
+                                        }
                                     </p>
                                     
                                     <div class="mt-4 pt-4 border-top">
@@ -180,7 +183,6 @@
     public string Query { get; set; } = "";
 
     private bool isLoading = false;
-    private bool isModalLoading = false;
     private List<TmdbSearchResultItem>? results;
     
     private TmdbMovie? selectedMovie;
@@ -220,7 +222,6 @@
 
     private async Task HandleAddClick(TmdbSearchResultItem item)
     {
-        isModalLoading = true;
         var movie = await WatchlistSvc.GetTmdbDetailsByIdAsync(item.Id, item.MediaType);
         if (movie != null && !string.IsNullOrEmpty(movie.ImdbId))
         {
@@ -228,13 +229,13 @@
             {
                 ImdbId = movie.ImdbId,
                 Title = movie.Title,
+                OriginalTitle = movie.OriginalTitle != movie.Title ? movie.OriginalTitle : null,
                 TitleType = item.MediaType == "movie" ? "Movie" : "TV Series",
                 Year = movie.ReleaseDate ?? "",
                 ParsedYear = int.TryParse(movie.ReleaseDate?.Split('-')[0], out var y) ? y : 0,
                 Genres = "" // We'd need to fetch genre names if we wanted this perfectly, but empty is safe for now
             });
         }
-        isModalLoading = false;
         StateHasChanged();
     }
 
@@ -246,6 +247,7 @@
             {
                 ImdbId = selectedMovie.ImdbId,
                 Title = selectedMovie.Title,
+                OriginalTitle = selectedMovie.OriginalTitle != selectedMovie.Title ? selectedMovie.OriginalTitle : null,
                 TitleType = selectedItem.MediaType == "movie" ? "Movie" : "TV Series",
                 Year = selectedMovie.ReleaseDate ?? "",
                 ParsedYear = int.TryParse(selectedMovie.ReleaseDate?.Split('-')[0], out var y) ? y : 0,
@@ -281,9 +283,22 @@
     private async Task ShowMovieDetails(TmdbSearchResultItem item)
     {
         selectedItem = item;
-        isModalLoading = true;
-        selectedMovie = await WatchlistSvc.GetTmdbDetailsByIdAsync(item.Id, item.MediaType);
-        isModalLoading = false;
+        // Show skeleton instantly
+        selectedMovie = new TmdbMovie
+        {
+            Title = item.DisplayTitle,
+            OriginalTitle = item.OriginalTitle ?? item.OriginalName,
+            ReleaseDate = item.DisplayDate,
+            PosterPath = item.PosterPath
+        };
+        StateHasChanged();
+
+        var fullDetails = await WatchlistSvc.GetTmdbDetailsByIdAsync(item.Id, item.MediaType);
+        if (fullDetails != null && selectedItem == item)
+        {
+            selectedMovie = fullDetails;
+            StateHasChanged();
+        }
     }
 
     private void CloseModal()

@@ -9,7 +9,18 @@ public class WatchlistItem
     public string TitleType { get; set; } = null!;
     public string Year { get; set; } = null!;
     public string Genres { get; set; } = null!;
+    public string? OriginalTitle { get; set; }
     public int ParsedYear { get; set; }
+
+    public string? DisplayOriginalTitle 
+    {
+        get
+        {
+            if (string.IsNullOrEmpty(OriginalTitle) || string.Equals(OriginalTitle.Trim(), Title.Trim(), StringComparison.OrdinalIgnoreCase))
+                return null;
+            return OriginalTitle.Trim();
+        }
+    }
 }
 
 public class TmdbFindResult
@@ -59,6 +70,9 @@ public class TmdbTvResult
 
     [JsonPropertyName("name")]
     public string Name { get; set; } = "";
+
+    [JsonPropertyName("original_name")]
+    public string? OriginalName { get; set; }
 
     [JsonPropertyName("overview")]
     public string Overview { get; set; } = "";
@@ -112,8 +126,14 @@ public class TmdbSearchResultItem
     [JsonPropertyName("name")]
     public string? Name { get; set; } 
 
+    [JsonPropertyName("original_name")]
+    public string? OriginalName { get; set; }
+
     [JsonPropertyName("title")]
     public string? Title { get; set; } 
+
+    [JsonPropertyName("original_title")]
+    public string? OriginalTitle { get; set; }
 
     [JsonPropertyName("media_type")]
     public string MediaType { get; set; } = "";
@@ -131,6 +151,19 @@ public class TmdbSearchResultItem
     public List<int>? GenreIds { get; set; }
 
     public string DisplayTitle => Title ?? Name ?? "Unknown";
+
+    public string? DisplayOriginalTitle 
+    {
+        get
+        {
+            var original = (OriginalTitle ?? OriginalName)?.Trim();
+            var display = DisplayTitle?.Trim();
+            if (string.IsNullOrEmpty(original) || string.Equals(original, display, StringComparison.OrdinalIgnoreCase))
+                return null;
+            return original;
+        }
+    }
+
     public string DisplayDate => ReleaseDate ?? FirstAirDate ?? "Unknown Date";
     public string FullPosterUrl => string.IsNullOrEmpty(PosterPath) ? "https://via.placeholder.com/300x450?text=No+Poster" : $"https://image.tmdb.org/t/p/w300{PosterPath}";
 }

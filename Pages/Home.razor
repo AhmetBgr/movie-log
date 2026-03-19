@@ -74,6 +74,10 @@
                     <div class="card-body p-5 d-flex flex-column h-100">
                         <h2 class="card-title fw-bolder text-dark mb-1">
                             <a href="https://www.imdb.com/title/@lastPickedImdbId/" target="_blank" class="text-decoration-none text-dark" onmouseover="this.style.opacity='0.6'" onmouseout="this.style.opacity='1'">@selectedMovie.Title</a>
+                            @if (!string.IsNullOrEmpty(selectedMovie.OriginalTitle) && selectedMovie.OriginalTitle != selectedMovie.Title)
+                            {
+                                <span class="text-muted fs-5 fw-normal ms-2" style="opacity: 0.7;">(@selectedMovie.OriginalTitle)</span>
+                            }
                         </h2>
                         
                         @if (!string.IsNullOrEmpty(selectedMovie.ReleaseDate))
@@ -133,7 +137,7 @@
 
     @if (showBigPoster && selectedMovie != null)
     {
-        <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.85);" @onclick="TogglePoster">
+        <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.85);" @onclick="TogglePoster">
             <div class="modal-dialog modal-dialog-centered modal-lg">
                 <div class="modal-content bg-transparent border-0 text-center">
                     <img src="@selectedMovie.FullPosterUrl" class="img-fluid mx-auto rounded shadow-lg" style="max-height: 90vh;" alt="Large Poster" />

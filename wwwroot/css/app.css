@@ -117,7 +117,6 @@ code {
 /* --- Hover Actions --- */
 .show-on-row-hover {
     opacity: 0;
-    transition: opacity 0.2s ease-in-out;
 }
 
 tr:hover .show-on-row-hover {

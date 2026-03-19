@@ -86,6 +86,10 @@
                                 <td style="cursor: pointer;" class="px-4" @onclick="() => ShowMovieDetails(item)">
                                     <span class="fw-bold text-dark" style="transition: opacity 0.2s;" onmouseover="this.style.opacity='0.6'" onmouseout="this.style.opacity='1'">
                                         @item.Title
+                                        @if (!string.IsNullOrEmpty(item.DisplayOriginalTitle))
+                                        {
+                                            <span class="text-secondary small fw-normal ms-2">(@item.DisplayOriginalTitle)</span>
+                                        }
                                     </span>
                                 </td>
                                 <td class="text-secondary fw-medium">@item.Year</td>
@@ -103,20 +107,9 @@
         </div>
     }
 
-    @if (isLoading)
+    @if (selectedMovie != null)
     {
-        <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.85);">
-            <div class="modal-dialog modal-dialog-centered justify-content-center">
-                <div class="spinner-border text-light" style="width: 3rem; height: 3rem;" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-            </div>
-        </div>
-    }
-
-    @if (selectedMovie != null && !isLoading)
-    {
-        <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.85);" @onclick="CloseModal">
+        <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.85);" @onclick="CloseModal">
             <div class="modal-dialog modal-dialog-centered modal-xl" @onclick:stopPropagation="true">
                 <div class="modal-content bg-transparent border-0">
                     <div class="card bg-white text-dark shadow-lg border-0 rounded-2 overflow-hidden">
@@ -178,7 +171,17 @@
                                     }
                                     
                                     <p class="card-text fs-6 text-secondary flex-grow-1" style="line-height: 1.7;">
-                                        @(string.IsNullOrEmpty(selectedMovie.Overview) ? "No overview available." : selectedMovie.Overview)
+                                        @if (string.IsNullOrEmpty(selectedMovie.Overview) && string.IsNullOrEmpty(selectedMovie.Directors.FirstOrDefault()))
+                                        {
+                                            <div class="d-flex align-items-center gap-2 text-secondary">
+                                                <div class="spinner-border spinner-border-sm" role="status"></div>
+                                                <span>Loading full details...</span>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            @(string.IsNullOrEmpty(selectedMovie.Overview) ? "No overview available." : selectedMovie.Overview)
+                                        }
                                     </p>
                                     
                                     <div class="mt-4 pt-4 border-top">
@@ -199,7 +202,6 @@
 @code {
     private TmdbMovie? selectedMovie;
     private WatchlistItem? selectedItem;
-    private bool isLoading = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -236,9 +238,22 @@
     private async Task ShowMovieDetails(WatchlistItem item)
     {
         selectedItem = item;
-        isLoading = true;
-        selectedMovie = await WatchlistSvc.GetTmdbDetailsAsync(item.ImdbId);
-        isLoading = false;
+        // Show basic info instantly
+        selectedMovie = new TmdbMovie 
+        { 
+            Title = item.Title, 
+            OriginalTitle = item.OriginalTitle,
+            ReleaseDate = item.Year
+        };
+        StateHasChanged();
+
+        // Load full details in background
+        var fullDetails = await WatchlistSvc.GetTmdbDetailsAsync(item.ImdbId);
+        if (fullDetails != null && selectedItem == item) // Ensure we haven't switched movies
+        {
+            selectedMovie = fullDetails;
+            StateHasChanged();
+        }
     }
 
     private async Task ShowRandomMovie()

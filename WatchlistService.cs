@@ -203,6 +203,7 @@ public class WatchlistService
                 {
                     Id = tv.Id,
                     Title = tv.Name,
+                    OriginalTitle = tv.OriginalName,
                     Overview = tv.Overview,
                     PosterPath = tv.PosterPath,
                     VoteAverage = tv.VoteAverage,
@@ -272,6 +273,7 @@ public class WatchlistService
                     {
                         Id = tv.Id,
                         Title = tv.Name,
+                        OriginalTitle = tv.OriginalName,
                         Overview = tv.Overview,
                         PosterPath = tv.PosterPath,
                         VoteAverage = tv.VoteAverage,
