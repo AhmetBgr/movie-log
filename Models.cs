@@ -33,6 +33,8 @@ public class WatchlistItem
     public int? UserRating { get; set; }
     public int? Rating20 { get; set; }
 
+    public string? Overview { get; set; }
+
     public string? DisplayOriginalTitle 
     {
         get

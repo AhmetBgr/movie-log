@@ -53,7 +53,7 @@
                         </tr>
                     </thead>
                     <tbody class="border-top-0">
-                        <Virtualize Items="_filteredItems" Context="item" ItemSize="60" OverscanCount="20">
+                        <Virtualize Items="_filteredItems" Context="item" ItemSize="250" OverscanCount="20">
                             <tr @key="item">
                                 <td class="text-center px-3">
                                     <div class="d-flex align-items-center justify-content-center gap-1">
@@ -69,14 +69,27 @@
                                         </button>
                                     </div>
                                 </td>
-                                <td style="cursor: pointer;" class="px-3" @onclick="() => WatchlistSvc.ShowDetailsAsync(item)">
-                                    <span class="fw-bold text-dark" style="transition: opacity 0.2s;" onmouseover="this.style.opacity='0.6'" onmouseout="this.style.opacity='1'">
-                                        @item.Title
-                                    </span>
-                                    @if (item.DisplayOriginalTitle != null)
-                                    {
-                                        <span class="text-secondary small ms-2 opacity-50 fw-normal">(@item.DisplayOriginalTitle)</span>
-                                    }
+                                <td style="cursor: pointer;" class="px-3 py-3" @onclick="() => WatchlistSvc.ShowDetailsAsync(item)">
+                                    <div class="d-flex flex-column gap-1">
+                                        <span class="fw-bold text-dark" style="transition: opacity 0.2s;" onmouseover="this.style.opacity='0.6'" onmouseout="this.style.opacity='1'">
+                                            @item.Title
+                                        </span>
+                                        @if (item.DisplayOriginalTitle != null || !string.IsNullOrEmpty(item.Overview))
+                                        {
+                                            <div class="text-secondary small opacity-75 d-flex flex-column">
+                                                @if (item.DisplayOriginalTitle != null)
+                                                {
+                                                    <div class="fw-normal mb-1">(@item.DisplayOriginalTitle)</div>
+                                                }
+                                                @if (!string.IsNullOrEmpty(item.Overview))
+                                                {
+                                                    <div style="max-width: 650px; line-height: 1.5; white-space: normal; overflow: visible;">
+                                                        @item.Overview
+                                                    </div>
+                                                }
+                                            </div>
+                                        }
+                                    </div>
                                 </td>
                                 <td class="text-secondary small px-3">
                                     @item.Director

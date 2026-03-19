@@ -563,7 +563,8 @@ public class WatchlistService
         { 
             Title = item.Title, 
             OriginalTitle = item.OriginalTitle,
-            ReleaseDate = item.Year 
+            ReleaseDate = item.Year,
+            Overview = item.Overview ?? ""
         };
         IsModalOpen = true;
         IsLoadingDetails = true;
@@ -573,6 +574,18 @@ public class WatchlistService
         if (details != null && SelectedItem == item)
         {
             SelectedMovie = details;
+            
+            // Persist the overview if this is a real item in our collection
+            if (!string.IsNullOrEmpty(details.Overview) && Items.Any(i => i.ImdbId == item.ImdbId))
+            {
+                var listItem = Items.First(i => i.ImdbId == item.ImdbId);
+                if (listItem.Overview != details.Overview)
+                {
+                    listItem.Overview = details.Overview;
+                    await UpdateListAsync(Items);
+                }
+            }
+            
             IsLoadingDetails = false;
             NotifyStateChanged(fullRefresh: false);
         }
