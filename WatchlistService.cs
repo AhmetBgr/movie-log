@@ -143,4 +143,65 @@ public class WatchlistService
         }
         return null;
     }
+
+    public async Task<TmdbMovie?> GetTmdbDetailsByIdAsync(int tmdbId, string mediaType)
+    {
+        var apiKey = _config["TmdbApiKey"];
+        try
+        {
+            if (mediaType == "movie")
+            {
+                var movieUrl = $"https://api.themoviedb.org/3/movie/{tmdbId}?api_key={apiKey}";
+                var movie = await _http.GetFromJsonAsync<TmdbMovie>(movieUrl);
+                if (movie != null)
+                {
+                    try 
+                    {
+                        var creditsUrl = $"https://api.themoviedb.org/3/movie/{tmdbId}/credits?api_key={apiKey}";
+                        var credits = await _http.GetFromJsonAsync<TmdbCredits>(creditsUrl);
+                        if (credits != null)
+                        {
+                            movie.Directors = credits.Crew.Where(c => c.Job == "Director").Select(c => c.Name).Distinct().ToList();
+                            movie.Actors = credits.Cast.Take(5).Select(c => c.Name).ToList();
+                        }
+                    } catch { } 
+                    return movie;
+                }
+            }
+            else if (mediaType == "tv")
+            {
+                var tvUrl = $"https://api.themoviedb.org/3/tv/{tmdbId}?api_key={apiKey}";
+                var tv = await _http.GetFromJsonAsync<TmdbTvResult>(tvUrl);
+                if (tv != null)
+                {
+                    var movie = new TmdbMovie
+                    {
+                        Id = tv.Id,
+                        Title = tv.Name,
+                        Overview = tv.Overview,
+                        PosterPath = tv.PosterPath,
+                        VoteAverage = tv.VoteAverage,
+                        ReleaseDate = tv.FirstAirDate
+                    };
+
+                    try 
+                    {
+                        var creditsUrl = $"https://api.themoviedb.org/3/tv/{tmdbId}/credits?api_key={apiKey}";
+                        var credits = await _http.GetFromJsonAsync<TmdbCredits>(creditsUrl);
+                        if (credits != null)
+                        {
+                            movie.Directors = credits.Crew.Where(c => c.Job == "Executive Producer" || c.Job == "Director").Select(c => c.Name).Distinct().ToList();
+                            movie.Actors = credits.Cast.Take(5).Select(c => c.Name).ToList();
+                        }
+                    } catch { } 
+                    return movie;
+                }
+            }
+        }
+        catch (Exception ex)
+        { 
+            Console.WriteLine($"API Error fetching TMDB ID {tmdbId}: {ex.Message}");
+        }
+        return null;
+    }
 }

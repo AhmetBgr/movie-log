@@ -2,10 +2,11 @@
 @using MyPrivateWatchlist.Models
 @inject HttpClient Http
 @inject IConfiguration Config
+@inject MyPrivateWatchlist.Services.WatchlistService WatchlistSvc
 
 <PageTitle>Search Results</PageTitle>
 
-<div class="container mt-4">
+<div class="container-fluid mt-4">
     <h2 class="mb-4 fw-bold text-dark border-bottom pb-3">Search Results for "@Uri.UnescapeDataString(Query)"</h2>
 
     @if (isLoading)
@@ -24,28 +25,123 @@
     }
     else if (results != null)
     {
-        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4 mb-5">
-            @foreach (var item in results.Where(r => r.MediaType == "movie" || r.MediaType == "tv"))
-            {
-                <div class="col">
-                    <div class="card h-100 shadow-sm border-0 rounded-2 overflow-hidden bg-white" style="transition: transform 0.2s ease;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
-                        <img src="@item.FullPosterUrl" class="card-img-top bg-dark px-2 py-2" alt="Poster" style="height: 350px; object-fit: contain;" />
-                        <div class="card-body d-flex flex-column">
-                            <h5 class="card-title fw-bold text-dark mb-1">
-                                <a href="https://www.themoviedb.org/@(item.MediaType)/@item.Id" target="_blank" class="text-decoration-none text-dark">
-                                    @item.DisplayTitle
-                                </a>
-                            </h5>
-                            <div class="mt-auto pt-3">
-                                <span class="badge rounded-pill @(item.MediaType == "movie" ? "bg-secondary text-white" : "bg-light text-dark border") mb-2">
-                                    @(item.MediaType == "movie" ? "Movie" : "TV Series")
-                                </span>
-                                <p class="card-text text-secondary small fw-medium text-uppercase tracking-wide mb-0">Released: @item.DisplayDate</p>
+        <div class="card shadow border-0 overflow-hidden rounded-2">
+            <div class="card-body p-0 table-responsive bg-white" style="max-height: 85vh; overflow-y: auto;">
+                <table class="table table-hover align-middle mb-0 border-light">
+                    <thead class="bg-light text-secondary fw-semibold" style="position: sticky; top: 0; z-index: 1;">
+                        <tr>
+                            <th scope="col" style="width: 55%;" class="border-bottom py-3 px-4">
+                                Title <span class="badge bg-secondary text-white shadow-sm fw-normal ms-2 rounded-2 px-2 py-1">@results.Count(r => r.MediaType == "movie" || r.MediaType == "tv") Total Items</span>
+                            </th>
+                            <th scope="col" style="width: 15%;" class="border-bottom py-3">Type</th>
+                            <th scope="col" style="width: 15%;" class="border-bottom py-3">Year</th>
+                            <th scope="col" style="width: 15%; text-align: center;" class="border-bottom py-3 px-4">Links</th>
+                        </tr>
+                    </thead>
+                    <tbody class="border-top-0">
+                        @foreach (var item in results.Where(r => r.MediaType == "movie" || r.MediaType == "tv"))
+                        {
+                            <tr>
+                                <td style="cursor: pointer;" class="px-4" @onclick="() => ShowMovieDetails(item)">
+                                    <span class="fw-bold text-dark" style="transition: opacity 0.2s;" onmouseover="this.style.opacity='0.6'" onmouseout="this.style.opacity='1'">
+                                        @item.DisplayTitle
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge rounded-pill @(item.MediaType == "movie" ? "bg-secondary text-white" : "bg-light text-dark border")">
+                                        @(item.MediaType == "movie" ? "Movie" : "TV Series")
+                                    </span>
+                                </td>
+                                <td class="text-secondary fw-medium">
+                                    @(item.DisplayDate.Length >= 4 ? item.DisplayDate.Substring(0,4) : item.DisplayDate)
+                                </td>
+                                <td class="text-center px-4">
+                                    <a href="https://www.themoviedb.org/@item.MediaType/@item.Id" target="_blank" class="btn btn-sm btn-outline-secondary rounded-pill px-3 shadow-none">
+                                        TMDB <i class="bi bi-box-arrow-up-right ms-1"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+
+    @if (isModalLoading)
+    {
+        <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.85);">
+            <div class="modal-dialog modal-dialog-centered justify-content-center">
+                <div class="spinner-border text-light" style="width: 3rem; height: 3rem;" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (selectedMovie != null && !isModalLoading && selectedItem != null)
+    {
+        <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.85);" @onclick="CloseModal">
+            <div class="modal-dialog modal-dialog-centered modal-lg" @onclick:stopPropagation="true">
+                <div class="modal-content bg-transparent border-0">
+                    <div class="card bg-white text-dark shadow-lg border-0 rounded-2 overflow-hidden">
+                        <div class="row g-0">
+                            <div class="col-md-4 text-center p-0 bg-dark d-flex align-items-center justify-content-center">
+                                <img src="@selectedMovie.FullPosterUrl" class="img-fluid px-2 py-2" alt="Poster" style="object-fit: contain; max-height: 100%; width: 100%;" />
+                            </div>
+                            <div class="col-md-8 position-relative">
+                                <button type="button" class="btn-close position-absolute top-0 end-0 m-4" aria-label="Close" @onclick="CloseModal"></button>
+                                <div class="card-body p-5 d-flex flex-column h-100">
+                                    <h2 class="card-title fw-bolder text-dark mb-1 pe-4">
+                                        <a href="https://www.themoviedb.org/@selectedItem.MediaType/@selectedItem.Id" target="_blank" class="text-decoration-none text-dark" onmouseover="this.style.opacity='0.6'" onmouseout="this.style.opacity='1'">@selectedMovie.Title</a>
+                                    </h2>
+                                    
+                                    @if (!string.IsNullOrEmpty(selectedMovie.ReleaseDate))
+                                    {
+                                        <p class="text-secondary fw-semibold small mb-4 text-uppercase tracking-wide">Released: @selectedMovie.ReleaseDate</p>
+                                    }
+
+                                    <div class="mb-4">
+                                        <span class="badge bg-dark text-white fs-6 px-3 py-2 rounded-pill shadow-sm me-2">
+                                            @selectedMovie.VoteAverage.ToString("0.0") / 10
+                                        </span>
+                                    </div>
+
+                                    @if (selectedMovie.Directors.Any())
+                                    {
+                                        <p class="mb-2 text-dark fs-6"><strong>Director:</strong> 
+                                            @foreach (var dir in selectedMovie.Directors)
+                                            {
+                                                <a href="https://www.themoviedb.org/search/person?query=@System.Uri.EscapeDataString(dir)" target="_blank" class="text-decoration-none text-secondary fw-semibold me-2">@dir</a>
+                                            }
+                                        </p>
+                                    }
+
+                                    @if (selectedMovie.Actors.Any())
+                                    {
+                                        <p class="mb-4 text-dark fs-6"><strong>Cast:</strong> 
+                                            @foreach (var actor in selectedMovie.Actors)
+                                            {
+                                                <a href="https://www.themoviedb.org/search/person?query=@System.Uri.EscapeDataString(actor)" target="_blank" class="text-decoration-none text-secondary fw-semibold me-2">@actor</a>
+                                            }
+                                        </p>
+                                    }
+                                    
+                                    <p class="card-text fs-6 text-secondary flex-grow-1" style="line-height: 1.7;">
+                                        @(string.IsNullOrEmpty(selectedMovie.Overview) ? "No overview available." : selectedMovie.Overview)
+                                    </p>
+                                    
+                                    <div class="mt-4 pt-4 border-top">
+                                        <a href="https://www.themoviedb.org/@selectedItem.MediaType/@selectedItem.Id" target="_blank" class="btn btn-dark btn-lg px-5 rounded-pill shadow-sm w-100 fw-semibold">
+                                            Open on TMDB
+                                        </a>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            }
+            </div>
         </div>
     }
 </div>
@@ -55,14 +151,18 @@
     public string Query { get; set; } = "";
 
     private bool isLoading = false;
+    private bool isModalLoading = false;
     private List<TmdbSearchResultItem>? results;
+    
+    private TmdbMovie? selectedMovie;
+    private TmdbSearchResultItem? selectedItem;
 
     protected override async Task OnParametersSetAsync()
     {
         if (string.IsNullOrWhiteSpace(Query)) return;
 
         isLoading = true;
-        results = null; // Clear previous results immediately layout-wise
+        results = null;
 
         try
         {
@@ -75,11 +175,25 @@
         catch (Exception ex)
         {
             Console.WriteLine($"Search API Error: {ex.Message}");
-            results = new(); // empty list means no results
+            results = new();
         }
         finally
         {
             isLoading = false;
         }
+    }
+
+    private async Task ShowMovieDetails(TmdbSearchResultItem item)
+    {
+        selectedItem = item;
+        isModalLoading = true;
+        selectedMovie = await WatchlistSvc.GetTmdbDetailsByIdAsync(item.Id, item.MediaType);
+        isModalLoading = false;
+    }
+
+    private void CloseModal()
+    {
+        selectedMovie = null;
+        selectedItem = null;
     }
 }
