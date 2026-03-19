@@ -127,7 +127,25 @@ public class TmdbSearchResultItem
     [JsonPropertyName("first_air_date")]
     public string? FirstAirDate { get; set; }
 
+    [JsonPropertyName("genre_ids")]
+    public List<int>? GenreIds { get; set; }
+
     public string DisplayTitle => Title ?? Name ?? "Unknown";
     public string DisplayDate => ReleaseDate ?? FirstAirDate ?? "Unknown Date";
     public string FullPosterUrl => string.IsNullOrEmpty(PosterPath) ? "https://via.placeholder.com/300x450?text=No+Poster" : $"https://image.tmdb.org/t/p/w300{PosterPath}";
+}
+
+public class TmdbGenre
+{
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = "";
+}
+
+public class TmdbGenreListResponse
+{
+    [JsonPropertyName("genres")]
+    public List<TmdbGenre> Genres { get; set; } = new();
 }

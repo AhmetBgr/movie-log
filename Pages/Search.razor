@@ -30,19 +30,20 @@
                 <table class="table table-hover align-middle mb-0 border-light">
                     <thead class="bg-light text-secondary fw-semibold" style="position: sticky; top: 0; z-index: 1;">
                         <tr>
-                            <th scope="col" style="width: 10%; text-align: center;" class="border-bottom py-3 px-4">Add</th>
-                            <th scope="col" style="width: 60%;" class="border-bottom py-3 px-4">
+                            <th scope="col" style="width: 5%; text-align: center;" class="border-bottom py-3 px-4"></th>
+                            <th scope="col" style="width: 45%;" class="border-bottom py-3 px-4">
                                 Title <span class="badge bg-secondary text-white shadow-sm fw-normal ms-2 rounded-2 px-2 py-1">@results.Count(r => r.MediaType == "movie" || r.MediaType == "tv") Total Items</span>
                             </th>
                             <th scope="col" style="width: 15%;" class="border-bottom py-3">Year</th>
                             <th scope="col" style="width: 15%;" class="border-bottom py-3">Type</th>
+                            <th scope="col" style="width: 20%;" class="border-bottom py-3">Genres</th>
                         </tr>
                     </thead>
                     <tbody class="border-top-0">
                         @foreach (var item in results.Where(r => r.MediaType == "movie" || r.MediaType == "tv"))
                         {
                             <tr>
-                                <td class="text-center px-4">
+                                <td class="text-center px-3">
                                     @if (!IsAlreadyInWatchlist(item))
                                     {
                                         <button class="btn btn-sm btn-outline-dark rounded-circle shadow-none p-1 d-inline-flex align-items-center justify-content-center show-on-row-hover" 
@@ -72,6 +73,9 @@
                                     <span class="badge rounded-pill @(item.MediaType == "movie" ? "bg-secondary text-white" : "bg-light text-dark border")">
                                         @(item.MediaType == "movie" ? "Movie" : "TV Series")
                                     </span>
+                                </td>
+                                <td class="text-secondary small">
+                                    @WatchlistSvc.GetGenreNames(item.GenreIds)
                                 </td>
                             </tr>
                         }

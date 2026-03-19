@@ -9,6 +9,7 @@ public class WatchlistService
     private readonly LocalStorageService _storage;
     private readonly IConfiguration _config;
     private readonly Dictionary<string, TmdbMovie> _movieCache = new();
+    private Dictionary<int, string> _genreMap = new();
 
     public List<WatchlistItem> Items { get; private set; } = new();
 
@@ -76,6 +77,31 @@ public class WatchlistService
             }
             Items = saved;
         }
+
+        await FetchGenreMapAsync();
+    }
+
+    private async Task FetchGenreMapAsync()
+    {
+        var apiKey = _config["TmdbApiKey"];
+        try
+        {
+            var movieGenres = await _http.GetFromJsonAsync<TmdbGenreListResponse>($"https://api.themoviedb.org/3/genre/movie/list?api_key={apiKey}");
+            var tvGenres = await _http.GetFromJsonAsync<TmdbGenreListResponse>($"https://api.themoviedb.org/3/genre/tv/list?api_key={apiKey}");
+
+            if (movieGenres != null)
+                foreach (var g in movieGenres.Genres) _genreMap[g.Id] = g.Name;
+            
+            if (tvGenres != null)
+                foreach (var g in tvGenres.Genres) _genreMap[g.Id] = g.Name;
+        }
+        catch { }
+    }
+
+    public string GetGenreNames(List<int>? ids)
+    {
+        if (ids == null || !ids.Any()) return "";
+        return string.Join(", ", ids.Select(id => _genreMap.TryGetValue(id, out var name) ? name : "").Where(n => !string.IsNullOrEmpty(n)));
     }
 
     public async Task UpdateListAsync(List<WatchlistItem> newList)
