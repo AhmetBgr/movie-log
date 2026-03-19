@@ -1,4 +1,4 @@
-﻿using MyPrivateWatchlist.Models;
+using MyPrivateWatchlist.Models;
 using System.Net.Http.Json;
 
 namespace MyPrivateWatchlist.Services;
@@ -76,21 +76,24 @@ public class WatchlistService
         try
         {
             var response = await _http.GetFromJsonAsync<TmdbFindResult>(url);
-            if (response?.movie_results?.Any() == true) return response.movie_results.First();
-            if (response?.tv_results?.Any() == true)
+            if (response?.MovieResults?.Any() == true) return response.MovieResults.First();
+            if (response?.TvResults?.Any() == true)
             {
-                var tv = response.tv_results.First();
+                var tv = response.TvResults.First();
                 return new TmdbMovie
                 {
-                    Title = tv.name,
-                    Overview = tv.overview,
-                    PosterPath = tv.poster_path,
-                    VoteAverage = tv.vote_average,
-                    ReleaseDate = tv.first_air_date
+                    Title = tv.Name,
+                    Overview = tv.Overview,
+                    PosterPath = tv.PosterPath,
+                    VoteAverage = tv.VoteAverage,
+                    ReleaseDate = tv.FirstAirDate
                 };
             }
         }
-        catch { /* API Error */ }
+        catch (Exception ex)
+        { 
+            Console.WriteLine($"API Error fetching {imdbId}: {ex.Message}");
+        }
         return null;
     }
 }

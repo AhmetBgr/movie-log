@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 
 namespace MyPrivateWatchlist.Models;
 
@@ -13,8 +13,11 @@ public class WatchlistItem
 
 public class TmdbFindResult
 {
-    public List<TmdbMovie>? movie_results { get; set; }
-    public List<TmdbTvResult>? tv_results { get; set; }
+    [JsonPropertyName("movie_results")]
+    public List<TmdbMovie>? MovieResults { get; set; }
+
+    [JsonPropertyName("tv_results")]
+    public List<TmdbTvResult>? TvResults { get; set; }
 }
 
 public class TmdbMovie
@@ -43,18 +46,23 @@ public class TmdbMovie
 
 public class TmdbTvResult
 {
-    public int id { get; set; }
-    public string name { get; set; } = "";
-    public string overview { get; set; } = "";
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = "";
+
+    [JsonPropertyName("overview")]
+    public string Overview { get; set; } = "";
 
     [JsonPropertyName("poster_path")]
-    public string? poster_path { get; set; }
+    public string? PosterPath { get; set; }
 
     // --- NEW FIELDS ---
     [JsonPropertyName("first_air_date")]
-    public string? first_air_date { get; set; }
+    public string? FirstAirDate { get; set; }
 
     [JsonPropertyName("vote_average")]
-    public double vote_average { get; set; }
+    public double VoteAverage { get; set; }
     // ------------------
 }

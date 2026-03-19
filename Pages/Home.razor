@@ -1,4 +1,4 @@
-﻿@page "/"
+@page "/"
 @using System.Text.RegularExpressions
 @inject HttpClient Http
 @inject IConfiguration Config
@@ -64,7 +64,56 @@
         </div>
     }
 
-    @* MOVIE DISPLAY AREA... (Keep your existing movie card HTML here) *@
+    @* MOVIE DISPLAY AREA *@
+    @if (selectedMovie != null)
+    {
+        <div class="card bg-white text-dark shadow-lg mt-4 border-0 rounded-4 overflow-hidden" style="transition: transform 0.3s ease;">
+            <div class="row g-0">
+                <div class="col-md-4 text-center p-3 bg-light d-flex align-items-center justify-content-center">
+                    <img src="@selectedMovie.FullPosterUrl" class="img-fluid rounded shadow-sm" alt="Poster" style="max-height: 450px; cursor: pointer;" @onclick="TogglePoster" />
+                </div>
+                <div class="col-md-8">
+                    <div class="card-body p-4 d-flex flex-column h-100">
+                        <h2 class="card-title fw-bold text-primary mb-1">
+                            @selectedMovie.Title
+                        </h2>
+                        
+                        @if (!string.IsNullOrEmpty(selectedMovie.ReleaseDate))
+                        {
+                            <p class="text-muted small mb-3">📅 Released: @selectedMovie.ReleaseDate</p>
+                        }
+
+                        <div class="mb-3">
+                            <span class="badge bg-warning text-dark fs-6 px-3 py-2 shadow-sm">
+                                ⭐ @selectedMovie.VoteAverage.ToString("0.0") / 10
+                            </span>
+                        </div>
+                        
+                        <p class="card-text fs-5 text-secondary flex-grow-1" style="line-height: 1.6;">
+                            @(string.IsNullOrEmpty(selectedMovie.Overview) ? "No overview available." : selectedMovie.Overview)
+                        </p>
+                        
+                        <div class="mt-4 pt-3 border-top">
+                            <a href="https://www.imdb.com/title/@lastPickedImdbId/" target="_blank" class="btn btn-dark btn-lg px-4 shadow-sm">
+                                🎬 Open on IMDb
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (showBigPoster && selectedMovie != null)
+    {
+        <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.85);" @onclick="TogglePoster">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content bg-transparent border-0 text-center">
+                    <img src="@selectedMovie.FullPosterUrl" class="img-fluid mx-auto rounded shadow-lg" style="max-height: 90vh;" alt="Large Poster" />
+                </div>
+            </div>
+        </div>
+    }
 
 </div>
 
@@ -92,7 +141,7 @@
         }
 
         isPicking = true;
-        var winner = options[new Random().Next(options.Count)];
+        var winner = options[Random.Shared.Next(options.Count)];
         lastPickedImdbId = winner.ImdbId;
         selectedMovie = await Watchlist.GetTmdbDetailsAsync(winner.ImdbId);
         isPicking = false;
@@ -108,27 +157,43 @@
 
     private async Task HandleFileSelected(InputFileChangeEventArgs e)
     {
-        using var reader = new StreamReader(e.File.OpenReadStream());
-        var content = await reader.ReadToEndAsync();
-        var lines = content.Split('\n');
-        var tempItems = new List<WatchlistItem>();
-
-        foreach (var line in lines.Skip(1))
+        try
         {
-            if (string.IsNullOrWhiteSpace(line)) continue;
-            var columns = Regex.Split(line, ",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
-            if (columns.Length > 12)
+            // Allow up to 10MB file
+            using var stream = e.File.OpenReadStream(10_485_760);
+            using var reader = new StreamReader(stream);
+            
+            using var csv = new CsvHelper.CsvReader(reader, System.Globalization.CultureInfo.InvariantCulture);
+            var tempItems = new List<WatchlistItem>();
+
+            csv.Read();
+            csv.ReadHeader();
+            while (csv.Read())
             {
-                tempItems.Add(new WatchlistItem {
-                    ImdbId = columns[1].Replace("\"", "").Trim(),
-                    Title = columns[5].Replace("\"", "").Trim(),
-                    TitleType = columns[8].Replace("\"", "").Trim(),
-                    Year = columns[11].Replace("\"", "").Trim(),
-                    Genres = columns[12].Replace("\"", "").Trim()
-                });
+                var imdbId = csv.GetField(1);
+                var title = csv.GetField(5);
+                var type = csv.GetField(8);
+                var year = csv.GetField(11);
+                var genres = csv.GetField(12);
+
+                if (!string.IsNullOrEmpty(imdbId) && !string.IsNullOrEmpty(title))
+                {
+                    tempItems.Add(new WatchlistItem {
+                        ImdbId = imdbId.Trim(),
+                        Title = title.Trim(),
+                        TitleType = type?.Trim() ?? "",
+                        Year = year?.Trim() ?? "",
+                        Genres = genres?.Trim() ?? ""
+                    });
+                }
             }
+            await Watchlist.UpdateListAsync(tempItems);
         }
-        await Watchlist.UpdateListAsync(tempItems);
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error reading file: {ex.Message}");
+            statusMessage = "Error reading CSV file. Ensure it's a valid IMDb export.";
+        }
     }
 
     private void TogglePoster() => showBigPoster = !showBigPoster;
