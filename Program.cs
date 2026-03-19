@@ -13,6 +13,6 @@ builder.Services.AddScoped<WatchlistService>();
 var host = builder.Build();
 
 var watchlistSvc = host.Services.GetRequiredService<WatchlistService>();
-await watchlistSvc.InitializeAsync();
+_ = watchlistSvc.InitializeAsync();
 
 await host.RunAsync();

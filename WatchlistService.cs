@@ -15,6 +15,9 @@ public class WatchlistService
     private CancellationTokenSource? _saveDebounceCts;
     private CancellationTokenSource? _searchDebounceCts;
     private readonly TimeSpan _searchDebounceDelay = TimeSpan.FromMilliseconds(220);
+    private Task? _initializeTask;
+    private bool _genreMapLoadStarted;
+    public bool IsInitializing { get; private set; } = true;
 
     public List<WatchlistItem> Items { get; private set; } = new();
     
@@ -181,30 +184,72 @@ public class WatchlistService
 
     public async Task InitializeAsync()
     {
-        _ratingSystem = await _storage.GetAsync<RatingSystem>("rating_system");
-        var saved = await _storage.GetListAsync<WatchlistItem>("my_movie_list");
-        if (saved != null) 
+        if (_initializeTask != null)
         {
-            foreach (var item in saved)
-            {
-                if (item.ParsedYear == 0 && !string.IsNullOrEmpty(item.Year))
-                {
-                    var yearDigits = new string(item.Year.TakeWhile(char.IsDigit).ToArray());
-                    int.TryParse(yearDigits, out int parsed);
-                    item.ParsedYear = parsed;
-                }
-
-                // Data Migration: UserRating (1-10) -> Rating20 (2-20)
-                if (item.Rating20 == null && item.UserRating != null)
-                {
-                    item.Rating20 = item.UserRating * 2;
-                }
-            }
-            Items = saved;
+            await _initializeTask;
+            return;
         }
 
+        _initializeTask = InitializeCoreAsync();
+        await _initializeTask;
+    }
+
+    private async Task InitializeCoreAsync()
+    {
+        try
+        {
+            _ratingSystem = await _storage.GetAsync<RatingSystem>("rating_system");
+            var saved = await _storage.GetListAsync<WatchlistItem>("my_movie_list");
+            if (saved != null) 
+            {
+                foreach (var item in saved)
+                {
+                    if (item.ParsedYear == 0 && !string.IsNullOrEmpty(item.Year))
+                    {
+                        var yearDigits = new string(item.Year.TakeWhile(char.IsDigit).ToArray());
+                        int.TryParse(yearDigits, out int parsed);
+                        item.ParsedYear = parsed;
+                    }
+
+                    // Data Migration: UserRating (1-10) -> Rating20 (2-20)
+                    if (item.Rating20 == null && item.UserRating != null)
+                    {
+                        item.Rating20 = item.UserRating * 2;
+                    }
+                }
+                Items = saved;
+            }
+
+            RefreshCalculatedLists();
+            OnStateChanged?.Invoke();
+            StartGenreMapLoadIfNeeded();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Initialization error: {ex.Message}");
+        }
+        finally
+        {
+            IsInitializing = false;
+            OnStateChanged?.Invoke();
+        }
+    }
+
+    private void StartGenreMapLoadIfNeeded()
+    {
+        if (_genreMapLoadStarted)
+        {
+            return;
+        }
+
+        _genreMapLoadStarted = true;
+        _ = LoadGenreMapAsync();
+    }
+
+    private async Task LoadGenreMapAsync()
+    {
         await FetchGenreMapAsync();
-        RefreshCalculatedLists();
+        OnStateChanged?.Invoke();
     }
 
     private async Task FetchGenreMapAsync()
