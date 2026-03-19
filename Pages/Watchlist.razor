@@ -65,7 +65,7 @@
     }
 
         <div class="card shadow border-0 overflow-hidden rounded-2">
-            <div class="card-body p-0 table-responsive bg-white" style="max-height: @(showFilters ? "70vh" : "88vh"); @(showFilters ? "" : "min-height: 80vh;"); overflow-y: auto;">
+            <div class="card-body p-0 bg-white" style="max-height: @(showFilters ? "70vh" : "88vh"); @(showFilters ? "" : "min-height: 80vh;"); overflow-y: auto;">
                 <table class="table table-hover align-middle mb-0 border-light">
                     <thead class="bg-light text-secondary fw-semibold" style="position: sticky; top: 0; z-index: 1;">
                         <tr>
@@ -87,7 +87,7 @@
                         </tr>
                     </thead>
                     <tbody class="border-top-0">
-                        <Virtualize Items="WatchlistSvc.FilteredItems.ToList()" Context="item" ItemSize="56">
+                        <Virtualize Items="_filteredItems" Context="item" ItemSize="52" OverscanCount="10">
                             <tr>
                                 <td class="text-center px-3">
                                     <button class="btn btn-sm btn-link text-danger p-0 shadow-none d-inline-flex align-items-center justify-content-center show-on-row-hover" @onclick="() => WatchlistSvc.RemoveFromWatchlistAsync(item)" title="Remove from Watchlist">
@@ -214,19 +214,32 @@
     private TmdbMovie? selectedMovie;
     private WatchlistItem? selectedItem;
     private bool showFilters = true;
+    private List<WatchlistItem> _filteredItems = new();
 
     protected override async Task OnInitializedAsync()
     {
-        WatchlistSvc.OnStateChanged += StateHasChanged;
+        WatchlistSvc.OnStateChanged += HandleStateChanged;
         if (!WatchlistSvc.Items.Any())
         {
             await WatchlistSvc.InitializeAsync();
         }
+        UpdateLocalList();
+    }
+
+    private void HandleStateChanged()
+    {
+        UpdateLocalList();
+        StateHasChanged();
+    }
+
+    private void UpdateLocalList()
+    {
+        _filteredItems = WatchlistSvc.FilteredItems.ToList();
     }
 
     public void Dispose()
     {
-        WatchlistSvc.OnStateChanged -= StateHasChanged;
+        WatchlistSvc.OnStateChanged -= HandleStateChanged;
     }
 
     private void ClearFilters()
