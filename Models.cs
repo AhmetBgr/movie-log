@@ -25,7 +25,7 @@ public class TmdbMovie
     public int Id { get; set; }
     public string Title { get; set; } = "";
 
-    [JsonPropertyName("original_title")] // Added this!
+    [JsonPropertyName("original_title")] 
     public string? OriginalTitle { get; set; }
 
     public string Overview { get; set; } = "";
@@ -38,6 +38,10 @@ public class TmdbMovie
 
     [JsonPropertyName("vote_average")]
     public double VoteAverage { get; set; }
+
+    // --- NEW EXTENDED FIELDS ---
+    public List<string> Directors { get; set; } = new();
+    public List<string> Actors { get; set; } = new();
 
     public string FullPosterUrl => string.IsNullOrEmpty(PosterPath)
         ? "https://via.placeholder.com/500x750?text=No+Poster"
@@ -58,11 +62,34 @@ public class TmdbTvResult
     [JsonPropertyName("poster_path")]
     public string? PosterPath { get; set; }
 
-    // --- NEW FIELDS ---
     [JsonPropertyName("first_air_date")]
     public string? FirstAirDate { get; set; }
 
     [JsonPropertyName("vote_average")]
     public double VoteAverage { get; set; }
-    // ------------------
+}
+
+// --- NEW TMDB CREDITS CLASSES ---
+public class TmdbCredits
+{
+    [JsonPropertyName("cast")]
+    public List<TmdbCast> Cast { get; set; } = new();
+
+    [JsonPropertyName("crew")]
+    public List<TmdbCrew> Crew { get; set; } = new();
+}
+
+public class TmdbCast
+{
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = "";
+}
+
+public class TmdbCrew
+{
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = "";
+    
+    [JsonPropertyName("job")]
+    public string Job { get; set; } = "";
 }

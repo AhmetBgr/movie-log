@@ -11,7 +11,6 @@ public class WatchlistService
 
     public List<WatchlistItem> Items { get; private set; } = new();
 
-    // NEW: Properties for filters that Home.razor binds to
     public string SelectedType { get; set; } = "All";
     public string SelectedGenre { get; set; } = "All";
     public string StartYear { get; set; } = "";
@@ -36,27 +35,22 @@ public class WatchlistService
         await _storage.SaveListAsync("my_movie_list", Items);
     }
 
-    // NEW: The "Brain" for the Random Button
     public IEnumerable<WatchlistItem> FilteredItems
     {
         get
         {
             return Items.Where(m =>
             {
-                // 1. Filter by Type
                 bool typeMatch = SelectedType == "All" ||
                                  m.TitleType.Equals(SelectedType, StringComparison.OrdinalIgnoreCase);
 
-                // 2. Filter by Genre
                 bool genreMatch = SelectedGenre == "All" ||
                                   m.Genres.Contains(SelectedGenre, StringComparison.OrdinalIgnoreCase);
 
-                // 3. Filter by Year
                 int sYear = 0, eYear = 0;
                 bool hasStart = int.TryParse(StartYear, out sYear);
                 bool hasEnd = int.TryParse(EndYear, out eYear);
 
-                // Extract digits only from the Year string (e.g., "2024–" -> 2024)
                 var yearDigits = new string(m.Year.TakeWhile(char.IsDigit).ToArray());
                 int.TryParse(yearDigits, out int itemYear);
 
@@ -76,18 +70,51 @@ public class WatchlistService
         try
         {
             var response = await _http.GetFromJsonAsync<TmdbFindResult>(url);
-            if (response?.MovieResults?.Any() == true) return response.MovieResults.First();
+            
+            if (response?.MovieResults?.Any() == true) 
+            {
+                var movie = response.MovieResults.First();
+                // Add credits fetching
+                try 
+                {
+                    var creditsUrl = $"https://api.themoviedb.org/3/movie/{movie.Id}/credits?api_key={apiKey}";
+                    var credits = await _http.GetFromJsonAsync<TmdbCredits>(creditsUrl);
+                    if (credits != null)
+                    {
+                        movie.Directors = credits.Crew.Where(c => c.Job == "Director").Select(c => c.Name).Distinct().ToList();
+                        movie.Actors = credits.Cast.Take(5).Select(c => c.Name).ToList();
+                    }
+                } catch { } // Ignore credits error
+
+                return movie;
+            }
+            
             if (response?.TvResults?.Any() == true)
             {
                 var tv = response.TvResults.First();
-                return new TmdbMovie
+                var movie = new TmdbMovie
                 {
+                    Id = tv.Id,
                     Title = tv.Name,
                     Overview = tv.Overview,
                     PosterPath = tv.PosterPath,
                     VoteAverage = tv.VoteAverage,
                     ReleaseDate = tv.FirstAirDate
                 };
+
+                // Add credits fetching for TV
+                try 
+                {
+                    var creditsUrl = $"https://api.themoviedb.org/3/tv/{tv.Id}/credits?api_key={apiKey}";
+                    var credits = await _http.GetFromJsonAsync<TmdbCredits>(creditsUrl);
+                    if (credits != null)
+                    {
+                        movie.Directors = credits.Crew.Where(c => c.Job == "Executive Producer" || c.Job == "Director").Select(c => c.Name).Distinct().ToList();
+                        movie.Actors = credits.Cast.Take(5).Select(c => c.Name).ToList();
+                    }
+                } catch { } // Ignore credits error
+
+                return movie;
             }
         }
         catch (Exception ex)

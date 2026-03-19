@@ -75,7 +75,7 @@
                 <div class="col-md-8">
                     <div class="card-body p-4 d-flex flex-column h-100">
                         <h2 class="card-title fw-bold text-primary mb-1">
-                            @selectedMovie.Title
+                            <a href="https://www.imdb.com/title/@lastPickedImdbId/" target="_blank" class="text-decoration-none text-primary">@selectedMovie.Title</a>
                         </h2>
                         
                         @if (!string.IsNullOrEmpty(selectedMovie.ReleaseDate))
@@ -84,10 +84,39 @@
                         }
 
                         <div class="mb-3">
-                            <span class="badge bg-warning text-dark fs-6 px-3 py-2 shadow-sm">
+                            <span class="badge bg-warning text-dark fs-6 px-3 py-2 shadow-sm me-2">
                                 ⭐ @selectedMovie.VoteAverage.ToString("0.0") / 10
                             </span>
+                            @if (selectedItem != null && !string.IsNullOrEmpty(selectedItem.Genres))
+                            {
+                                @foreach (var genre in selectedItem.Genres.Split(','))
+                                {
+                                    <a href="https://www.imdb.com/search/title/?genres=@genre.Trim().ToLower()" target="_blank" class="badge bg-secondary me-1 text-decoration-none shadow-sm">
+                                        @genre.Trim()
+                                    </a>
+                                }
+                            }
                         </div>
+
+                        @if (selectedMovie.Directors.Any())
+                        {
+                            <p class="mb-1 text-dark fs-6"><strong>Director:</strong> 
+                                @foreach (var dir in selectedMovie.Directors)
+                                {
+                                    <a href="https://www.imdb.com/find/?q=@System.Uri.EscapeDataString(dir)&s=nm" target="_blank" class="text-decoration-none fw-semibold me-2">@dir</a>
+                                }
+                            </p>
+                        }
+
+                        @if (selectedMovie.Actors.Any())
+                        {
+                            <p class="mb-3 text-dark fs-6"><strong>Cast:</strong> 
+                                @foreach (var actor in selectedMovie.Actors)
+                                {
+                                    <a href="https://www.imdb.com/find/?q=@System.Uri.EscapeDataString(actor)&s=nm" target="_blank" class="text-decoration-none fw-semibold me-2">@actor</a>
+                                }
+                            </p>
+                        }
                         
                         <p class="card-text fs-5 text-secondary flex-grow-1" style="line-height: 1.6;">
                             @(string.IsNullOrEmpty(selectedMovie.Overview) ? "No overview available." : selectedMovie.Overview)
@@ -119,6 +148,7 @@
 
 @code {
     private TmdbMovie? selectedMovie;
+    private WatchlistItem? selectedItem;
     private bool isPicking = false;
     private string statusMessage = "";
     private string lastPickedImdbId = "";
@@ -142,6 +172,7 @@
 
         isPicking = true;
         var winner = options[Random.Shared.Next(options.Count)];
+        selectedItem = winner;
         lastPickedImdbId = winner.ImdbId;
         selectedMovie = await Watchlist.GetTmdbDetailsAsync(winner.ImdbId);
         isPicking = false;
