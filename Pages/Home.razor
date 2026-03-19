@@ -207,18 +207,27 @@
             using var stream = e.File.OpenReadStream(10_485_760);
             using var reader = new StreamReader(stream);
             
-            using var csv = new CsvHelper.CsvReader(reader, System.Globalization.CultureInfo.InvariantCulture);
+            var config = new CsvHelper.Configuration.CsvConfiguration(System.Globalization.CultureInfo.InvariantCulture)
+            {
+                PrepareHeaderForMatch = args => args.Header.ToLower(),
+                HeaderValidated = null,
+                MissingFieldFound = null
+            };
+
+            using var csv = new CsvHelper.CsvReader(reader, config);
             var tempItems = new List<WatchlistItem>();
 
-            csv.Read();
-            csv.ReadHeader();
-            while (csv.Read())
+            await csv.ReadAsync();
+            csv.ReadHeader(); // This is synchronous but usually fine once headers are read, but let's be safe.
+            
+            while (await csv.ReadAsync())
             {
-                var imdbId = csv.GetField(1);
-                var title = csv.GetField(5);
-                var type = csv.GetField(8);
-                var year = csv.GetField(11);
-                var genres = csv.GetField(12);
+                var imdbId = csv.HeaderRecord.Contains("Const", StringComparer.OrdinalIgnoreCase) ? csv.GetField("Const") : null;
+                var title = csv.HeaderRecord.Contains("Title", StringComparer.OrdinalIgnoreCase) ? csv.GetField("Title") : null;
+                var type = csv.HeaderRecord.Contains("Title Type", StringComparer.OrdinalIgnoreCase) ? csv.GetField("Title Type") : null;
+                var year = csv.HeaderRecord.Contains("Year", StringComparer.OrdinalIgnoreCase) ? csv.GetField("Year") : null;
+                var genres = csv.HeaderRecord.Contains("Genres", StringComparer.OrdinalIgnoreCase) ? csv.GetField("Genres") : null;
+                var directors = csv.HeaderRecord.Contains("Directors", StringComparer.OrdinalIgnoreCase) ? csv.GetField("Directors") : null;
 
                 if (!string.IsNullOrEmpty(imdbId) && !string.IsNullOrEmpty(title))
                 {
@@ -232,16 +241,18 @@
                         TitleType = type?.Trim() ?? "",
                         Year = cleanYear,
                         Genres = genres?.Trim() ?? "",
+                        Director = directors?.Trim() ?? "",
                         ParsedYear = parsedYear
                     });
                 }
             }
             await Watchlist.UpdateListAsync(tempItems);
+            statusMessage = $"Successfully imported {tempItems.Count} items.";
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error reading file: {ex.Message}");
-            statusMessage = "Error reading CSV file. Ensure it's a valid IMDb export.";
+            Console.WriteLine($"CSV Import Detail Error: {ex}");
+            statusMessage = $"Error: {ex.Message}";
         }
     }
 

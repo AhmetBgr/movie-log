@@ -1,21 +1,48 @@
-html,
-body {
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+:root {
+    --primary: #6366f1;
+    --primary-dark: #4338ca;
+    --secondary: #64748b;
+    --success: #10b981;
+    --danger: #ef4444;
+    --bg-main: #f8fafc;
+    --sidebar-bg: #0f172a;
+    --sidebar-text: #94a3b8;
+    --sidebar-active: #ffffff;
+    --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --text-main: #1e293b;
+    --text-muted: #64748b;
 }
 
-h1:focus {
-    outline: none;
+html,
+body {
+    font-family: 'Sitka Small', Sitka, serif;
+    background-color: var(--bg-main);
+    color: var(--text-main);
+}
+
+h1, h2, h3, h4, h5, h6, .card-title, .fw-bold, .nav-link {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
 }
 
 a,
 .btn-link {
-    color: #0071c1;
+    color: var(--primary);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+a:hover {
+    color: var(--primary-dark);
 }
 
 .btn-primary {
-    color: #fff;
-    background-color: #1b6ec2;
-    border-color: #1861ac;
+    background-color: var(--primary);
+    border-color: var(--primary);
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-dark);
+    border-color: var(--primary-dark);
 }
 
 .btn:focus,
@@ -134,16 +161,65 @@ code {
     text-align: start;
 }
 
+/* --- Sidebar Overrides --- */
+.sidebar {
+    background-color: var(--sidebar-bg) !important;
+}
+
+.nav-item a {
+    color: var(--sidebar-text) !important;
+    border-radius: 0.5rem;
+    margin: 0.25rem 0.75rem;
+}
+
+.nav-item a.active {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: var(--sidebar-active) !important;
+}
+
+.nav-item a:hover:not(.active) {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    color: var(--sidebar-active) !important;
+}
+
+/* --- Table & Card Refinements --- */
+.card {
+    border: none !important;
+    box-shadow: var(--card-shadow);
+}
+
+.table-hover tbody tr:hover {
+    background-color: #f1f5f9 !important; /* Slate 100 */
+}
+
+.table thead th {
+    background-color: #f8fafc !important; /* Slate 50 */
+    color: var(--secondary) !important;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    border-bottom: 2px solid #e2e8f0 !important;
+}
+
+/* --- Badges --- */
+.badge.bg-secondary {
+    background-color: var(--secondary) !important;
+}
+
+.badge.bg-dark {
+    background-color: var(--sidebar-bg) !important;
+}
+
 /* --- Hover Actions --- */
 .show-on-row-hover {
     opacity: 0;
+    transition: opacity 0.1s ease;
 }
 
 tr:hover .show-on-row-hover {
     opacity: 1;
 }
 
-/* Ensure buttons don't lose hover state when moving from row to button */
 .show-on-row-hover:focus {
     opacity: 1;
 }

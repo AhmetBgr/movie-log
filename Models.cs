@@ -9,6 +9,7 @@ public class WatchlistItem
     public string TitleType { get; set; } = null!;
     public string Year { get; set; } = null!;
     public string Genres { get; set; } = null!;
+    public string? Director { get; set; }
     public string? OriginalTitle { get; set; }
     public int ParsedYear { get; set; }
 

@@ -26,7 +26,7 @@
             <!-- Filter Bar -->
             <div class="card shadow-sm border-0 mb-4 rounded-2 bg-white">
                 <div class="card-body p-3">
-                <div class="row g-3 align-items-end">
+                <div class="row g-2 align-items-end">
                     <div class="col-md-3">
                         <label class="form-label small fw-bold text-secondary text-uppercase tracking-wider">Search Title</label>
                         <div class="input-group">
@@ -79,21 +79,21 @@
                 <table class="table table-hover align-middle mb-0 border-light">
                     <thead class="bg-light text-secondary fw-semibold" style="position: sticky; top: 0; z-index: 1;">
                         <tr>
-                            <th scope="col" style="width: 5%;" class="border-bottom py-3 px-4 text-center"></th>
-                            <th scope="col" style="width: 45%; cursor: pointer;" class="border-bottom py-3 px-4" @onclick='() => WatchlistSvc.ToggleSort("Title")'>
+                            <th scope="col" style="width: 5%;" class="border-bottom py-2.5 px-3 text-center"></th>
+                            <th scope="col" style="width: 40%; cursor: pointer;" class="border-bottom py-2.5 px-3" @onclick='() => WatchlistSvc.ToggleSort("Title")'>
                                 Title 
                                 @if (WatchlistSvc.SortColumn == "Title") { <i class="bi @(WatchlistSvc.SortDescending ? "bi-sort-alpha-up-alt" : "bi-sort-alpha-down") ms-1"></i> }
                                 <span class="badge bg-secondary text-white shadow-sm fw-normal ms-2 rounded-2 px-2 py-1">@WatchlistSvc.FilteredItems.Count() Items</span>
                             </th>
-                            <th scope="col" style="width: 15%; cursor: pointer;" class="border-bottom py-3" @onclick='() => WatchlistSvc.ToggleSort("Year")'>
+                            <th scope="col" style="width: 25%;" class="border-bottom py-2.5 px-3">Director</th>
+                            <th scope="col" style="width: 15%; cursor: pointer;" class="border-bottom py-2.5" @onclick='() => WatchlistSvc.ToggleSort("Year")'>
                                 Year
                                 @if (WatchlistSvc.SortColumn == "Year") { <i class="bi @(WatchlistSvc.SortDescending ? "bi-sort-numeric-up-alt" : "bi-sort-numeric-down") ms-1"></i> }
                             </th>
-                            <th scope="col" style="width: 15%; cursor: pointer;" class="border-bottom py-3" @onclick='() => WatchlistSvc.ToggleSort("Type")'>
+                            <th scope="col" style="width: 15%; cursor: pointer;" class="border-bottom py-2.5" @onclick='() => WatchlistSvc.ToggleSort("Type")'>
                                 Type
                                 @if (WatchlistSvc.SortColumn == "Type") { <i class="bi @(WatchlistSvc.SortDescending ? "bi-sort-alpha-up-alt" : "bi-sort-alpha-down") ms-1"></i> }
                             </th>
-                            <th scope="col" style="width: 20%;" class="border-bottom py-3">Genres</th>
                         </tr>
                     </thead>
                     <tbody class="border-top-0">
@@ -104,7 +104,7 @@
                                         <i class="bi bi-x-lg fs-4"></i>
                                     </button>
                                 </td>
-                                <td style="cursor: pointer;" class="px-4" @onclick="() => ShowMovieDetails(item)">
+                                <td style="cursor: pointer;" class="px-3" @onclick="() => ShowMovieDetails(item)">
                                     <span class="fw-bold text-dark" style="transition: opacity 0.2s;" onmouseover="this.style.opacity='0.6'" onmouseout="this.style.opacity='1'">
                                         @item.Title
                                         @if (!string.IsNullOrEmpty(item.DisplayOriginalTitle))
@@ -113,13 +113,15 @@
                                         }
                                     </span>
                                 </td>
-                                <td class="text-secondary fw-medium">@item.Year</td>
+                                <td class="text-secondary small px-3">@item.Director</td>
+                                <td class="text-secondary fw-medium">
+                                    @item.Year
+                                </td>
                                 <td>
-                                    <span class="badge rounded-pill @(item.TitleType.Contains("Movie", StringComparison.OrdinalIgnoreCase) ? "bg-secondary text-white" : "bg-light text-dark border")">
+                                    <span class="badge rounded-pill @(item.TitleType.Equals("Movie", StringComparison.OrdinalIgnoreCase) ? "bg-secondary text-white" : "bg-light text-dark border")">
                                         @item.TitleType
                                     </span>
                                 </td>
-                                <td class="text-secondary small">@item.Genres</td>
                             </tr>
                         </Virtualize>
                     </tbody>

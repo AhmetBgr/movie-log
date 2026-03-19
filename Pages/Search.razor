@@ -3,6 +3,7 @@
 @inject HttpClient Http
 @inject IConfiguration Config
 @inject MyPrivateWatchlist.Services.WatchlistService WatchlistSvc
+@implements IDisposable
 
 <PageTitle>Search Results</PageTitle>
 
@@ -30,13 +31,13 @@
                 <table class="table table-hover align-middle mb-0 border-light">
                     <thead class="bg-light text-secondary fw-semibold" style="position: sticky; top: 0; z-index: 1;">
                         <tr>
-                            <th scope="col" style="width: 5%; text-align: center;" class="border-bottom py-3 px-4"></th>
-                            <th scope="col" style="width: 45%;" class="border-bottom py-3 px-4">
+                            <th scope="col" style="width: 5%; text-align: center;" class="border-bottom py-2.5 px-3"></th>
+                            <th scope="col" style="width: 40%;" class="border-bottom py-2.5 px-3">
                                 Title <span class="badge bg-secondary text-white shadow-sm fw-normal ms-2 rounded-2 px-2 py-1">@results.Count(r => r.MediaType == "movie" || r.MediaType == "tv") Total Items</span>
                             </th>
-                            <th scope="col" style="width: 15%;" class="border-bottom py-3">Year</th>
-                            <th scope="col" style="width: 15%;" class="border-bottom py-3">Type</th>
-                            <th scope="col" style="width: 20%;" class="border-bottom py-3">Genres</th>
+                            <th scope="col" style="width: 25%;" class="border-bottom py-2.5 px-3">Director</th>
+                            <th scope="col" style="width: 15%;" class="border-bottom py-2.5">Year</th>
+                            <th scope="col" style="width: 15%;" class="border-bottom py-2.5">Type</th>
                         </tr>
                     </thead>
                     <tbody class="border-top-0">
@@ -61,7 +62,7 @@
                                         </button>
                                     }
                                 </td>
-                                <td style="cursor: pointer;" class="px-4" @onclick="() => ShowMovieDetails(item)">
+                                <td style="cursor: pointer;" class="px-3" @onclick="() => ShowMovieDetails(item)">
                                     <span class="fw-bold text-dark" style="transition: opacity 0.2s;" onmouseover="this.style.opacity='0.6'" onmouseout="this.style.opacity='1'">
                                         @item.DisplayTitle
                                         @if (!string.IsNullOrEmpty(item.DisplayOriginalTitle))
@@ -70,6 +71,18 @@
                                         }
                                     </span>
                                 </td>
+                                <td class="text-secondary small px-3">
+                                    @if (directorsMap.TryGetValue($"{item.MediaType}-{item.Id}", out var director))
+                                    {
+                                        @director
+                                    }
+                                    else
+                                    {
+                                        <div class="spinner-border spinner-border-sm opacity-25" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                    }
+                                </td>
                                 <td class="text-secondary fw-medium">
                                     @(item.DisplayDate.Length >= 4 ? item.DisplayDate.Substring(0,4) : item.DisplayDate)
                                 </td>
@@ -77,9 +90,6 @@
                                     <span class="badge rounded-pill @(item.MediaType == "movie" ? "bg-secondary text-white" : "bg-light text-dark border")">
                                         @(item.MediaType == "movie" ? "Movie" : "TV Series")
                                     </span>
-                                </td>
-                                <td class="text-secondary small">
-                                    @WatchlistSvc.GetGenreNames(item.GenreIds)
                                 </td>
                             </tr>
                         }
@@ -187,10 +197,16 @@
     
     private TmdbMovie? selectedMovie;
     private TmdbSearchResultItem? selectedItem;
+    private Dictionary<string, string> directorsMap = new();
+    private CancellationTokenSource? cts;
 
     protected override async Task OnParametersSetAsync()
     {
         if (string.IsNullOrWhiteSpace(Query)) return;
+
+        cts?.Cancel();
+        cts = new CancellationTokenSource();
+        directorsMap.Clear();
 
         isLoading = true;
         results = null;
@@ -212,6 +228,49 @@
         {
             isLoading = false;
         }
+
+        if (results != null)
+        {
+            _ = FetchDirectorsAsync(results, cts.Token);
+        }
+    }
+
+    private async Task FetchDirectorsAsync(List<TmdbSearchResultItem> items, CancellationToken token)
+    {
+        var fetchList = items.Where(r => r.MediaType == "movie" || r.MediaType == "tv").ToList();
+        Console.WriteLine($"Starting background fetch for {fetchList.Count} directors...");
+
+        foreach (var item in fetchList)
+        {
+            if (token.IsCancellationRequested) break;
+            var key = $"{item.MediaType}-{item.Id}";
+            if (directorsMap.ContainsKey(key)) continue;
+
+            try
+            {
+                var movie = await WatchlistSvc.GetTmdbDetailsByIdAsync(item.Id, item.MediaType);
+                if (movie != null)
+                {
+                    var dirName = movie.Directors.Any() ? string.Join(", ", movie.Directors) : "N/A";
+                    directorsMap[key] = dirName;
+                    Console.WriteLine($"Fetched director for {item.DisplayTitle}: {dirName}");
+                    await InvokeAsync(StateHasChanged);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Director Fetch Error for {item.DisplayTitle}: {ex.Message}");
+            }
+            
+            // Small delay to avoid hammering API too hard
+            await Task.Delay(50, token);
+        }
+    }
+
+    public void Dispose()
+    {
+        cts?.Cancel();
+        cts?.Dispose();
     }
 
     private bool IsAlreadyInWatchlist(TmdbSearchResultItem item)
@@ -233,7 +292,8 @@
                 TitleType = item.MediaType == "movie" ? "Movie" : "TV Series",
                 Year = movie.ReleaseDate ?? "",
                 ParsedYear = int.TryParse(movie.ReleaseDate?.Split('-')[0], out var y) ? y : 0,
-                Genres = "" // We'd need to fetch genre names if we wanted this perfectly, but empty is safe for now
+                Genres = "",
+                Director = movie.Directors.Any() ? string.Join(", ", movie.Directors) : null
             });
         }
         StateHasChanged();
@@ -251,7 +311,8 @@
                 TitleType = selectedItem.MediaType == "movie" ? "Movie" : "TV Series",
                 Year = selectedMovie.ReleaseDate ?? "",
                 ParsedYear = int.TryParse(selectedMovie.ReleaseDate?.Split('-')[0], out var y) ? y : 0,
-                Genres = ""
+                Genres = "",
+                Director = selectedMovie.Directors.Any() ? string.Join(", ", selectedMovie.Directors) : null
             });
             StateHasChanged();
         }
