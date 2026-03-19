@@ -11,6 +11,7 @@ public class WatchlistService
     private readonly IConfiguration _config;
     private readonly Dictionary<string, TmdbMovie> _movieCache = new();
     private Dictionary<int, string> _genreMap = new();
+    private System.Threading.Timer? _saveTimer;
 
     public List<WatchlistItem> Items { get; private set; } = new();
     
@@ -54,8 +55,8 @@ public class WatchlistService
         set { _searchQuery = value; NotifyStateChanged(); } 
     }
 
-    public string SortColumn { get; set; } = "Title";
-    public bool SortDescending { get; set; } = false;
+    public string SortColumn { get; set; } = "DateAdded";
+    public bool SortDescending { get; set; } = true;
 
     public string WatchedSortColumn { get; set; } = "DateAdded";
     public bool WatchedSortDescending { get; set; } = true;
@@ -82,15 +83,20 @@ public class WatchlistService
     }
 
     public event Action? OnStateChanged;
-    public void NotifyStateChanged() 
+    public void NotifyStateChanged(bool fullRefresh = true) 
     {
-        RefreshCalculatedLists();
+        if (fullRefresh) RefreshCalculatedLists();
         OnStateChanged?.Invoke();
     }
     
-    private void RefreshCalculatedLists()
+    private void RefreshWatchingCache()
     {
         _watchingCached = Items.Where(i => i.Status == WatchlistStatus.Watching).ToList();
+    }
+
+    private void RefreshCalculatedLists()
+    {
+        RefreshWatchingCache();
         
         // --- Shared Filter Base ---
         int sYear = 0, eYear = 0;
@@ -201,8 +207,24 @@ public class WatchlistService
     public async Task UpdateListAsync(List<WatchlistItem> newList)
     {
         Items = newList;
-        await _storage.SaveListAsync("my_movie_list", Items);
+        await SaveNowAsync();
         NotifyStateChanged();
+    }
+
+    private async Task SaveNowAsync()
+    {
+        _saveTimer?.Dispose();
+        _saveTimer = null;
+        await _storage.SaveListAsync("my_movie_list", Items);
+    }
+
+    private void ScheduleSave()
+    {
+        _saveTimer?.Dispose();
+        _saveTimer = new System.Threading.Timer(async _ => 
+        {
+            await _storage.SaveListAsync("my_movie_list", Items);
+        }, null, 1000, System.Threading.Timeout.Infinite);
     }
 
     public IEnumerable<WatchlistItem> WatchingItems => _watchingCached;
@@ -434,8 +456,13 @@ public class WatchlistService
         {
             existing.CurrentSeason = season;
             existing.CurrentEpisode = episode;
-            await UpdateListAsync(Items);
-            NotifyStateChanged();
+            
+            // Fast refresh: only internal counter and Watching list
+            RefreshWatchingCache();
+            NotifyStateChanged(fullRefresh: false);
+            
+            // Debounced save to disk
+            ScheduleSave();
         }
     }
 
