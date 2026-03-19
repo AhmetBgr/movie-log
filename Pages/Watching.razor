@@ -1,0 +1,126 @@
+@page "/watching"
+@using MyPrivateWatchlist.Models
+@inject MyPrivateWatchlist.Services.WatchlistService WatchlistSvc
+@implements IDisposable
+
+<PageTitle>Watching</PageTitle>
+
+<div class="container-fluid">
+    <h2 class="mb-4 fw-bold text-dark border-bottom pb-3 d-flex align-items-center">
+        <i class="bi bi-play-circle-fill me-3 text-success"></i> Currently Watching
+        <span class="badge bg-success text-white ms-3 rounded-pill fs-6 fw-normal">@WatchlistSvc.WatchingItems.Count() Items</span>
+    </h2>
+
+    @if (!WatchlistSvc.WatchingItems.Any())
+    {
+        <div class="alert alert-light border-0 shadow-sm text-center py-5 fs-5 rounded-2 mt-4 text-secondary">
+            <i class="bi bi-film fs-1 mb-3 d-block opacity-25"></i>
+            You are not currently watching anything.<br/>
+            Start watching from your <a href="watchlist" class="text-success fw-bold text-decoration-none">Watchlist</a>!
+        </div>
+    }
+    else
+    {
+        <div class="card shadow border-0 overflow-hidden rounded-2">
+            <div class="card-body p-0 bg-white">
+                <table class="table table-hover align-middle mb-0 border-light">
+                    <thead class="bg-light text-secondary fw-semibold">
+                        <tr>
+                            <th scope="col" style="width: 5%;" class="border-bottom py-3 px-3 text-center"></th>
+                            <th scope="col" style="width: 40%;" class="border-bottom py-3 px-3">Title</th>
+                            <th scope="col" style="width: 25%;" class="border-bottom py-3 px-3 text-center">Tracking</th>
+                            <th scope="col" style="width: 15%;" class="border-bottom py-3">Year</th>
+                            <th scope="col" style="width: 15%;" class="border-bottom py-3">Type</th>
+                        </tr>
+                    </thead>
+                    <tbody class="border-top-0">
+                        @foreach (var item in WatchlistSvc.WatchingItems)
+                        {
+                            <tr class="position-relative">
+                                <td class="text-center px-3">
+                                    <button class="btn btn-sm btn-outline-secondary border-0 rounded-circle shadow-none p-1 d-inline-flex align-items-center justify-content-center show-on-row-hover" 
+                                            style="width: 30px; height: 30px;"
+                                            @onclick="() => MoveBack(item)" title="Move back to Watchlist">
+                                        <i class="bi bi-arrow-left-circle fs-5"></i>
+                                    </button>
+                                </td>
+                                <td class="px-3">
+                                    <span class="fw-bold text-dark d-block">@item.Title</span>
+                                    @if (!string.IsNullOrEmpty(item.Director))
+                                    {
+                                        <span class="text-secondary x-small">Dir: @item.Director</span>
+                                    }
+                                </td>
+                                <td class="px-3 text-center">
+                                    @if (item.TitleType.Contains("TV", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <div class="d-flex align-items-center justify-content-center gap-3">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <span class="text-secondary small fw-bold">S</span>
+                                                <button class="btn btn-sm btn-light border p-0 px-2 fw-bold" @onclick="() => ChangeSeason(item, -1)">-</button>
+                                                <span class="fw-bold text-dark fs-5 mx-1" style="min-width: 20px;">@item.CurrentSeason</span>
+                                                <button class="btn btn-sm btn-light border p-0 px-2 fw-bold" @onclick="() => ChangeSeason(item, 1)">+</button>
+                                            </div>
+                                            <div class="vr"></div>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <span class="text-secondary small fw-bold">E</span>
+                                                <button class="btn btn-sm btn-light border p-0 px-2 fw-bold" @onclick="() => ChangeEpisode(item, -1)">-</button>
+                                                <span class="fw-bold text-dark fs-5 mx-1" style="min-width: 20px;">@item.CurrentEpisode</span>
+                                                <button class="btn btn-sm btn-light border p-0 px-2 fw-bold" @onclick="() => ChangeEpisode(item, 1)">+</button>
+                                            </div>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="text-secondary opacity-50 small italic">Movie (Feature)</div>
+                                    }
+                                </td>
+                                <td class="text-secondary fw-medium">
+                                    @item.Year
+                                </td>
+                                <td>
+                                    <span class="badge rounded-pill @(item.TitleType.Equals("Movie", StringComparison.OrdinalIgnoreCase) ? "bg-secondary text-white" : "bg-light text-dark border")">
+                                        @item.TitleType
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .x-small { font-size: 0.75rem; }
+</style>
+
+@code {
+    protected override void OnInitialized()
+    {
+        WatchlistSvc.OnStateChanged += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        WatchlistSvc.OnStateChanged -= StateHasChanged;
+    }
+
+    private async Task MoveBack(WatchlistItem item)
+    {
+        await WatchlistSvc.UpdateStatusAsync(item, WatchlistStatus.Pending);
+    }
+
+    private async Task ChangeSeason(WatchlistItem item, int delta)
+    {
+        int newS = Math.Max(1, (item.CurrentSeason ?? 1) + delta);
+        await WatchlistSvc.UpdateProgressAsync(item, newS, item.CurrentEpisode);
+    }
+
+    private async Task ChangeEpisode(WatchlistItem item, int delta)
+    {
+        int newE = Math.Max(1, (item.CurrentEpisode ?? 1) + delta);
+        await WatchlistSvc.UpdateProgressAsync(item, item.CurrentSeason, newE);
+    }
+}

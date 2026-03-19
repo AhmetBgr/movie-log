@@ -100,9 +100,18 @@
                         <Virtualize Items="_filteredItems" Context="item" ItemSize="52" OverscanCount="10">
                             <tr>
                                 <td class="text-center px-3">
-                                    <button class="btn btn-sm btn-link text-danger p-0 shadow-none d-inline-flex align-items-center justify-content-center show-on-row-hover" @onclick="() => WatchlistSvc.RemoveFromWatchlistAsync(item)" title="Remove from Watchlist">
-                                        <i class="bi bi-x-lg fs-4"></i>
-                                    </button>
+                                    <div class="d-flex align-items-center justify-content-center gap-1">
+                                        <button class="btn btn-sm btn-outline-success border-0 rounded-circle shadow-none p-1 d-inline-flex align-items-center justify-content-center show-on-row-hover" 
+                                                style="width: 30px; height: 30px;"
+                                                @onclick="() => StartWatching(item)" @onclick:stopPropagation="true" title="Start Watching">
+                                            <i class="bi bi-play-fill fs-5"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-link text-danger p-0 shadow-none d-inline-flex align-items-center justify-content-center show-on-row-hover" 
+                                                style="width: 30px; height: 30px;"
+                                                @onclick="() => RemoveFromWatchlist(item)" @onclick:stopPropagation="true" title="Remove from Watchlist">
+                                            <i class="bi bi-x-lg fs-4"></i>
+                                        </button>
+                                    </div>
                                 </td>
                                 <td style="cursor: pointer;" class="px-3" @onclick="() => ShowMovieDetails(item)">
                                     <span class="fw-bold text-dark" style="transition: opacity 0.2s;" onmouseover="this.style.opacity='0.6'" onmouseout="this.style.opacity='1'">
@@ -281,6 +290,17 @@
         }
     }
 
+    private async Task RemoveFromWatchlist(WatchlistItem item)
+    {
+        await WatchlistSvc.RemoveFromWatchlistAsync(item);
+    }
+
+    private async Task StartWatching(WatchlistItem item)
+    {
+        await WatchlistSvc.UpdateStatusAsync(item, WatchlistStatus.Watching);
+        StateHasChanged();
+    }
+    
     private async Task ShowMovieDetails(WatchlistItem item)
     {
         selectedItem = item;

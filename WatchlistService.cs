@@ -110,6 +110,8 @@ public class WatchlistService
         await _storage.SaveListAsync("my_movie_list", Items);
     }
 
+    public IEnumerable<WatchlistItem> WatchingItems => Items.Where(i => i.Status == WatchlistStatus.Watching);
+
     public IEnumerable<WatchlistItem> FilteredItems
     {
         get
@@ -121,7 +123,7 @@ public class WatchlistService
             bool checkGenre = SelectedGenre != "All";
             bool checkSearch = !string.IsNullOrWhiteSpace(SearchQuery);
 
-            var query = Items.Where(m =>
+            var query = Items.Where(m => m.Status == WatchlistStatus.Pending).Where(m =>
             {
                 if (checkType && !m.TitleType.Equals(SelectedType, StringComparison.OrdinalIgnoreCase))
                     return false;
@@ -135,7 +137,8 @@ public class WatchlistService
                 if (hasEnd && m.ParsedYear > eYear)
                     return false;
 
-                if (checkSearch && !m.Title.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase))
+                if (checkSearch && !m.Title.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase) && 
+                    !(m.Director != null && m.Director.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase)))
                     return false;
 
                 return true;
@@ -308,10 +311,39 @@ public class WatchlistService
         return null;
     }
 
+    public async Task UpdateStatusAsync(WatchlistItem item, WatchlistStatus status)
+    {
+        var existing = Items.FirstOrDefault(i => i.ImdbId == item.ImdbId);
+        if (existing != null)
+        {
+            existing.Status = status;
+            if (status == WatchlistStatus.Watching && existing.TitleType.Contains("TV", StringComparison.OrdinalIgnoreCase))
+            {
+                existing.CurrentSeason ??= 1;
+                existing.CurrentEpisode ??= 1;
+            }
+            await UpdateListAsync(Items);
+            NotifyStateChanged();
+        }
+    }
+
+    public async Task UpdateProgressAsync(WatchlistItem item, int? season, int? episode)
+    {
+        var existing = Items.FirstOrDefault(i => i.ImdbId == item.ImdbId);
+        if (existing != null)
+        {
+            existing.CurrentSeason = season;
+            existing.CurrentEpisode = episode;
+            await UpdateListAsync(Items);
+            NotifyStateChanged();
+        }
+    }
+
     public async Task AddToWatchlistAsync(WatchlistItem item)
     {
         if (!Items.Any(i => i.ImdbId == item.ImdbId))
         {
+            item.Status = WatchlistStatus.Pending;
             Items.Add(item);
             await UpdateListAsync(Items);
             NotifyStateChanged();

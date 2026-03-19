@@ -2,6 +2,13 @@ using System.Text.Json.Serialization;
 
 namespace MyPrivateWatchlist.Models;
 
+public enum WatchlistStatus
+{
+    Pending,
+    Watching,
+    Watched
+}
+
 public class WatchlistItem
 {
     public string ImdbId { get; set; } = null!;
@@ -12,6 +19,9 @@ public class WatchlistItem
     public string? Director { get; set; }
     public string? OriginalTitle { get; set; }
     public int ParsedYear { get; set; }
+    public WatchlistStatus Status { get; set; } = WatchlistStatus.Pending;
+    public int? CurrentSeason { get; set; }
+    public int? CurrentEpisode { get; set; }
 
     public string? DisplayOriginalTitle 
     {

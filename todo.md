@@ -9,8 +9,10 @@
 - [x] **Stabilized Virtualization**: Fixed "fast scrolling" and jumpy table behavior.
 - [x] **Global Search**: Search TMDB from any page with consistent results styling.
 - [x] **Wider Scrollbars**: Doubled the scrollbar width (16px) for easier navigation.
+- [x] **Watching Tab**: Dedicated space for tracking active movies and TV shows.
+- [x] **Episode Tracking**: Increment/decrement buttons for Season and Episode.
 
-## 🚀 Potential Next Steps
+## Potential Next Steps
 - [ ] **Export to CSV**: Export your filtered Watchlist view back to a file.
 - [ ] **Watchlist Statistics**: Pie charts or stats for genre distribution and year ranges.
 - [ ] **Watch History**: Move items from "Watchlist" to a "Watched" list with ratings.
