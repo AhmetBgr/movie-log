@@ -37,42 +37,69 @@
                         @foreach (var item in WatchlistSvc.WatchingItems)
                         {
                             <tr class="position-relative">
-                                <td class="text-center px-3">
-                                    <button class="btn btn-sm btn-outline-secondary border-0 rounded-circle shadow-none p-1 d-inline-flex align-items-center justify-content-center show-on-row-hover" 
-                                            style="width: 30px; height: 30px;"
-                                            @onclick="() => MoveBack(item)" title="Move back to Watchlist">
-                                        <i class="bi bi-arrow-left-circle fs-5"></i>
-                                    </button>
+                                <td class="text-center px-3" style="width: 80px;">
+                                    <div class="d-flex align-items-center justify-content-center gap-1">
+                                        <button class="btn btn-sm btn-outline-success border-0 rounded-circle shadow-none p-1 d-inline-flex align-items-center justify-content-center show-on-row-hover" 
+                                                style="width: 32px; height: 32px;"
+                                                @onclick="() => MarkAsWatched(item)" title="Mark as Completed">
+                                            <i class="bi bi-check-lg fs-5"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-link text-secondary p-0 shadow-none d-inline-flex align-items-center justify-content-center show-on-row-hover opacity-50" 
+                                                style="width: 32px; height: 32px;"
+                                                @onclick="() => MoveBack(item)" title="Move back to Watchlist">
+                                            <i class="bi bi-arrow-left fs-5"></i>
+                                        </button>
+                                    </div>
                                 </td>
-                                <td class="px-3">
-                                    <span class="fw-bold text-dark d-block">@item.Title</span>
+                                <td style="cursor: pointer;" class="px-3" @onclick="() => ShowMovieDetails(item)">
+                                    <span class="fw-bold text-dark" style="transition: opacity 0.2s;" onmouseover="this.style.opacity='0.6'" onmouseout="this.style.opacity='1'">
+                                        @item.Title
+                                    </span>
                                     @if (!string.IsNullOrEmpty(item.Director))
                                     {
-                                        <span class="text-secondary x-small">Dir: @item.Director</span>
+                                        <span class="text-secondary x-small opacity-75 d-block">@item.Director</span>
                                     }
                                 </td>
                                 <td class="px-3 text-center">
                                     @if (item.TitleType.Contains("TV", StringComparison.OrdinalIgnoreCase))
                                     {
-                                        <div class="d-flex align-items-center justify-content-center gap-3">
-                                            <div class="d-flex align-items-center gap-2">
-                                                <span class="text-secondary small fw-bold">S</span>
-                                                <button class="btn btn-sm btn-light border p-0 px-2 fw-bold" @onclick="() => ChangeSeason(item, -1)">-</button>
-                                                <span class="fw-bold text-dark fs-5 mx-1" style="min-width: 20px;">@item.CurrentSeason</span>
-                                                <button class="btn btn-sm btn-light border p-0 px-2 fw-bold" @onclick="() => ChangeSeason(item, 1)">+</button>
+                                        <div class="d-inline-flex align-items-center bg-light rounded-pill p-1 border shadow-sm mx-auto tracking-pill">
+                                            <!-- Season Control -->
+                                            <div class="d-flex align-items-center px-1">
+                                                <button class="btn btn-xs btn-white border shadow-sm rounded-circle p-0 d-flex align-items-center justify-content-center show-on-pill-hover" 
+                                                        style="width: 22px; height: 22px;" @onclick="() => ChangeSeason(item, -1)">
+                                                    <i class="bi bi-dash fs-6"></i>
+                                                </button>
+                                                <span class="text-secondary small fw-bold mx-1">S</span>
+                                                <span class="fw-bolder text-dark" style="min-width: 20px;">@item.CurrentSeason</span>
+                                                <button class="btn btn-xs btn-white border shadow-sm rounded-circle p-0 d-flex align-items-center justify-content-center show-on-pill-hover" 
+                                                        style="width: 22px; height: 22px;" @onclick="() => ChangeSeason(item, 1)">
+                                                    <i class="bi bi-plus fs-6"></i>
+                                                </button>
                                             </div>
-                                            <div class="vr"></div>
-                                            <div class="d-flex align-items-center gap-2">
-                                                <span class="text-secondary small fw-bold">E</span>
-                                                <button class="btn btn-sm btn-light border p-0 px-2 fw-bold" @onclick="() => ChangeEpisode(item, -1)">-</button>
-                                                <span class="fw-bold text-dark fs-5 mx-1" style="min-width: 20px;">@item.CurrentEpisode</span>
-                                                <button class="btn btn-sm btn-light border p-0 px-2 fw-bold" @onclick="() => ChangeEpisode(item, 1)">+</button>
+                                            
+                                            <div class="vr mx-1 my-1 opacity-10" style="height: 18px;"></div>
+                                            
+                                            <!-- Episode Control -->
+                                            <div class="d-flex align-items-center px-1">
+                                                <button class="btn btn-xs btn-white border shadow-sm rounded-circle p-0 d-flex align-items-center justify-content-center show-on-pill-hover" 
+                                                        style="width: 22px; height: 22px;" @onclick="() => ChangeEpisode(item, -1)">
+                                                    <i class="bi bi-dash fs-6"></i>
+                                                </button>
+                                                <span class="text-secondary small fw-bold mx-1">E</span>
+                                                <span class="fw-bolder text-dark" style="min-width: 20px;">@item.CurrentEpisode</span>
+                                                <button class="btn btn-xs btn-white border shadow-sm rounded-circle p-0 d-flex align-items-center justify-content-center show-on-pill-hover" 
+                                                        style="width: 22px; height: 22px;" @onclick="() => ChangeEpisode(item, 1)">
+                                                    <i class="bi bi-plus fs-6"></i>
+                                                </button>
                                             </div>
                                         </div>
                                     }
                                     else
                                     {
-                                        <div class="text-secondary opacity-50 small italic">Movie (Feature)</div>
+                                        <div class="badge bg-light text-secondary fw-normal border px-3 py-2 rounded-pill italic">
+                                            Feature Movie
+                                        </div>
                                     }
                                 </td>
                                 <td class="text-secondary fw-medium">
@@ -90,13 +117,113 @@
             </div>
         </div>
     }
+
+    @if (selectedMovie != null)
+    {
+        <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.85);" @onclick="CloseModal">
+            <div class="modal-dialog modal-dialog-centered modal-xl" @onclick:stopPropagation="true">
+                <div class="modal-content bg-transparent border-0">
+                    <div class="card bg-white text-dark shadow-lg border-0 rounded-2 overflow-hidden">
+                        <div class="row g-0">
+                            <div class="col-md-5 text-center p-0 bg-black d-flex align-items-center justify-content-center" style="min-height: 600px;">
+                                <img src="@selectedMovie.FullPosterUrl" class="img-fluid px-2 py-2" alt="Poster" style="object-fit: contain; max-height: 100%; width: 100%;" />
+                            </div>
+                            <div class="col-md-7 position-relative">
+                                <button type="button" class="btn-close position-absolute top-0 end-0 m-4" aria-label="Close" @onclick="CloseModal"></button>
+                                <div class="card-body p-5 d-flex flex-column h-100">
+                                    <h2 class="card-title fw-bolder text-dark mb-1 pe-4">
+                                        <a href="https://www.imdb.com/title/@selectedItem!.ImdbId/" target="_blank" class="text-decoration-none text-dark" onmouseover="this.style.opacity='0.6'" onmouseout="this.style.opacity='1'">@selectedMovie.Title</a>
+                                    </h2>
+                                    
+                                    @if (!string.IsNullOrEmpty(selectedMovie.ReleaseDate))
+                                    {
+                                        <p class="text-secondary fw-semibold small mb-4 text-uppercase tracking-wide">Released: @selectedMovie.ReleaseDate</p>
+                                    }
+
+                                    <div class="mb-4 d-flex align-items-center gap-3">
+                                        <span class="badge bg-dark text-white fs-6 px-3 py-2 rounded-pill shadow-sm">
+                                            @selectedMovie.VoteAverage.ToString("0.0") / 10
+                                        </span>
+                                    </div>
+
+                                    @if (selectedMovie.Directors.Any())
+                                    {
+                                        <p class="mb-2 text-dark fs-6"><strong>Director:</strong> 
+                                            @foreach (var dir in selectedMovie.Directors)
+                                            {
+                                                <a href="https://www.imdb.com/find/?q=@System.Uri.EscapeDataString(dir)&s=nm" target="_blank" class="text-decoration-none text-secondary fw-semibold me-2">@dir</a>
+                                            }
+                                        </p>
+                                    }
+
+                                    @if (selectedMovie.Actors.Any())
+                                    {
+                                        <p class="mb-4 text-dark fs-6"><strong>Cast:</strong> 
+                                            @foreach (var actor in selectedMovie.Actors)
+                                            {
+                                                <a href="https://www.imdb.com/find/?q=@System.Uri.EscapeDataString(actor)&s=nm" target="_blank" class="text-decoration-none text-secondary fw-semibold me-2">@actor</a>
+                                            }
+                                        </p>
+                                    }
+                                    
+                                    <p class="card-text fs-6 text-secondary flex-grow-1" style="line-height: 1.7;">
+                                        @if (string.IsNullOrEmpty(selectedMovie.Overview) && string.IsNullOrEmpty(selectedMovie.Directors.FirstOrDefault()))
+                                        {
+                                            <div class="d-flex align-items-center gap-2 text-secondary">
+                                                <div class="spinner-border spinner-border-sm" role="status"></div>
+                                                <span>Loading full details...</span>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            @(string.IsNullOrEmpty(selectedMovie.Overview) ? "No overview available." : selectedMovie.Overview)
+                                        }
+                                    </p>
+                                    
+                                    <div class="mt-4 pt-4 border-top">
+                                        <div class="d-flex gap-2">
+                                            <a href="https://www.imdb.com/title/@selectedItem.ImdbId/" target="_blank" class="btn btn-dark btn-lg px-5 rounded-pill shadow-sm flex-grow-1 fw-semibold">
+                                                Open on IMDb
+                                            </a>
+                                            <button class="btn btn-outline-danger btn-lg px-4 rounded-pill shadow-sm fw-semibold" @onclick="RemoveFromWatchlistFromModal">
+                                                Remove
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
 </div>
 
 <style>
     .x-small { font-size: 0.75rem; }
+    .btn-xs { padding: 0.1rem 0.25rem; font-size: 0.70rem; }
+    .btn-white { background-color: white; color: #555; }
+    .btn-white:hover { background-color: #f8f9fa; color: #000; }
+
+    .tracking-pill { transition: all 0.2s ease; min-width: 80px; justify-content: center; }
+    .show-on-pill-hover { 
+        opacity: 0; 
+        transition: opacity 0.2s ease, transform 0.2s ease; 
+        transform: scale(0.8);
+        pointer-events: none;
+    }
+    .tracking-pill:hover .show-on-pill-hover { 
+        opacity: 1; 
+        transform: scale(1);
+        pointer-events: auto;
+    }
 </style>
 
 @code {
+    private TmdbMovie? selectedMovie;
+    private WatchlistItem? selectedItem;
+
     protected override void OnInitialized()
     {
         WatchlistSvc.OnStateChanged += StateHasChanged;
@@ -112,6 +239,11 @@
         await WatchlistSvc.UpdateStatusAsync(item, WatchlistStatus.Pending);
     }
 
+    private async Task MarkAsWatched(WatchlistItem item)
+    {
+        await WatchlistSvc.UpdateStatusAsync(item, WatchlistStatus.Watched);
+    }
+
     private async Task ChangeSeason(WatchlistItem item, int delta)
     {
         int newS = Math.Max(1, (item.CurrentSeason ?? 1) + delta);
@@ -122,5 +254,41 @@
     {
         int newE = Math.Max(1, (item.CurrentEpisode ?? 1) + delta);
         await WatchlistSvc.UpdateProgressAsync(item, item.CurrentSeason, newE);
+    }
+
+    private async Task ShowMovieDetails(WatchlistItem item)
+    {
+        selectedItem = item;
+        // Show basic info instantly
+        selectedMovie = new TmdbMovie 
+        { 
+            Title = item.Title, 
+            OriginalTitle = item.OriginalTitle,
+            ReleaseDate = item.Year
+        };
+        StateHasChanged();
+
+        // Load full details in background
+        var fullDetails = await WatchlistSvc.GetTmdbDetailsAsync(item.ImdbId);
+        if (fullDetails != null && selectedItem == item) // Ensure we haven't switched movies
+        {
+            selectedMovie = fullDetails;
+            StateHasChanged();
+        }
+    }
+
+    private async Task RemoveFromWatchlistFromModal()
+    {
+        if (selectedItem != null)
+        {
+            await WatchlistSvc.RemoveFromWatchlistAsync(selectedItem);
+            CloseModal();
+        }
+    }
+
+    private void CloseModal()
+    {
+        selectedMovie = null;
+        selectedItem = null;
     }
 }
