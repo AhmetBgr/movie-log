@@ -76,7 +76,7 @@
                         <Virtualize Items="WatchlistSvc.FilteredItems.ToList()" Context="item" ItemSize="56">
                             <tr>
                                 <td class="text-center px-3">
-                                    <button class="btn btn-sm btn-link text-danger p-0 shadow-none d-inline-flex align-items-center justify-content-center" @onclick="() => WatchlistSvc.RemoveFromWatchlistAsync(item)" title="Remove from Watchlist">
+                                    <button class="btn btn-sm btn-link text-danger p-0 shadow-none d-inline-flex align-items-center justify-content-center show-on-row-hover" @onclick="() => WatchlistSvc.RemoveFromWatchlistAsync(item)" title="Remove from Watchlist">
                                         <i class="bi bi-x-lg fs-4"></i>
                                     </button>
                                 </td>

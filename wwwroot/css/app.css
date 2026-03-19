@@ -113,3 +113,18 @@ code {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+
+/* --- Hover Actions --- */
+.show-on-row-hover {
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+}
+
+tr:hover .show-on-row-hover {
+    opacity: 1;
+}
+
+/* Ensure buttons don't lose hover state when moving from row to button */
+.show-on-row-hover:focus {
+    opacity: 1;
+}
