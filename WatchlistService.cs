@@ -285,6 +285,10 @@ public class WatchlistService
                     {
                         movie.BackdropPaths = images.Backdrops.Take(10).Select(b => b.FilePath).ToList();
                     }
+
+                    var videosUrl = $"https://api.themoviedb.org/3/movie/{movie.Id}/videos?api_key={apiKey}";
+                    var videos = await _http.GetFromJsonAsync<TmdbVideosResponse>(videosUrl);
+                    movie.TrailerKey = videos?.Results?.FirstOrDefault(v => v.Site == "YouTube" && v.Type == "Trailer")?.Key;
                 } catch { } 
 
                 _movieCache[imdbId] = movie;
@@ -321,6 +325,10 @@ public class WatchlistService
                     {
                         movie.BackdropPaths = images.Backdrops.Take(10).Select(b => b.FilePath).ToList();
                     }
+
+                    var videosUrl = $"https://api.themoviedb.org/3/tv/{tv.Id}/videos?api_key={apiKey}";
+                    var videos = await _http.GetFromJsonAsync<TmdbVideosResponse>(videosUrl);
+                    movie.TrailerKey = videos?.Results?.FirstOrDefault(v => v.Site == "YouTube" && v.Type == "Trailer")?.Key;
                 } catch { } 
 
                 _movieCache[imdbId] = movie;
@@ -368,6 +376,10 @@ public class WatchlistService
                         {
                             movie.BackdropPaths = images.Backdrops.Take(10).Select(b => b.FilePath).ToList();
                         }
+
+                        var videosUrl = $"https://api.themoviedb.org/3/movie/{tmdbId}/videos?api_key={apiKey}";
+                        var videos = await _http.GetFromJsonAsync<TmdbVideosResponse>(videosUrl);
+                        movie.TrailerKey = videos?.Results?.FirstOrDefault(v => v.Site == "YouTube" && v.Type == "Trailer")?.Key;
                     } catch { } 
                     return movie;
                 }
@@ -412,6 +424,10 @@ public class WatchlistService
                         {
                             movie.BackdropPaths = images.Backdrops.Take(10).Select(b => b.FilePath).ToList();
                         }
+
+                        var videosUrl = $"https://api.themoviedb.org/3/tv/{tv.Id}/videos?api_key={apiKey}";
+                        var videos = await _http.GetFromJsonAsync<TmdbVideosResponse>(videosUrl);
+                        movie.TrailerKey = videos?.Results?.FirstOrDefault(v => v.Site == "YouTube" && v.Type == "Trailer")?.Key;
                     } catch { } 
                     return movie;
                 }

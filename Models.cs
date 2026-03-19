@@ -81,6 +81,7 @@ public class TmdbMovie
     public List<string> Directors { get; set; } = new();
     public List<string> Actors { get; set; } = new();
     public List<string> BackdropPaths { get; set; } = new();
+    public string? TrailerKey { get; set; }
 
     public string FullPosterUrl => string.IsNullOrEmpty(PosterPath)
         ? "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" 
@@ -219,4 +220,22 @@ public class TmdbImage
 {
     [JsonPropertyName("file_path")]
     public string FilePath { get; set; } = "";
+}
+
+public class TmdbVideosResponse
+{
+    [JsonPropertyName("results")]
+    public List<TmdbVideo> Results { get; set; } = new();
+}
+
+public class TmdbVideo
+{
+    [JsonPropertyName("key")]
+    public string Key { get; set; } = "";
+    
+    [JsonPropertyName("site")]
+    public string Site { get; set; } = "";
+    
+    [JsonPropertyName("type")]
+    public string Type { get; set; } = "";
 }

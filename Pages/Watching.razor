@@ -155,5 +155,4 @@
             int newE = Math.Max(1, (item.CurrentEpisode ?? 1) + delta);
             await WatchlistSvc.UpdateProgressAsync(item, item.CurrentSeason, newE);
         }
-    }
 }

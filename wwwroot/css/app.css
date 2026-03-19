@@ -213,7 +213,6 @@ code {
 /* --- Hover Actions --- */
 .show-on-row-hover {
     opacity: 0;
-    transition: opacity 0.1s ease;
 }
 
 tr:hover .show-on-row-hover {
@@ -226,5 +225,17 @@ tr:hover .show-on-row-hover {
 }
 
 .show-on-row-hover:focus {
+    opacity: 1;
+}
+/* --- Tracking Pill Hover (+/- buttons) --- */
+.show-on-pill-hover {
+    opacity: 0;
+}
+
+.tracking-pill:hover .show-on-pill-hover {
+    opacity: 1;
+}
+
+.show-on-pill-hover:focus {
     opacity: 1;
 }

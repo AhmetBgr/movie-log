@@ -14,11 +14,18 @@
 - [x] **Watched History**: Dedicated "Watched" tab with personalized ratings (1-10).
 - [x] **Chronological Tracking**: "Date Added" timestamps for every item across all lists.
 - [x] **History Import**: "Import as Watched" toggle in Setup to skip the watchlist.
-- [x] **Movie Log PWA**: Native-feel desktop experience with custom branding and icons.
-- [x] **Quick-Launch Batch**: Self-minimizing background server for instant start.
+- [x] **High-Fidelity Lightbox**: Full-screen image preview with blurred backdrop and instant dismissal.
+- [x] **Persistent Movie Plots**: Instant rendering from local storage and silent background sync.
+- [x] **Global Row Striping**: Improved table readability with high-contrast row-based differentiation.
+- [x] **Full-Plot Table Displays**: Unshortened summaries directamente in the Watchlist grid.
+- [x] **Stabilized Modal Layout**: Fixed-height media column to prevent UI jumping during view toggles.
 
 
 ## Potential Next Steps
+- [ ] **Smart Collections (Franchises)**: Automatically group your movies into franchises using TMDB Collections API.
+- [ ] **Cast & Crew Deep-Dive**: Clickable actors/directors to show profiles, bios, and their other work.
+- [ ] **Immersive Trailer Lightbox**: Watch trailers directly in a premium, focused overlay.
+- [ ] **Auto-Import Bookmarklet**: A browser tool to instantly add movies from IMDb/Letterboxd to your local Log.
 - [ ] **Export to CSV**: Export your filtered Watchlist view back to a file.
 - [ ] **Watchlist Statistics**: Pie charts or stats for genre distribution and year ranges.
 - [ ] **Cloud Backup**: Optional integration for saving your list beyond local storage.
