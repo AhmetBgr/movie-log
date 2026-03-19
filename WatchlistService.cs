@@ -111,6 +111,7 @@ public class WatchlistService
     }
 
     public IEnumerable<WatchlistItem> WatchingItems => Items.Where(i => i.Status == WatchlistStatus.Watching);
+    public IEnumerable<WatchlistItem> WatchedItems => Items.Where(i => i.Status == WatchlistStatus.Watched);
 
     public IEnumerable<WatchlistItem> FilteredItems
     {

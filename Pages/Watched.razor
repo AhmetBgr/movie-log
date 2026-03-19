@@ -1,0 +1,220 @@
+@page "/watched"
+@using MyPrivateWatchlist.Models
+@inject MyPrivateWatchlist.Services.WatchlistService WatchlistSvc
+@implements IDisposable
+
+<PageTitle>Watched History</PageTitle>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+        <h2 class="fw-bold text-dark d-flex align-items-center mb-0">
+            <i class="bi bi-check2-all me-3 text-success"></i> Watched History
+            <span class="badge bg-success bg-opacity-10 text-success ms-3 rounded-pill fs-6 fw-normal border border-success border-opacity-25">
+                @WatchlistSvc.WatchedItems.Count() Completed
+            </span>
+        </h2>
+    </div>
+
+    @if (!WatchlistSvc.WatchedItems.Any())
+    {
+        <div class="alert alert-light border shadow-sm text-center py-5 fs-5 rounded-2 mt-4">
+            <i class="bi bi-journal-check fs-1 d-block mb-3 text-secondary opacity-50"></i>
+            You haven't marked anything as watched yet.
+        </div>
+    }
+    else
+    {
+        <div class="card shadow-sm border-0 overflow-hidden rounded-2">
+            <div class="card-body p-0 bg-white">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light text-secondary fw-semibold">
+                        <tr>
+                            <th scope="col" style="width: 12%; text-align: center;" class="py-3 px-3">Actions</th>
+                            <th scope="col" style="width: 48%;" class="py-3 px-3">Title</th>
+                            <th scope="col" style="width: 20%;" class="py-3 px-3">Year</th>
+                            <th scope="col" style="width: 22%;" class="py-3 px-3">Type</th>
+                        </tr>
+                    </thead>
+                    <tbody class="border-top-0">
+                        @foreach (var item in WatchlistSvc.WatchedItems.OrderByDescending(i => i.Year))
+                        {
+                            <tr @key="item.ImdbId">
+                                <td class="text-center px-3">
+                                    <div class="d-flex align-items-center justify-content-center gap-1">
+                                        <button class="btn btn-sm btn-outline-primary border-0 rounded-circle shadow-none p-1 d-inline-flex align-items-center justify-content-center show-on-row-hover" 
+                                                style="width: 32px; height: 32px;"
+                                                @onclick="() => RestartWatching(item)" title="Watch Again">
+                                            <i class="bi bi-arrow-counterclockwise fs-5"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-dark border-0 rounded-circle shadow-none p-1 d-inline-flex align-items-center justify-content-center show-on-row-hover" 
+                                                style="width: 32px; height: 32px;"
+                                                @onclick="() => MoveToWatchlist(item)" title="Add back to Watchlist">
+                                            <i class="bi bi-plus-lg fs-5"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-link text-danger p-0 shadow-none d-inline-flex align-items-center justify-content-center show-on-row-hover" 
+                                                style="width: 32px; height: 32px;"
+                                                @onclick="() => RemoveFromLibrary(item)" title="Remove from Library">
+                                            <i class="bi bi-trash3 fs-5"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                                <td style="cursor: pointer;" class="px-3" @onclick="() => ShowMovieDetails(item)">
+                                    <span class="fw-bold text-dark" style="transition: opacity 0.2s;" onmouseover="this.style.opacity='0.6'" onmouseout="this.style.opacity='1'">
+                                        @item.Title
+                                    </span>
+                                    @if (!string.IsNullOrEmpty(item.Director))
+                                    {
+                                        <span class="text-secondary x-small opacity-75 d-block">@item.Director</span>
+                                    }
+                                </td>
+                                <td class="text-secondary fw-medium px-3">
+                                    @item.Year
+                                </td>
+                                <td class="px-3">
+                                    <span class="badge rounded-pill @(item.TitleType == "Movie" ? "bg-secondary" : "bg-light text-dark border")">
+                                        @item.TitleType
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+
+    @if (selectedMovie != null)
+    {
+        <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.85);" @onclick="CloseModal">
+            <div class="modal-dialog modal-dialog-centered modal-xl" @onclick:stopPropagation="true">
+                <div class="modal-content bg-transparent border-0">
+                    <div class="card bg-white text-dark shadow-lg border-0 rounded-2 overflow-hidden">
+                        <div class="row g-0">
+                            <div class="col-md-5 text-center p-0 bg-black d-flex align-items-center justify-content-center" style="min-height: 600px;">
+                                <img src="@selectedMovie.FullPosterUrl" class="img-fluid px-2 py-2" alt="Poster" style="object-fit: contain; max-height: 100%; width: 100%;" />
+                            </div>
+                            <div class="col-md-7 position-relative">
+                                <button type="button" class="btn-close position-absolute top-0 end-0 m-4" aria-label="Close" @onclick="CloseModal"></button>
+                                <div class="card-body p-5 d-flex flex-column h-100">
+                                    <h2 class="card-title fw-bolder text-dark mb-1 pe-4">
+                                        <a href="https://www.imdb.com/title/@selectedItem!.ImdbId/" target="_blank" class="text-decoration-none text-dark" onmouseover="this.style.opacity='0.6'" onmouseout="this.style.opacity='1'">@selectedMovie.Title</a>
+                                    </h2>
+                                    
+                                    @if (!string.IsNullOrEmpty(selectedMovie.ReleaseDate))
+                                    {
+                                        <p class="text-secondary fw-semibold small mb-4 text-uppercase tracking-wide">Released: @selectedMovie.ReleaseDate</p>
+                                    }
+
+                                    <div class="mb-4 d-flex align-items-center gap-3">
+                                        <span class="badge bg-dark text-white fs-6 px-3 py-2 rounded-pill shadow-sm">
+                                            @selectedMovie.VoteAverage.ToString("0.0") / 10
+                                        </span>
+                                        <button class="btn btn-outline-danger rounded-pill px-4 fw-bold" @onclick="() => RemoveFromLibrary(selectedItem)">
+                                            <i class="bi bi-trash3 me-2"></i> Delete entry
+                                        </button>
+                                    </div>
+
+                                    @if (selectedMovie.Directors.Any())
+                                    {
+                                        <p class="mb-2 text-dark fs-6"><strong>Director:</strong> 
+                                            @foreach (var dir in selectedMovie.Directors)
+                                            {
+                                                <a href="https://www.imdb.com/find/?q=@System.Uri.EscapeDataString(dir)&s=nm" target="_blank" class="text-decoration-none text-secondary fw-semibold me-2">@dir</a>
+                                            }
+                                        </p>
+                                    }
+
+                                    @if (selectedMovie.Actors.Any())
+                                    {
+                                        <p class="mb-4 text-dark fs-6"><strong>Cast:</strong> 
+                                            @foreach (var actor in selectedMovie.Actors)
+                                            {
+                                                <a href="https://www.imdb.com/find/?q=@System.Uri.EscapeDataString(actor)&s=nm" target="_blank" class="text-decoration-none text-secondary fw-semibold me-2">@actor</a>
+                                            }
+                                        </p>
+                                    }
+                                    
+                                    <p class="card-text fs-6 text-secondary flex-grow-1" style="line-height: 1.7;">
+                                        @(string.IsNullOrEmpty(selectedMovie.Overview) ? "No overview available." : selectedMovie.Overview)
+                                    </p>
+                                    
+                                    <div class="mt-4 pt-4 border-top">
+                                        <div class="d-flex gap-2">
+                                            <a href="https://www.imdb.com/title/@selectedItem.ImdbId/" target="_blank" class="btn btn-dark btn-lg px-5 rounded-pill shadow-sm flex-grow-1 fw-semibold">
+                                                Open on IMDb
+                                            </a>
+                                            <button class="btn btn-outline-dark btn-lg px-4 rounded-pill shadow-sm fw-semibold" @onclick="() => MoveToWatchlist(selectedItem)">
+                                                To Watchlist
+                                            </button>
+                                            <button class="btn btn-primary btn-lg px-4 rounded-pill shadow-sm fw-semibold" @onclick="() => RestartWatching(selectedItem)">
+                                                Watch Again
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private TmdbMovie? selectedMovie;
+    private WatchlistItem? selectedItem;
+
+    protected override void OnInitialized()
+    {
+        WatchlistSvc.OnStateChanged += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        WatchlistSvc.OnStateChanged -= StateHasChanged;
+    }
+
+    private async Task RestartWatching(WatchlistItem item)
+    {
+        await WatchlistSvc.UpdateStatusAsync(item, WatchlistStatus.Watching);
+        CloseModal();
+    }
+
+    private async Task MoveToWatchlist(WatchlistItem item)
+    {
+        await WatchlistSvc.UpdateStatusAsync(item, WatchlistStatus.Pending);
+        CloseModal();
+    }
+
+    private async Task RemoveFromLibrary(WatchlistItem item)
+    {
+        await WatchlistSvc.RemoveFromWatchlistAsync(item);
+        CloseModal();
+    }
+
+    private async Task ShowMovieDetails(WatchlistItem item)
+    {
+        selectedItem = item;
+        selectedMovie = new TmdbMovie 
+        { 
+            Title = item.Title, 
+            OriginalTitle = item.OriginalTitle,
+            ReleaseDate = item.Year
+        };
+        StateHasChanged();
+
+        var fullDetails = await WatchlistSvc.GetTmdbDetailsAsync(item.ImdbId);
+        if (fullDetails != null && selectedItem == item)
+        {
+            selectedMovie = fullDetails;
+            StateHasChanged();
+        }
+    }
+
+    private void CloseModal()
+    {
+        selectedMovie = null;
+        selectedItem = null;
+    }
+}
