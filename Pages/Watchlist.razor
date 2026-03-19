@@ -50,7 +50,7 @@
                     </thead>
                     <tbody class="border-top-0">
                         <Virtualize Items="_filteredItems" Context="item" ItemSize="52" OverscanCount="10">
-                            <tr>
+                            <tr @key="item">
                                 <td class="text-center px-3">
                                     <div class="d-flex align-items-center justify-content-center gap-1">
                                         <button class="btn btn-sm btn-outline-success border-0 rounded-circle shadow-none p-1 d-inline-flex align-items-center justify-content-center show-on-row-hover" 
