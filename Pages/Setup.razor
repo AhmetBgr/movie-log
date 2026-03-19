@@ -1,0 +1,153 @@
+@page "/setup"
+@using System.Text.RegularExpressions
+@using MyPrivateWatchlist.Models
+@inject HttpClient Http
+@inject IConfiguration Config
+@inject MyPrivateWatchlist.Services.WatchlistService Watchlist
+
+<PageTitle>Setup & Data</PageTitle>
+
+<div class="container py-4">
+    <h2 class="mb-4 fw-bold text-dark d-flex align-items-center">
+        <i class="bi bi-gear-fill me-3 text-secondary"></i> Setup & Data Management
+    </h2>
+
+    <div class="row g-4">
+        <!-- Import Section -->
+        <div class="col-md-6">
+            <div class="card h-100 shadow-sm border-0 rounded-3">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-primary bg-opacity-10 text-primary p-2 rounded-3 me-3">
+                            <i class="bi bi-file-earmark-arrow-up fs-4"></i>
+                        </div>
+                        <h5 class="card-title mb-0 fw-bold">Import IMDb Data</h5>
+                    </div>
+                    <p class="text-secondary small mb-4">Upload your exported IMDb Watchlist CSV file to populate your local database.</p>
+                    
+                    <InputFile OnChange="HandleFileSelected" class="form-control bg-light border-0 py-2 mb-3" />
+                    
+                    @if (!string.IsNullOrEmpty(statusMessage))
+                    {
+                        <div class="alert @(statusMessage.StartsWith("Error") ? "alert-danger" : "alert-success") border-0 small py-2 mb-0">
+                            @statusMessage
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Export Section (Placeholder) -->
+        <div class="col-md-6">
+            <div class="card h-100 shadow-sm border-0 rounded-3 opacity-75">
+                <div class="card-body p-4 d-flex flex-column">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-secondary bg-opacity-10 text-secondary p-2 rounded-3 me-3">
+                            <i class="bi bi-download fs-4"></i>
+                        </div>
+                        <h5 class="card-title mb-0 fw-bold text-muted">Export Watchlist</h5>
+                    </div>
+                    <p class="text-secondary small mb-4">Download your current watchlist as a CSV or JSON file.</p>
+                    <button class="btn btn-outline-secondary mt-auto py-2 rounded-pill fw-bold border-2" disabled>
+                        Coming Soon
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- API Settings (Placeholder) -->
+        <div class="col-12">
+            <div class="card shadow-sm border-0 rounded-3">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-dark bg-opacity-10 text-dark p-2 rounded-3 me-3">
+                            <i class="bi bi-key-fill fs-4"></i>
+                        </div>
+                        <h5 class="card-title mb-0 fw-bold">Connection Settings</h5>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label small fw-bold text-secondary text-uppercase">TMDB API Key</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control bg-light border-0 py-2" value="@Config["TmdbApiKey"]" readonly />
+                                <button class="btn btn-light border-0" disabled><i class="bi bi-pencil"></i></button>
+                            </div>
+                            <div class="form-text x-small mt-1 text-muted">API key is currently managed via configuration. Manual edits coming soon.</div>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button class="btn btn-dark w-100 py-2 rounded-pill fw-bold" disabled>Test Connection</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .x-small { font-size: 0.75rem; }
+</style>
+
+@code {
+    private string statusMessage = "";
+
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            statusMessage = "Loading...";
+            StateHasChanged();
+
+            using var stream = e.File.OpenReadStream(10_485_760);
+            using var reader = new StreamReader(stream);
+            
+            var config = new CsvHelper.Configuration.CsvConfiguration(System.Globalization.CultureInfo.InvariantCulture)
+            {
+                PrepareHeaderForMatch = args => args.Header.ToLower(),
+                HeaderValidated = null,
+                MissingFieldFound = null
+            };
+
+            using var csv = new CsvHelper.CsvReader(reader, config);
+            var tempItems = new List<WatchlistItem>();
+
+            await csv.ReadAsync();
+            csv.ReadHeader(); 
+            
+            while (await csv.ReadAsync())
+            {
+                var imdbId = csv.HeaderRecord.Contains("Const", StringComparer.OrdinalIgnoreCase) ? csv.GetField("Const") : null;
+                var title = csv.HeaderRecord.Contains("Title", StringComparer.OrdinalIgnoreCase) ? csv.GetField("Title") : null;
+                var type = csv.HeaderRecord.Contains("Title Type", StringComparer.OrdinalIgnoreCase) ? csv.GetField("Title Type") : null;
+                var year = csv.HeaderRecord.Contains("Year", StringComparer.OrdinalIgnoreCase) ? csv.GetField("Year") : null;
+                var genres = csv.HeaderRecord.Contains("Genres", StringComparer.OrdinalIgnoreCase) ? csv.GetField("Genres") : null;
+                var directors = csv.HeaderRecord.Contains("Directors", StringComparer.OrdinalIgnoreCase) ? csv.GetField("Directors") : null;
+
+                if (!string.IsNullOrEmpty(imdbId) && !string.IsNullOrEmpty(title))
+                {
+                    var cleanYear = year?.Trim() ?? "";
+                    var yearDigits = new string(cleanYear.TakeWhile(char.IsDigit).ToArray());
+                    int.TryParse(yearDigits, out int parsedYear);
+
+                    tempItems.Add(new WatchlistItem {
+                        ImdbId = imdbId.Trim(),
+                        Title = title.Trim(),
+                        TitleType = type?.Trim() ?? "",
+                        Year = cleanYear,
+                        Genres = genres?.Trim() ?? "",
+                        Director = directors?.Trim() ?? "",
+                        ParsedYear = parsedYear,
+                        Status = WatchlistStatus.Pending
+                    });
+                }
+            }
+            await Watchlist.UpdateListAsync(tempItems);
+            statusMessage = $"Successfully imported {tempItems.Count} items.";
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"CSV Import Detail Error: {ex}");
+            statusMessage = $"Error: {ex.Message}";
+        }
+    }
+}

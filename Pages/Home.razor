@@ -1,269 +1,121 @@
 @page "/"
-@using System.Text.RegularExpressions
-@inject HttpClient Http
-@inject IConfiguration Config
 @inject WatchlistService Watchlist
 
-<PageTitle>My Private Watchlist</PageTitle>
+<PageTitle>Dashboard</PageTitle>
 
-<div class="container">
-    <h1 class="mb-4 fw-bold text-dark border-bottom pb-3">My Private Watchlist</h1>
-
-    <div class="card p-4 mb-4 border-0 shadow-sm rounded-2 bg-white">
-        <h5 class="fw-semibold mb-3">Step 1: Import IMDb Watchlist</h5>
-        <InputFile OnChange="HandleFileSelected" class="form-control form-control-lg bg-light" />
-        
-        @if (Watchlist.Items.Any())
-        {
-            <div class="alert alert-dark mt-4 border-0 rounded-3 shadow-sm text-center">
-                Loaded <strong class="fs-5">@Watchlist.Items.Count</strong> items successfully.
-            </div>
-        }
-    </div>
-
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="fw-semibold mb-0">Step 2: Filter & Pick Random</h5>
-        <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" @onclick="() => showFilters = !showFilters">
-            <i class="bi @(showFilters ? "bi-chevron-up" : "bi-funnel") me-1"></i> 
-            @(showFilters ? "Hide Filters" : "Show Filters")
-        </button>
-    </div>
-
-    @if (showFilters)
-    {
-        <div class="row g-3 mb-5 bg-white p-4 rounded-2 shadow-sm border-0">
-        <div class="col-md-3">
-            <label class="fw-semibold text-secondary mb-2">Type</label>
-            <select class="form-select border-light shadow-sm" @bind="Watchlist.SelectedType">
-                <option value="All">All Types</option>
-                <option value="Movie">Movies Only</option>
-                <option value="TV Series">TV Shows Only</option>
-            </select>
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-5 pb-3 border-bottom">
+        <div>
+            <h1 class="mb-1 fw-bolder text-dark">Welcome Back</h1>
+            <p class="text-secondary mb-0">Here's a snapshot of your entertainment library.</p>
         </div>
-        <div class="col-md-3">
-            <label class="fw-semibold text-secondary mb-2">Genre</label>
-            <select class="form-select border-light shadow-sm" @bind="Watchlist.SelectedGenre">
-                <option value="All">All Genres</option>
-                @foreach (var genre in AvailableGenres)
-                {
-                    <option value="@genre">@genre</option>
-                }
-            </select>
-        </div>
-        <div class="col-md-3">
-            <label class="fw-semibold text-secondary mb-2">From Year</label>
-            <input type="number" class="form-control border-light shadow-sm" @bind="Watchlist.StartYear" />
-        </div>
-        <div class="col-md-3">
-            <label class="fw-semibold text-secondary mb-2">To Year</label>
-            <input type="number" class="form-control border-light shadow-sm" @bind="Watchlist.EndYear" />
+        <div class="d-flex gap-2">
+            <a href="watchlist" class="btn btn-dark px-4 rounded-pill shadow-sm py-2 fw-bold">
+                <i class="bi bi-list-nested me-2"></i> Watchlist
+            </a>
         </div>
     </div>
-}
 
-    @if (Watchlist.Items.Any())
-    {
-        <div class="text-center mb-5">
-            <button class="btn btn-dark btn-lg px-5 py-3 rounded-pill shadow fw-bold text-uppercase tracking-wide" @onclick="PickRandomMovie" disabled="@isPicking">
-                <span>Show Random Match (@Watchlist.FilteredItems.Count() found)</span>
-            </button>
-            @if (!string.IsNullOrEmpty(statusMessage))
-            {
-                <p class="text-danger mt-3 fw-medium">@statusMessage</p>
-            }
-        </div>
-    }
-
-    @if (selectedMovie != null)
-    {
-        <div class="card bg-white text-dark shadow-lg mt-4 border-0 rounded-2 overflow-hidden" style="transition: transform 0.3s ease;">
-            <div class="row g-0">
-                <div class="col-md-5 text-center p-0 bg-black d-flex align-items-center justify-content-center" style="min-height: 600px;">
-                    <img src="@selectedMovie.FullPosterUrl" class="img-fluid px-2 py-2" alt="Poster" style="object-fit: contain; max-height: 100%; width: 100%; cursor: pointer;" @onclick="TogglePoster" />
-                </div>
-                <div class="col-md-7">
-                    <div class="card-body p-5 d-flex flex-column h-100">
-                        <h2 class="card-title fw-bolder text-dark mb-1">
-                            <a href="https://www.imdb.com/title/@lastPickedImdbId/" target="_blank" class="text-decoration-none text-dark" onmouseover="this.style.opacity='0.6'" onmouseout="this.style.opacity='1'">@selectedMovie.Title</a>
-                            @if (!string.IsNullOrEmpty(selectedMovie.OriginalTitle) && selectedMovie.OriginalTitle != selectedMovie.Title)
-                            {
-                                <span class="text-muted fs-5 fw-normal ms-2" style="opacity: 0.7;">(@selectedMovie.OriginalTitle)</span>
-                            }
-                        </h2>
-                        
-                        @if (!string.IsNullOrEmpty(selectedMovie.ReleaseDate))
-                        {
-                            <p class="text-secondary fw-semibold small mb-4 text-uppercase tracking-wide">Released: @selectedMovie.ReleaseDate</p>
-                        }
-
-                        <div class="mb-4">
-                            <span class="badge bg-dark text-white fs-6 px-3 py-2 rounded-pill shadow-sm me-2">
-                                @selectedMovie.VoteAverage.ToString("0.0") / 10
-                            </span>
-                            @if (selectedItem != null && !string.IsNullOrEmpty(selectedItem.Genres))
-                            {
-                                @foreach (var genre in selectedItem.Genres.Split(','))
-                                {
-                                    <a href="https://www.imdb.com/search/title/?genres=@genre.Trim().ToLower()" target="_blank" class="badge bg-light text-dark border me-1 text-decoration-none rounded-pill shadow-sm px-3 py-2">
-                                        @genre.Trim()
-                                    </a>
-                                }
-                            }
+    <!-- Stats Dashboard -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden bg-white">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-primary bg-opacity-10 text-primary p-3 rounded-circle me-3">
+                            <i class="bi bi-archive fs-3"></i>
                         </div>
-
-                        @if (selectedMovie.Directors.Any())
-                        {
-                            <p class="mb-2 text-dark fs-6"><strong>Director:</strong> 
-                                @foreach (var dir in selectedMovie.Directors)
-                                {
-                                    <a href="https://www.imdb.com/find/?q=@System.Uri.EscapeDataString(dir)&s=nm" target="_blank" class="text-decoration-none text-secondary fw-semibold me-2">@dir</a>
-                                }
-                            </p>
-                        }
-
-                        @if (selectedMovie.Actors.Any())
-                        {
-                            <p class="mb-4 text-dark fs-6"><strong>Cast:</strong> 
-                                @foreach (var actor in selectedMovie.Actors)
-                                {
-                                    <a href="https://www.imdb.com/find/?q=@System.Uri.EscapeDataString(actor)&s=nm" target="_blank" class="text-decoration-none text-secondary fw-semibold me-2">@actor</a>
-                                }
-                            </p>
-                        }
-                        
-                        <p class="card-text fs-6 text-secondary flex-grow-1" style="line-height: 1.7;">
-                            @(string.IsNullOrEmpty(selectedMovie.Overview) ? "No overview available." : selectedMovie.Overview)
-                        </p>
-                        
-                        <div class="mt-4 pt-4 border-top">
-                            <a href="https://www.imdb.com/title/@lastPickedImdbId/" target="_blank" class="btn btn-dark btn-lg px-5 rounded-pill shadow-sm w-100 fw-semibold">
-                                Open on IMDb
-                            </a>
+                        <div>
+                            <h6 class="text-secondary small fw-bold text-uppercase mb-1">Total Library</h6>
+                            <h2 class="fw-bolder mb-0">@Watchlist.Items.Count</h2>
                         </div>
+                    </div>
+                    <div class="progress" style="height: 6px; opacity: 0.1;">
+                        <div class="progress-bar bg-primary" style="width: 100%"></div>
                     </div>
                 </div>
             </div>
         </div>
-    }
 
-    @if (showBigPoster && selectedMovie != null)
-    {
-        <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.85);" @onclick="TogglePoster">
-            <div class="modal-dialog modal-dialog-centered modal-lg">
-                <div class="modal-content bg-transparent border-0 text-center">
-                    <img src="@selectedMovie.FullPosterUrl" class="img-fluid mx-auto rounded shadow-lg" style="max-height: 90vh;" alt="Large Poster" />
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden bg-white">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-success bg-opacity-10 text-success p-3 rounded-circle me-3">
+                            <i class="bi bi-play-circle fs-3"></i>
+                        </div>
+                        <div>
+                            <h6 class="text-secondary small fw-bold text-uppercase mb-1">Paused / Watching</h6>
+                            <h2 class="fw-bolder mb-0">@WatchingCount</h2>
+                        </div>
+                    </div>
+                    <div class="progress" style="height: 6px; opacity: 0.1;">
+                        <div class="progress-bar bg-success" style="width: @(TotalCount > 0 ? (WatchingCount * 100 / TotalCount) : 0)%"></div>
+                    </div>
                 </div>
             </div>
         </div>
-    }
 
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden bg-white">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-indigo bg-opacity-10 text-indigo p-3 rounded-circle me-3" style="color: #6366f1;">
+                            <i class="bi bi-check2-circle fs-3" style="color: #6366f1;"></i>
+                        </div>
+                        <div>
+                            <h6 class="text-secondary small fw-bold text-uppercase mb-1">Completed</h6>
+                            <h2 class="fw-bolder mb-0">@WatchedCount</h2>
+                        </div>
+                    </div>
+                    <div class="progress" style="height: 6px; opacity: 0.1;">
+                        <div class="progress-bar bg-indigo" style="width: @(TotalCount > 0 ? (WatchedCount * 100 / TotalCount) : 0)%; background-color: #6366f1;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions / Welcome -->
+    <div class="row g-4">
+        <div class="col-md-8">
+            <div class="card border-0 shadow-sm rounded-4 bg-dark text-white p-4 h-100 position-relative overflow-hidden">
+                <div class="position-absolute top-0 end-0 p-5 opacity-10">
+                    <i class="bi bi-film" style="font-size: 10rem;"></i>
+                </div>
+                <div class="card-body position-relative z-1 p-3">
+                    <h3 class="fw-bolder mb-3">Explore Your Next Big Thing</h3>
+                    <p class="fs-5 opacity-75 mb-4">Start browsing your collection or find something new to watch tonight.</p>
+                    <div class="d-flex gap-3">
+                        <a href="search" class="btn btn-outline-light px-4 rounded-pill fw-bold border-2">Search New</a>
+                        <a href="watching" class="btn btn-primary px-4 rounded-pill fw-bold">Go to Watching</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 bg-white p-4 h-100">
+                <div class="card-body">
+                    <h5 class="fw-bold mb-3 border-bottom pb-3">Quick Tip</h5>
+                    <p class="text-secondary small">Did you know you can pick a random movie from your watchlist? Just go to the <strong>Watchlist</strong> tab and look for the dice button in the filters!</p>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 @code {
-    private TmdbMovie? selectedMovie;
-    private WatchlistItem? selectedItem;
-    private bool isPicking = false;
-    private string statusMessage = "";
-    private string lastPickedImdbId = "";
-    private bool showBigPoster = false;
-    private bool showFilters = false;
+    private int TotalCount => Watchlist.Items.Count;
+    private int WatchingCount => Watchlist.Items.Count(i => i.Status == WatchlistStatus.Watching);
+    private int WatchedCount => Watchlist.Items.Count(i => i.Status == WatchlistStatus.Watched);
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         Watchlist.OnStateChanged += StateHasChanged;
-        if (!Watchlist.Items.Any())
-        {
-            await Watchlist.InitializeAsync();
-        }
     }
 
     public void Dispose()
     {
         Watchlist.OnStateChanged -= StateHasChanged;
     }
-
-    private async Task PickRandomMovie()
-    {
-        statusMessage = "";
-        var options = Watchlist.FilteredItems.ToList();
-
-        if (!options.Any())
-        {
-            statusMessage = "No matches found! Try adjusting your filters.";
-            return;
-        }
-
-        isPicking = true;
-        var winner = options[Random.Shared.Next(options.Count)];
-        selectedItem = winner;
-        lastPickedImdbId = winner.ImdbId;
-        selectedMovie = await Watchlist.GetTmdbDetailsAsync(winner.ImdbId);
-        isPicking = false;
-    }
-
-    private List<string> AvailableGenres => Watchlist.Items
-        .SelectMany(m => m.Genres.Split(','))
-        .Select(g => g.Trim())
-        .Where(g => !string.IsNullOrEmpty(g))
-        .Distinct()
-        .OrderBy(g => g)
-        .ToList();
-
-    private async Task HandleFileSelected(InputFileChangeEventArgs e)
-    {
-        try
-        {
-            using var stream = e.File.OpenReadStream(10_485_760);
-            using var reader = new StreamReader(stream);
-            
-            var config = new CsvHelper.Configuration.CsvConfiguration(System.Globalization.CultureInfo.InvariantCulture)
-            {
-                PrepareHeaderForMatch = args => args.Header.ToLower(),
-                HeaderValidated = null,
-                MissingFieldFound = null
-            };
-
-            using var csv = new CsvHelper.CsvReader(reader, config);
-            var tempItems = new List<WatchlistItem>();
-
-            await csv.ReadAsync();
-            csv.ReadHeader(); 
-            
-            while (await csv.ReadAsync())
-            {
-                var imdbId = csv.HeaderRecord.Contains("Const", StringComparer.OrdinalIgnoreCase) ? csv.GetField("Const") : null;
-                var title = csv.HeaderRecord.Contains("Title", StringComparer.OrdinalIgnoreCase) ? csv.GetField("Title") : null;
-                var type = csv.HeaderRecord.Contains("Title Type", StringComparer.OrdinalIgnoreCase) ? csv.GetField("Title Type") : null;
-                var year = csv.HeaderRecord.Contains("Year", StringComparer.OrdinalIgnoreCase) ? csv.GetField("Year") : null;
-                var genres = csv.HeaderRecord.Contains("Genres", StringComparer.OrdinalIgnoreCase) ? csv.GetField("Genres") : null;
-                var directors = csv.HeaderRecord.Contains("Directors", StringComparer.OrdinalIgnoreCase) ? csv.GetField("Directors") : null;
-
-                if (!string.IsNullOrEmpty(imdbId) && !string.IsNullOrEmpty(title))
-                {
-                    var cleanYear = year?.Trim() ?? "";
-                    var yearDigits = new string(cleanYear.TakeWhile(char.IsDigit).ToArray());
-                    int.TryParse(yearDigits, out int parsedYear);
-
-                    tempItems.Add(new WatchlistItem {
-                        ImdbId = imdbId.Trim(),
-                        Title = title.Trim(),
-                        TitleType = type?.Trim() ?? "",
-                        Year = cleanYear,
-                        Genres = genres?.Trim() ?? "",
-                        Director = directors?.Trim() ?? "",
-                        ParsedYear = parsedYear
-                    });
-                }
-            }
-            await Watchlist.UpdateListAsync(tempItems);
-            statusMessage = $"Successfully imported {tempItems.Count} items.";
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"CSV Import Detail Error: {ex}");
-            statusMessage = $"Error: {ex.Message}";
-        }
-    }
-
-    private void TogglePoster() => showBigPoster = !showBigPoster;
 }
