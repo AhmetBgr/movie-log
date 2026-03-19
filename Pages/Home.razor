@@ -1,0 +1,135 @@
+﻿@page "/"
+@using System.Text.RegularExpressions
+@inject HttpClient Http
+@inject IConfiguration Config
+@inject WatchlistService Watchlist
+
+<PageTitle>My Private Watchlist</PageTitle>
+
+<div class="container mt-4">
+    <h1 class="mb-4">🎬 My Private Watchlist</h1>
+
+    <div class="card p-4 mb-4 shadow-sm">
+        <h5>Step 1: Import IMDb Watchlist</h5>
+        <InputFile OnChange="HandleFileSelected" class="form-control" />
+        
+        @if (Watchlist.Items.Any())
+        {
+            <div class="alert alert-success mt-3">
+                ✅ Loaded <strong>@Watchlist.Items.Count</strong> items.
+            </div>
+        }
+    </div>
+
+    @* FILTERS *@
+    <div class="row g-3 mb-4 bg-light p-3 rounded shadow-sm">
+        <div class="col-md-3">
+            <label>Type</label>
+            <select class="form-select" @bind="Watchlist.SelectedType">
+                <option value="All">All Types</option>
+                <option value="Movie">Movies Only</option>
+                <option value="TV Series">TV Shows Only</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label>Genre</label>
+            <select class="form-select" @bind="Watchlist.SelectedGenre">
+                <option value="All">All Genres</option>
+                @foreach (var genre in AvailableGenres)
+                {
+                    <option value="@genre">@genre</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label>From Year</label>
+            <input type="number" class="form-control" @bind="Watchlist.StartYear" />
+        </div>
+        <div class="col-md-3">
+            <label>To Year</label>
+            <input type="number" class="form-control" @bind="Watchlist.EndYear" />
+        </div>
+    </div>
+
+    @if (Watchlist.Items.Any())
+    {
+        <div class="text-center mb-5">
+            <button class="btn btn-primary btn-lg px-5 shadow" @onclick="PickRandomMovie" disabled="@isPicking">
+                <span>🎲 Show Me a Random Movie (@Watchlist.FilteredItems.Count() matches)</span>
+            </button>
+            @if (!string.IsNullOrEmpty(statusMessage))
+            {
+                <p class="text-danger mt-2">@statusMessage</p>
+            }
+        </div>
+    }
+
+    @* MOVIE DISPLAY AREA... (Keep your existing movie card HTML here) *@
+
+</div>
+
+@code {
+    private TmdbMovie? selectedMovie;
+    private bool isPicking = false;
+    private string statusMessage = "";
+    private string lastPickedImdbId = "";
+    private bool showBigPoster = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Watchlist.InitializeAsync();
+    }
+
+    private async Task PickRandomMovie()
+    {
+        statusMessage = "";
+        var options = Watchlist.FilteredItems.ToList();
+
+        if (!options.Any())
+        {
+            statusMessage = "No matches found! Try adjusting your filters.";
+            return;
+        }
+
+        isPicking = true;
+        var winner = options[new Random().Next(options.Count)];
+        lastPickedImdbId = winner.ImdbId;
+        selectedMovie = await Watchlist.GetTmdbDetailsAsync(winner.ImdbId);
+        isPicking = false;
+    }
+
+    private List<string> AvailableGenres => Watchlist.Items
+        .SelectMany(m => m.Genres.Split(','))
+        .Select(g => g.Trim())
+        .Where(g => !string.IsNullOrEmpty(g))
+        .Distinct()
+        .OrderBy(g => g)
+        .ToList();
+
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        using var reader = new StreamReader(e.File.OpenReadStream());
+        var content = await reader.ReadToEndAsync();
+        var lines = content.Split('\n');
+        var tempItems = new List<WatchlistItem>();
+
+        foreach (var line in lines.Skip(1))
+        {
+            if (string.IsNullOrWhiteSpace(line)) continue;
+            var columns = Regex.Split(line, ",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
+            if (columns.Length > 12)
+            {
+                tempItems.Add(new WatchlistItem {
+                    ImdbId = columns[1].Replace("\"", "").Trim(),
+                    Title = columns[5].Replace("\"", "").Trim(),
+                    TitleType = columns[8].Replace("\"", "").Trim(),
+                    Year = columns[11].Replace("\"", "").Trim(),
+                    Genres = columns[12].Replace("\"", "").Trim()
+                });
+            }
+        }
+        await Watchlist.UpdateListAsync(tempItems);
+    }
+
+    private void TogglePoster() => showBigPoster = !showBigPoster;
+}

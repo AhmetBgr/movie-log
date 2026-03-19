@@ -1,0 +1,122 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "E:\\Works\\MyPrivateWatchlist\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{E7169C7E-5377-5F9C-2477-B3655B1CADC5}|MyPrivateWatchlist.csproj|e:\\works\\myprivatewatchlist\\watchlistservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{E7169C7E-5377-5F9C-2477-B3655B1CADC5}|MyPrivateWatchlist.csproj|solutionrelative:watchlistservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{E7169C7E-5377-5F9C-2477-B3655B1CADC5}|MyPrivateWatchlist.csproj|e:\\works\\myprivatewatchlist\\pages\\home.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{E7169C7E-5377-5F9C-2477-B3655B1CADC5}|MyPrivateWatchlist.csproj|solutionrelative:pages\\home.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{E7169C7E-5377-5F9C-2477-B3655B1CADC5}|MyPrivateWatchlist.csproj|e:\\works\\myprivatewatchlist\\localstorageservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{E7169C7E-5377-5F9C-2477-B3655B1CADC5}|MyPrivateWatchlist.csproj|solutionrelative:localstorageservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{E7169C7E-5377-5F9C-2477-B3655B1CADC5}|MyPrivateWatchlist.csproj|e:\\works\\myprivatewatchlist\\wwwroot\\index.html||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{E7169C7E-5377-5F9C-2477-B3655B1CADC5}|MyPrivateWatchlist.csproj|solutionrelative:wwwroot\\index.html||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{E7169C7E-5377-5F9C-2477-B3655B1CADC5}|MyPrivateWatchlist.csproj|e:\\works\\myprivatewatchlist\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{E7169C7E-5377-5F9C-2477-B3655B1CADC5}|MyPrivateWatchlist.csproj|solutionrelative:program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{E7169C7E-5377-5F9C-2477-B3655B1CADC5}|MyPrivateWatchlist.csproj|e:\\works\\myprivatewatchlist\\_imports.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{E7169C7E-5377-5F9C-2477-B3655B1CADC5}|MyPrivateWatchlist.csproj|solutionrelative:_imports.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 1,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "_Imports.razor",
+              "DocumentMoniker": "E:\\Works\\MyPrivateWatchlist\\_Imports.razor",
+              "RelativeDocumentMoniker": "_Imports.razor",
+              "ToolTip": "E:\\Works\\MyPrivateWatchlist\\_Imports.razor",
+              "RelativeToolTip": "_Imports.razor",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAsAAAAiAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2026-03-18T15:52:17.32Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "WatchlistService.cs",
+              "DocumentMoniker": "E:\\Works\\MyPrivateWatchlist\\WatchlistService.cs",
+              "RelativeDocumentMoniker": "WatchlistService.cs",
+              "ToolTip": "E:\\Works\\MyPrivateWatchlist\\WatchlistService.cs",
+              "RelativeToolTip": "WatchlistService.cs",
+              "ViewState": "AgIAAB4AAAAAAAAAAAAgwF8AAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-18T15:49:20.06Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "Program.cs",
+              "DocumentMoniker": "E:\\Works\\MyPrivateWatchlist\\Program.cs",
+              "RelativeDocumentMoniker": "Program.cs",
+              "ToolTip": "E:\\Works\\MyPrivateWatchlist\\Program.cs",
+              "RelativeToolTip": "Program.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAsAAAAvAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-18T15:28:32.789Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "LocalStorageService.cs",
+              "DocumentMoniker": "E:\\Works\\MyPrivateWatchlist\\LocalStorageService.cs",
+              "RelativeDocumentMoniker": "LocalStorageService.cs",
+              "ToolTip": "E:\\Works\\MyPrivateWatchlist\\LocalStorageService.cs",
+              "RelativeToolTip": "LocalStorageService.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABkAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-18T15:27:59.929Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "index.html",
+              "DocumentMoniker": "E:\\Works\\MyPrivateWatchlist\\wwwroot\\index.html",
+              "RelativeDocumentMoniker": "wwwroot\\index.html",
+              "ToolTip": "E:\\Works\\MyPrivateWatchlist\\wwwroot\\index.html",
+              "RelativeToolTip": "wwwroot\\index.html",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABgAAAAtAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001512|",
+              "WhenOpened": "2026-03-18T15:27:20.851Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "Home.razor",
+              "DocumentMoniker": "E:\\Works\\MyPrivateWatchlist\\Pages\\Home.razor",
+              "RelativeDocumentMoniker": "Pages\\Home.razor",
+              "ToolTip": "E:\\Works\\MyPrivateWatchlist\\Pages\\Home.razor",
+              "RelativeToolTip": "Pages\\Home.razor",
+              "ViewState": "AgIAAEUAAAAAAAAAAAAgwEYAAAAHAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2026-03-17T21:57:35.104Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
