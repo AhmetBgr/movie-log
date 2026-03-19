@@ -40,6 +40,9 @@ public class TmdbMovie
     [JsonPropertyName("vote_average")]
     public double VoteAverage { get; set; }
 
+    [JsonPropertyName("imdb_id")]
+    public string? ImdbId { get; set; }
+
     // --- NEW EXTENDED FIELDS ---
     public List<string> Directors { get; set; } = new();
     public List<string> Actors { get; set; } = new();

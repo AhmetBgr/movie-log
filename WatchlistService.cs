@@ -157,6 +157,13 @@ public class WatchlistService
                 {
                     try 
                     {
+                        var extUrl = $"https://api.themoviedb.org/3/movie/{tmdbId}/external_ids?api_key={apiKey}";
+                        var ext = await _http.GetFromJsonAsync<dynamic>(extUrl);
+                        if (ext != null)
+                        {
+                            movie.ImdbId = ext.GetProperty("imdb_id").GetString();
+                        }
+
                         var creditsUrl = $"https://api.themoviedb.org/3/movie/{tmdbId}/credits?api_key={apiKey}";
                         var credits = await _http.GetFromJsonAsync<TmdbCredits>(creditsUrl);
                         if (credits != null)
@@ -186,6 +193,13 @@ public class WatchlistService
 
                     try 
                     {
+                        var extUrl = $"https://api.themoviedb.org/3/tv/{tmdbId}/external_ids?api_key={apiKey}";
+                        var ext = await _http.GetFromJsonAsync<dynamic>(extUrl);
+                        if (ext != null)
+                        {
+                            movie.ImdbId = ext.GetProperty("imdb_id").GetString();
+                        }
+
                         var creditsUrl = $"https://api.themoviedb.org/3/tv/{tmdbId}/credits?api_key={apiKey}";
                         var credits = await _http.GetFromJsonAsync<TmdbCredits>(creditsUrl);
                         if (credits != null)
@@ -203,5 +217,22 @@ public class WatchlistService
             Console.WriteLine($"API Error fetching TMDB ID {tmdbId}: {ex.Message}");
         }
         return null;
+    }
+
+    public async Task AddToWatchlistAsync(WatchlistItem item)
+    {
+        if (!Items.Any(i => i.ImdbId == item.ImdbId))
+        {
+            Items.Add(item);
+            await UpdateListAsync(Items);
+        }
+    }
+
+    public bool IsInWatchlist(string? imdbId) => !string.IsNullOrEmpty(imdbId) && Items.Any(i => i.ImdbId == imdbId);
+
+    public bool IsInWatchlistFuzzy(string title, string? year)
+    {
+        return Items.Any(i => i.Title.Equals(title, StringComparison.OrdinalIgnoreCase) && 
+                              (string.IsNullOrEmpty(year) || i.Year.Contains(year)));
     }
 }
