@@ -21,7 +21,17 @@
         }
     </div>
 
-    <div class="row g-3 mb-5 bg-white p-4 rounded-2 shadow-sm border-0">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-semibold mb-0">Step 2: Filter & Pick Random</h5>
+        <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" @onclick="() => showFilters = !showFilters">
+            <i class="bi @(showFilters ? "bi-chevron-up" : "bi-funnel") me-1"></i> 
+            @(showFilters ? "Hide Filters" : "Show Filters")
+        </button>
+    </div>
+
+    @if (showFilters)
+    {
+        <div class="row g-3 mb-5 bg-white p-4 rounded-2 shadow-sm border-0">
         <div class="col-md-3">
             <label class="fw-semibold text-secondary mb-2">Type</label>
             <select class="form-select border-light shadow-sm" @bind="Watchlist.SelectedType">
@@ -49,6 +59,7 @@
             <input type="number" class="form-control border-light shadow-sm" @bind="Watchlist.EndYear" />
         </div>
     </div>
+}
 
     @if (Watchlist.Items.Any())
     {
@@ -155,6 +166,7 @@
     private string statusMessage = "";
     private string lastPickedImdbId = "";
     private bool showBigPoster = false;
+    private bool showFilters = true;
 
     protected override async Task OnInitializedAsync()
     {
