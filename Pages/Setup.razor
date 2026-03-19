@@ -189,46 +189,55 @@
             csv.ReadHeader(); 
             
             var headers = csv.HeaderRecord?.ToList() ?? new List<string>();
-            Console.WriteLine($"Import debug: Headers found: {string.Join(", ", headers)}");
-            
-            var records = new List<Dictionary<string, string>>();
-            while (await csv.ReadAsync())
-            {
-                var dict = new Dictionary<string, string>();
-                foreach (var h in headers) dict[h] = csv.GetField(h) ?? "";
-                records.Add(dict);
-            }
 
-            // Smart Mapping Helper
-            string? GetVal(Dictionary<string, string> row, string[] aliases) {
-                foreach(var alias in aliases) {
-                    var match = headers.FirstOrDefault(h => h.ToLower().Replace(" ", "").Replace("_", "").Replace("\"", "") == alias.ToLower());
-                    if (match != null && row.TryGetValue(match, out var value)) return value;
+            var mergedItems = new List<WatchlistItem>(WatchlistSvc.Items);
+            var existingIds = new HashSet<string>(
+                mergedItems.Where(i => !string.IsNullOrWhiteSpace(i.ImdbId))
+                          .Select(i => i.ImdbId),
+                StringComparer.OrdinalIgnoreCase);
+
+            static string NormalizeHeader(string value) =>
+                value.ToLower().Replace(" ", "").Replace("_", "").Replace("\"", "");
+
+            var normalizedHeaderToActual = headers
+                .Select(h => new { Actual = h, Normalized = NormalizeHeader(h) })
+                .GroupBy(h => h.Normalized)
+                .ToDictionary(g => g.Key, g => g.First().Actual, StringComparer.OrdinalIgnoreCase);
+
+            static string? ReadByAliases(CsvHelper.CsvReader csvReader, Dictionary<string, string> headerMap, string[] aliases)
+            {
+                foreach (var alias in aliases)
+                {
+                    if (headerMap.TryGetValue(alias, out var actualHeader))
+                    {
+                        return csvReader.GetField(actualHeader);
+                    }
                 }
                 return null;
             }
 
-            var mergedItems = new List<WatchlistItem>(WatchlistSvc.Items);
-            importTotal = records.Count;
+            importTotal = 0;
             importProgress = 0;
             int importErrorCount = 0;
             int newItemsCount = 0;
             int duplicateCount = 0;
 
-            foreach (var row in records)
+            while (await csv.ReadAsync())
             {
+                importTotal++;
                 importProgress++;
-                if (importProgress % 5 == 0) {
+                if (importProgress % 5 == 0)
+                {
                     statusMessage = $"Hydrating {importProgress} / {importTotal}...";
                     StateHasChanged();
                 }
 
-                var id = GetVal(row, new[] { "const", "imdbid", "id", "critickerid", "tconst", "imdb", "ttid" });
-                var title = GetVal(row, new[] { "title", "name", "filmtitle", "subject", "originalname", "filmname", "movietitle" });
-                var year = GetVal(row, new[] { "year", "releasedate", "yearpublished", "release", "releaseyear", "filmyear" });
-                var rating = GetVal(row, new[] { "yourrating", "rating", "score", "userrating", "star", "filmrating" });
-                var type = GetVal(row, new[] { "titletype", "type", "mediatype" });
-                var directors = GetVal(row, new[] { "directors", "director" });
+                var id = ReadByAliases(csv, normalizedHeaderToActual, new[] { "const", "imdbid", "id", "critickerid", "tconst", "imdb", "ttid" });
+                var title = ReadByAliases(csv, normalizedHeaderToActual, new[] { "title", "name", "filmtitle", "subject", "originalname", "filmname", "movietitle" });
+                var year = ReadByAliases(csv, normalizedHeaderToActual, new[] { "year", "releasedate", "yearpublished", "release", "releaseyear", "filmyear" });
+                var rating = ReadByAliases(csv, normalizedHeaderToActual, new[] { "yourrating", "rating", "score", "userrating", "star", "filmrating" });
+                var type = ReadByAliases(csv, normalizedHeaderToActual, new[] { "titletype", "type", "mediatype" });
+                var directors = ReadByAliases(csv, normalizedHeaderToActual, new[] { "directors", "director" });
 
                 if (string.IsNullOrEmpty(title)) {
                     importErrorCount++;
@@ -251,7 +260,8 @@
 
                 if (!string.IsNullOrEmpty(finalImdbId))
                 {
-                    if (mergedItems.Any(i => i.ImdbId == finalImdbId)) {
+                    if (existingIds.Contains(finalImdbId))
+                    {
                         duplicateCount++;
                         continue;
                     }
@@ -272,14 +282,15 @@
                         }
                     }
 
-                    var dateAddedStr = GetVal(row, new[] { "daterated", "dateadded", "watchedon", "datewatched", "added", "createdat", "date", "ratingdate", "watched" });
+                    var dateAddedStr = ReadByAliases(csv, normalizedHeaderToActual, new[] { "daterated", "dateadded", "watchedon", "datewatched", "added", "createdat", "date", "ratingdate", "watched" });
                     DateTime dateAdded = DateTime.Now;
                     if (!string.IsNullOrEmpty(dateAddedStr) && DateTime.TryParse(dateAddedStr, out var parsedDate)) {
                         dateAdded = parsedDate;
                     }
 
+                    var normalizedImdbId = finalImdbId.Trim();
                     mergedItems.Add(new WatchlistItem {
-                        ImdbId = finalImdbId.Trim(),
+                        ImdbId = normalizedImdbId,
                         Title = title.Trim(),
                         TitleType = type?.Trim() ?? "Movie",
                         Year = year?.Trim() ?? "",
@@ -290,9 +301,11 @@
                         Rating20 = rating20,
                         UserRating = rating20.HasValue ? (int)Math.Max(1, Math.Min(10, Math.Round(rating20.Value / 2.0))) : null
                     });
+                    existingIds.Add(normalizedImdbId);
                     newItemsCount++;
                 }
-                else {
+                else
+                {
                     importErrorCount++;
                 }
             }

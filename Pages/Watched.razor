@@ -59,7 +59,7 @@
                             </tr>
                         </thead>
                     <tbody class="border-top-0">
-                        <Virtualize Items="WatchlistSvc.WatchedItems.ToList()" Context="item" ItemSize="70" OverscanCount="5">
+                        <Virtualize Items="_watchedItems" Context="item" ItemSize="70" OverscanCount="5">
                             <tr @key="item.ImdbId">
                                 <td class="text-center px-3">
                                     <div class="d-flex align-items-center justify-content-center gap-1">
@@ -261,6 +261,8 @@
 
 @code {
     private bool showFilters = false;
+    private List<WatchlistItem> _watchedItems = new();
+    private List<string> _availableGenres = new();
 
     private void ToggleFilters()
     {
@@ -270,12 +272,32 @@
 
     protected override void OnInitialized()
     {
-        WatchlistSvc.OnStateChanged += StateHasChanged;
+        WatchlistSvc.OnStateChanged += HandleStateChanged;
+        SyncWatchedItems();
     }
 
     public void Dispose()
     {
-        WatchlistSvc.OnStateChanged -= StateHasChanged;
+        WatchlistSvc.OnStateChanged -= HandleStateChanged;
+    }
+
+    private void HandleStateChanged()
+    {
+        SyncWatchedItems();
+        StateHasChanged();
+    }
+
+    private void SyncWatchedItems()
+    {
+        _watchedItems = WatchlistSvc.WatchedItems.ToList();
+        _availableGenres = WatchlistSvc.Items
+            .Where(m => m.Status == WatchlistStatus.Watched)
+            .SelectMany(m => (m.Genres ?? "").Split(','))
+            .Select(g => g.Trim())
+            .Where(g => !string.IsNullOrEmpty(g))
+            .Distinct()
+            .OrderBy(g => g)
+            .ToList();
     }
 
     private async Task RestartWatching(WatchlistItem item)
@@ -307,17 +329,9 @@
         WatchlistSvc.EndYear = "";
         WatchlistSvc.FilterMinRating20 = 0;
         WatchlistSvc.FilterMaxRating20 = 20;
-        WatchlistSvc.NotifyStateChanged();
     }
 
-    private List<string> AvailableGenres => WatchlistSvc.Items
-        .Where(m => m.Status == WatchlistStatus.Watched)
-        .SelectMany(m => (m.Genres ?? "").Split(','))
-        .Select(g => g.Trim())
-        .Where(g => !string.IsNullOrEmpty(g))
-        .Distinct()
-        .OrderBy(g => g)
-        .ToList();
+    private List<string> AvailableGenres => _availableGenres;
 
     private string GetRatingLabel(int r20)
     {

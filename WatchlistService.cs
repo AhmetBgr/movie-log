@@ -10,8 +10,11 @@ public class WatchlistService
     private readonly LocalStorageService _storage;
     private readonly IConfiguration _config;
     private readonly Dictionary<string, TmdbMovie> _movieCache = new();
+    private readonly Dictionary<string, TmdbMovie> _movieDetailsByIdCache = new();
     private Dictionary<int, string> _genreMap = new();
-    private System.Threading.Timer? _saveTimer;
+    private CancellationTokenSource? _saveDebounceCts;
+    private CancellationTokenSource? _searchDebounceCts;
+    private readonly TimeSpan _searchDebounceDelay = TimeSpan.FromMilliseconds(220);
 
     public List<WatchlistItem> Items { get; private set; } = new();
     
@@ -58,7 +61,11 @@ public class WatchlistService
     public string SearchQuery 
     { 
         get => _searchQuery; 
-        set { _searchQuery = value; NotifyStateChanged(); } 
+        set
+        {
+            _searchQuery = value;
+            DebounceSearchRefresh();
+        }
     }
 
     public string SortColumn { get; set; } = "DateAdded";
@@ -102,9 +109,6 @@ public class WatchlistService
 
     private void RefreshCalculatedLists()
     {
-        RefreshWatchingCache();
-        
-        // --- Shared Filter Base ---
         int sYear = 0, eYear = 0;
         bool hasStart = int.TryParse(StartYear, out sYear);
         bool hasEnd = int.TryParse(EndYear, out eYear);
@@ -112,43 +116,59 @@ public class WatchlistService
         bool checkGenre = SelectedGenre != "All";
         bool checkSearch = !string.IsNullOrWhiteSpace(SearchQuery);
 
-        Func<WatchlistItem, bool> filterPredicate = m =>
-        {
-            if (checkType && !m.TitleType.Equals(SelectedType, StringComparison.OrdinalIgnoreCase))
-                return false;
-            if (checkGenre && !m.Genres.Contains(SelectedGenre, StringComparison.OrdinalIgnoreCase))
-                return false;
-            if (hasStart && m.ParsedYear < sYear)
-                return false;
-            if (hasEnd && m.ParsedYear > eYear)
-                return false;
-            if (checkSearch && !m.Title.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase) && 
-                !(m.Director != null && m.Director.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase)))
-                return false;
-            return true;
-        };
+        var pendingFiltered = new List<WatchlistItem>();
+        var watchedFiltered = new List<WatchlistItem>();
+        var watching = new List<WatchlistItem>();
 
-        // --- Calculate Filtered Pending (Watchlist) ---
-        var pendingQuery = Items.Where(m => m.Status == WatchlistStatus.Pending).Where(filterPredicate);
+        foreach (var item in Items)
+        {
+            if (item.Status == WatchlistStatus.Watching)
+            {
+                watching.Add(item);
+            }
+
+            if (checkType && !item.TitleType.Equals(SelectedType, StringComparison.OrdinalIgnoreCase))
+                continue;
+            if (checkGenre && !item.Genres.Contains(SelectedGenre, StringComparison.OrdinalIgnoreCase))
+                continue;
+            if (hasStart && item.ParsedYear < sYear)
+                continue;
+            if (hasEnd && item.ParsedYear > eYear)
+                continue;
+            if (checkSearch &&
+                !item.Title.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase) &&
+                !(item.Director != null && item.Director.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase)))
+                continue;
+
+            if (item.Status == WatchlistStatus.Pending)
+            {
+                pendingFiltered.Add(item);
+            }
+            else if (item.Status == WatchlistStatus.Watched)
+            {
+                var rating = item.Rating20 ?? 0;
+                if (rating >= FilterMinRating20 && rating <= FilterMaxRating20)
+                    watchedFiltered.Add(item);
+            }
+        }
+
+        _watchingCached = watching;
+
         _filteredCached = (SortColumn switch
         {
-            "Year" => SortDescending ? pendingQuery.OrderByDescending(m => m.ParsedYear) : pendingQuery.OrderBy(m => m.ParsedYear),
-            "Type" => SortDescending ? pendingQuery.OrderByDescending(m => m.TitleType) : pendingQuery.OrderBy(m => m.TitleType),
-            "DateAdded" => SortDescending ? pendingQuery.OrderByDescending(m => m.DateAdded) : pendingQuery.OrderBy(m => m.DateAdded),
-            _ => SortDescending ? pendingQuery.OrderByDescending(m => m.Title) : pendingQuery.OrderBy(m => m.Title)
+            "Year" => SortDescending ? pendingFiltered.OrderByDescending(m => m.ParsedYear) : pendingFiltered.OrderBy(m => m.ParsedYear),
+            "Type" => SortDescending ? pendingFiltered.OrderByDescending(m => m.TitleType) : pendingFiltered.OrderBy(m => m.TitleType),
+            "DateAdded" => SortDescending ? pendingFiltered.OrderByDescending(m => m.DateAdded) : pendingFiltered.OrderBy(m => m.DateAdded),
+            _ => SortDescending ? pendingFiltered.OrderByDescending(m => m.Title) : pendingFiltered.OrderBy(m => m.Title)
         }).ToList();
 
-        // --- Calculate Filtered Watched (History) ---
-        var watchedQuery = Items.Where(m => m.Status == WatchlistStatus.Watched)
-                                .Where(filterPredicate)
-                                .Where(m => (m.Rating20 ?? 0) >= FilterMinRating20 && (m.Rating20 ?? 0) <= FilterMaxRating20);
         _filteredWatchedCached = (WatchedSortColumn switch
         {
-            "Rating" => WatchedSortDescending ? watchedQuery.OrderByDescending(m => m.Rating20 ?? 0) : watchedQuery.OrderBy(m => m.Rating20 ?? 0),
-            "Year" => WatchedSortDescending ? watchedQuery.OrderByDescending(m => m.ParsedYear) : watchedQuery.OrderBy(m => m.ParsedYear),
-            "Type" => WatchedSortDescending ? watchedQuery.OrderByDescending(m => m.TitleType) : watchedQuery.OrderBy(m => m.TitleType),
-            "DateAdded" => WatchedSortDescending ? watchedQuery.OrderByDescending(m => m.DateAdded) : watchedQuery.OrderBy(m => m.DateAdded),
-            _ => WatchedSortDescending ? watchedQuery.OrderByDescending(m => m.Title) : watchedQuery.OrderBy(m => m.Title)
+            "Rating" => WatchedSortDescending ? watchedFiltered.OrderByDescending(m => m.Rating20 ?? 0) : watchedFiltered.OrderBy(m => m.Rating20 ?? 0),
+            "Year" => WatchedSortDescending ? watchedFiltered.OrderByDescending(m => m.ParsedYear) : watchedFiltered.OrderBy(m => m.ParsedYear),
+            "Type" => WatchedSortDescending ? watchedFiltered.OrderByDescending(m => m.TitleType) : watchedFiltered.OrderBy(m => m.TitleType),
+            "DateAdded" => WatchedSortDescending ? watchedFiltered.OrderByDescending(m => m.DateAdded) : watchedFiltered.OrderBy(m => m.DateAdded),
+            _ => WatchedSortDescending ? watchedFiltered.OrderByDescending(m => m.Title) : watchedFiltered.OrderBy(m => m.Title)
         }).ToList();
     }
 
@@ -201,7 +221,10 @@ public class WatchlistService
             if (tvGenres != null)
                 foreach (var g in tvGenres.Genres) _genreMap[g.Id] = g.Name;
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Genre map fetch error: {ex.Message}");
+        }
     }
 
     public string GetGenreNames(List<int>? ids)
@@ -219,18 +242,58 @@ public class WatchlistService
 
     private async Task SaveNowAsync()
     {
-        _saveTimer?.Dispose();
-        _saveTimer = null;
+        _saveDebounceCts?.Cancel();
+        _saveDebounceCts?.Dispose();
+        _saveDebounceCts = null;
         await _storage.SaveListAsync("my_movie_list", Items);
     }
 
     private void ScheduleSave()
     {
-        _saveTimer?.Dispose();
-        _saveTimer = new System.Threading.Timer(async _ => 
+        _saveDebounceCts?.Cancel();
+        _saveDebounceCts?.Dispose();
+        var cts = new CancellationTokenSource();
+        _saveDebounceCts = cts;
+        _ = DebouncedSaveAsync(cts.Token);
+    }
+
+    private async Task DebouncedSaveAsync(CancellationToken token)
+    {
+        try
         {
+            await Task.Delay(1000, token);
             await _storage.SaveListAsync("my_movie_list", Items);
-        }, null, 1000, System.Threading.Timeout.Infinite);
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected when a newer save supersedes this one.
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Save error: {ex.Message}");
+        }
+    }
+
+    private void DebounceSearchRefresh()
+    {
+        _searchDebounceCts?.Cancel();
+        _searchDebounceCts?.Dispose();
+        var cts = new CancellationTokenSource();
+        _searchDebounceCts = cts;
+        _ = DebouncedSearchRefreshAsync(cts.Token);
+    }
+
+    private async Task DebouncedSearchRefreshAsync(CancellationToken token)
+    {
+        try
+        {
+            await Task.Delay(_searchDebounceDelay, token);
+            NotifyStateChanged();
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected while user is still typing.
+        }
     }
 
     public IEnumerable<WatchlistItem> WatchingItems => _watchingCached;
@@ -289,7 +352,11 @@ public class WatchlistService
                     var videosUrl = $"https://api.themoviedb.org/3/movie/{movie.Id}/videos?api_key={apiKey}";
                     var videos = await _http.GetFromJsonAsync<TmdbVideosResponse>(videosUrl);
                     movie.TrailerKey = videos?.Results?.FirstOrDefault(v => v.Site == "YouTube" && v.Type == "Trailer")?.Key;
-                } catch { } 
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Details enrichment error for movie {movie.Id}: {ex.Message}");
+                }
 
                 _movieCache[imdbId] = movie;
                 return movie;
@@ -329,7 +396,11 @@ public class WatchlistService
                     var videosUrl = $"https://api.themoviedb.org/3/tv/{tv.Id}/videos?api_key={apiKey}";
                     var videos = await _http.GetFromJsonAsync<TmdbVideosResponse>(videosUrl);
                     movie.TrailerKey = videos?.Results?.FirstOrDefault(v => v.Site == "YouTube" && v.Type == "Trailer")?.Key;
-                } catch { } 
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Details enrichment error for tv {tv.Id}: {ex.Message}");
+                }
 
                 _movieCache[imdbId] = movie;
                 return movie;
@@ -347,13 +418,19 @@ public class WatchlistService
         var apiKey = _config["TmdbApiKey"];
         try
         {
+            var cacheKey = $"{mediaType}:{tmdbId}";
+            if (_movieDetailsByIdCache.TryGetValue(cacheKey, out var cached))
+            {
+                return cached;
+            }
+
             if (mediaType == "movie")
             {
                 var movieUrl = $"https://api.themoviedb.org/3/movie/{tmdbId}?api_key={apiKey}";
                 var movie = await _http.GetFromJsonAsync<TmdbMovie>(movieUrl);
                 if (movie != null)
                 {
-                    try 
+                    try
                     {
                         var extUrl = $"https://api.themoviedb.org/3/movie/{tmdbId}/external_ids?api_key={apiKey}";
                         var ext = await _http.GetFromJsonAsync<System.Text.Json.JsonElement>(extUrl);
@@ -380,7 +457,12 @@ public class WatchlistService
                         var videosUrl = $"https://api.themoviedb.org/3/movie/{tmdbId}/videos?api_key={apiKey}";
                         var videos = await _http.GetFromJsonAsync<TmdbVideosResponse>(videosUrl);
                         movie.TrailerKey = videos?.Results?.FirstOrDefault(v => v.Site == "YouTube" && v.Type == "Trailer")?.Key;
-                    } catch { } 
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Details enrichment error for movie {tmdbId}: {ex.Message}");
+                    }
+                    _movieDetailsByIdCache[cacheKey] = movie;
                     return movie;
                 }
             }
@@ -401,7 +483,7 @@ public class WatchlistService
                         ReleaseDate = tv.FirstAirDate
                     };
 
-                    try 
+                    try
                     {
                         var extUrl = $"https://api.themoviedb.org/3/tv/{tmdbId}/external_ids?api_key={apiKey}";
                         var ext = await _http.GetFromJsonAsync<System.Text.Json.JsonElement>(extUrl);
@@ -428,7 +510,12 @@ public class WatchlistService
                         var videosUrl = $"https://api.themoviedb.org/3/tv/{tv.Id}/videos?api_key={apiKey}";
                         var videos = await _http.GetFromJsonAsync<TmdbVideosResponse>(videosUrl);
                         movie.TrailerKey = videos?.Results?.FirstOrDefault(v => v.Site == "YouTube" && v.Type == "Trailer")?.Key;
-                    } catch { } 
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Details enrichment error for tv {tv.Id}: {ex.Message}");
+                    }
+                    _movieDetailsByIdCache[cacheKey] = movie;
                     return movie;
                 }
             }
@@ -459,7 +546,10 @@ public class WatchlistService
                 return extIds?.ImdbId;
             }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Resolve IMDb error for '{title}': {ex.Message}");
+        }
         return null;
     }
 
@@ -475,15 +565,13 @@ public class WatchlistService
                 existing.CurrentEpisode ??= 1;
             }
             await UpdateListAsync(Items);
-            NotifyStateChanged();
         }
     }
 
     public async Task ClearAllDataAsync()
     {
         Items.Clear();
-        await _storage.SaveListAsync("watchlist_data", Items);
-        RefreshCalculatedLists();
+        await _storage.SaveListAsync("my_movie_list", Items);
         NotifyStateChanged();
     }
 
@@ -523,7 +611,6 @@ public class WatchlistService
             if (item.DateAdded == default) item.DateAdded = DateTime.Now;
             Items.Add(item);
             await UpdateListAsync(Items);
-            NotifyStateChanged();
         }
     }
 
@@ -534,7 +621,6 @@ public class WatchlistService
         {
             Items.Remove(toRemove);
             await UpdateListAsync(Items);
-            NotifyStateChanged();
         }
     }
 
@@ -545,7 +631,6 @@ public class WatchlistService
         {
             Items.Remove(toRemove);
             await UpdateListAsync(Items);
-            NotifyStateChanged();
         }
     }
 
@@ -645,7 +730,7 @@ public class WatchlistService
         var pool = FilteredItems.Any() ? FilteredItems.ToList() : Items.Where(i => i.Status == WatchlistStatus.Pending).ToList();
         if (pool.Any())
         {
-            var random = pool[new Random().Next(pool.Count)];
+            var random = pool[Random.Shared.Next(pool.Count)];
             await ShowDetailsAsync(random);
         }
     }
@@ -690,4 +775,4 @@ public class TmdbExternalIds
 {
     [JsonPropertyName("imdb_id")]
     public string? ImdbId { get; set; }
-}
+}

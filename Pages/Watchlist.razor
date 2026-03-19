@@ -178,6 +178,7 @@
 @code {
     private bool showFilters = false;
     private List<WatchlistItem> _filteredItems = new();
+    private List<string> _availableGenres = new();
 
     private void ToggleFilters()
     {
@@ -200,6 +201,13 @@
     private void UpdateLocalList()
     {
         _filteredItems = WatchlistSvc.FilteredItems.ToList();
+        _availableGenres = WatchlistSvc.Items
+            .SelectMany(m => (m.Genres ?? "").Split(','))
+            .Select(g => g.Trim())
+            .Where(g => !string.IsNullOrEmpty(g))
+            .Distinct()
+            .OrderBy(g => g)
+            .ToList();
     }
 
     public void Dispose()
@@ -214,26 +222,17 @@
         WatchlistSvc.SelectedGenre = "All";
         WatchlistSvc.StartYear = "";
         WatchlistSvc.EndYear = "";
-        WatchlistSvc.NotifyStateChanged();
     }
 
-    private List<string> AvailableGenres => WatchlistSvc.Items
-        .SelectMany(m => (m.Genres ?? "").Split(','))
-        .Select(g => g.Trim())
-        .Where(g => !string.IsNullOrEmpty(g))
-        .Distinct()
-        .OrderBy(g => g)
-        .ToList();
+    private List<string> AvailableGenres => _availableGenres;
 
     private async Task StartWatching(WatchlistItem item)
     {
         await WatchlistSvc.UpdateStatusAsync(item, WatchlistStatus.Watching);
-        StateHasChanged();
     }
 
     private async Task RemoveFromWatchlist(WatchlistItem item)
     {
         await WatchlistSvc.RemoveFromWatchlistAsync(item);
-        StateHasChanged();
     }
 }

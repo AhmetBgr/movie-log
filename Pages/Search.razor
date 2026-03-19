@@ -117,6 +117,7 @@
     private List<TmdbSearchResultItem>? results;
     private Dictionary<string, string> directorsMap = new();
     private CancellationTokenSource? cts;
+    private int _directorRefreshCounter = 0;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -125,6 +126,7 @@
         cts?.Cancel();
         cts = new CancellationTokenSource();
         directorsMap.Clear();
+        _directorRefreshCounter = 0;
 
         isLoading = true;
         results = null;
@@ -156,7 +158,6 @@
     private async Task FetchDirectorsAsync(List<TmdbSearchResultItem> items, CancellationToken token)
     {
         var fetchList = items.Where(r => r.MediaType == "movie" || r.MediaType == "tv").ToList();
-        Console.WriteLine($"Starting background fetch for {fetchList.Count} directors...");
 
         foreach (var item in fetchList)
         {
@@ -171,8 +172,11 @@
                 {
                     var dirName = movie.Directors.Any() ? string.Join(", ", movie.Directors) : "N/A";
                     directorsMap[key] = dirName;
-                    Console.WriteLine($"Fetched director for {item.DisplayTitle}: {dirName}");
-                    await InvokeAsync(StateHasChanged);
+                    _directorRefreshCounter++;
+                    if (_directorRefreshCounter % 5 == 0)
+                    {
+                        await InvokeAsync(StateHasChanged);
+                    }
                 }
             }
             catch (Exception ex)
@@ -180,9 +184,18 @@
                 Console.WriteLine($"Director Fetch Error for {item.DisplayTitle}: {ex.Message}");
             }
             
-            // Small delay to avoid hammering API too hard
-            await Task.Delay(100, token);
+            try
+            {
+                // Small delay to avoid hammering API too hard
+                await Task.Delay(100, token);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
         }
+
+        await InvokeAsync(StateHasChanged);
     }
 
     public void Dispose()
