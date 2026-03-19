@@ -7,33 +7,32 @@
 <PageTitle>My Private Watchlist</PageTitle>
 
 <div class="container mt-4">
-    <h1 class="mb-4">🎬 My Private Watchlist</h1>
+    <h1 class="mb-4 fw-bold text-dark border-bottom pb-3">My Private Watchlist</h1>
 
-    <div class="card p-4 mb-4 shadow-sm">
-        <h5>Step 1: Import IMDb Watchlist</h5>
-        <InputFile OnChange="HandleFileSelected" class="form-control" />
+    <div class="card p-4 mb-4 border-0 shadow-sm rounded-4 bg-white">
+        <h5 class="fw-semibold mb-3">Step 1: Import IMDb Watchlist</h5>
+        <InputFile OnChange="HandleFileSelected" class="form-control form-control-lg bg-light" />
         
         @if (Watchlist.Items.Any())
         {
-            <div class="alert alert-success mt-3">
-                ✅ Loaded <strong>@Watchlist.Items.Count</strong> items.
+            <div class="alert alert-dark mt-4 border-0 rounded-3 shadow-sm text-center">
+                Loaded <strong class="fs-5">@Watchlist.Items.Count</strong> items successfully.
             </div>
         }
     </div>
 
-    @* FILTERS *@
-    <div class="row g-3 mb-4 bg-light p-3 rounded shadow-sm">
+    <div class="row g-3 mb-5 bg-white p-4 rounded-4 shadow-sm border-0">
         <div class="col-md-3">
-            <label>Type</label>
-            <select class="form-select" @bind="Watchlist.SelectedType">
+            <label class="fw-semibold text-secondary mb-2">Type</label>
+            <select class="form-select border-light shadow-sm" @bind="Watchlist.SelectedType">
                 <option value="All">All Types</option>
                 <option value="Movie">Movies Only</option>
                 <option value="TV Series">TV Shows Only</option>
             </select>
         </div>
         <div class="col-md-3">
-            <label>Genre</label>
-            <select class="form-select" @bind="Watchlist.SelectedGenre">
+            <label class="fw-semibold text-secondary mb-2">Genre</label>
+            <select class="form-select border-light shadow-sm" @bind="Watchlist.SelectedGenre">
                 <option value="All">All Genres</option>
                 @foreach (var genre in AvailableGenres)
                 {
@@ -42,56 +41,55 @@
             </select>
         </div>
         <div class="col-md-3">
-            <label>From Year</label>
-            <input type="number" class="form-control" @bind="Watchlist.StartYear" />
+            <label class="fw-semibold text-secondary mb-2">From Year</label>
+            <input type="number" class="form-control border-light shadow-sm" @bind="Watchlist.StartYear" />
         </div>
         <div class="col-md-3">
-            <label>To Year</label>
-            <input type="number" class="form-control" @bind="Watchlist.EndYear" />
+            <label class="fw-semibold text-secondary mb-2">To Year</label>
+            <input type="number" class="form-control border-light shadow-sm" @bind="Watchlist.EndYear" />
         </div>
     </div>
 
     @if (Watchlist.Items.Any())
     {
         <div class="text-center mb-5">
-            <button class="btn btn-primary btn-lg px-5 shadow" @onclick="PickRandomMovie" disabled="@isPicking">
-                <span>🎲 Show Me a Random Movie (@Watchlist.FilteredItems.Count() matches)</span>
+            <button class="btn btn-dark btn-lg px-5 py-3 rounded-pill shadow fw-bold text-uppercase tracking-wide" @onclick="PickRandomMovie" disabled="@isPicking">
+                <span>Show Random Match (@Watchlist.FilteredItems.Count() found)</span>
             </button>
             @if (!string.IsNullOrEmpty(statusMessage))
             {
-                <p class="text-danger mt-2">@statusMessage</p>
+                <p class="text-danger mt-3 fw-medium">@statusMessage</p>
             }
         </div>
     }
 
-    @* MOVIE DISPLAY AREA *@
     @if (selectedMovie != null)
     {
         <div class="card bg-white text-dark shadow-lg mt-4 border-0 rounded-4 overflow-hidden" style="transition: transform 0.3s ease;">
             <div class="row g-0">
-                <div class="col-md-4 text-center p-3 bg-light d-flex align-items-center justify-content-center">
-                    <img src="@selectedMovie.FullPosterUrl" class="img-fluid rounded shadow-sm" alt="Poster" style="max-height: 450px; cursor: pointer;" @onclick="TogglePoster" />
+                <div class="col-md-4 text-center p-0 bg-dark d-flex align-items-center justify-content-center">
+                    <img src="@selectedMovie.FullPosterUrl" class="img-fluid" alt="Poster" style="object-fit: cover; height: 100%; width: 100%; cursor: pointer;" @onclick="TogglePoster" />
                 </div>
                 <div class="col-md-8">
-                    <div class="card-body p-4 d-flex flex-column h-100">
-                        <h2 class="card-title fw-bold text-primary mb-1">
-                            <a href="https://www.imdb.com/title/@lastPickedImdbId/" target="_blank" class="text-decoration-none text-primary">@selectedMovie.Title</a>
+                    <div class="card-body p-5 d-flex flex-column h-100">
+                        <h2 class="card-title fw-bolder text-dark mb-1">
+                            <a href="https://www.imdb.com/title/@lastPickedImdbId/" target="_blank" class="text-decoration-none text-dark" onmouseover="this.style.opacity='0.6'" onmouseout="this.style.opacity='1'">@selectedMovie.Title</a>
                         </h2>
                         
                         @if (!string.IsNullOrEmpty(selectedMovie.ReleaseDate))
                         {
-                            <p class="text-muted small mb-3">📅 Released: @selectedMovie.ReleaseDate</p>
+                            <p class="text-secondary fw-semibold small mb-4 text-uppercase tracking-wide">Released: @selectedMovie.ReleaseDate</p>
                         }
 
-                        <div class="mb-3">
-                            <span class="badge bg-warning text-dark fs-6 px-3 py-2 shadow-sm me-2">
-                                ⭐ @selectedMovie.VoteAverage.ToString("0.0") / 10
+                        <div class="mb-4">
+                            <span class="badge bg-dark text-white fs-6 px-3 py-2 rounded-pill shadow-sm me-2">
+                                @selectedMovie.VoteAverage.ToString("0.0") / 10
                             </span>
                             @if (selectedItem != null && !string.IsNullOrEmpty(selectedItem.Genres))
                             {
                                 @foreach (var genre in selectedItem.Genres.Split(','))
                                 {
-                                    <a href="https://www.imdb.com/search/title/?genres=@genre.Trim().ToLower()" target="_blank" class="badge bg-secondary me-1 text-decoration-none shadow-sm">
+                                    <a href="https://www.imdb.com/search/title/?genres=@genre.Trim().ToLower()" target="_blank" class="badge bg-light text-dark border me-1 text-decoration-none rounded-pill shadow-sm px-3 py-2">
                                         @genre.Trim()
                                     </a>
                                 }
@@ -100,31 +98,31 @@
 
                         @if (selectedMovie.Directors.Any())
                         {
-                            <p class="mb-1 text-dark fs-6"><strong>Director:</strong> 
+                            <p class="mb-2 text-dark fs-6"><strong>Director:</strong> 
                                 @foreach (var dir in selectedMovie.Directors)
                                 {
-                                    <a href="https://www.imdb.com/find/?q=@System.Uri.EscapeDataString(dir)&s=nm" target="_blank" class="text-decoration-none fw-semibold me-2">@dir</a>
+                                    <a href="https://www.imdb.com/find/?q=@System.Uri.EscapeDataString(dir)&s=nm" target="_blank" class="text-decoration-none text-secondary fw-semibold me-2">@dir</a>
                                 }
                             </p>
                         }
 
                         @if (selectedMovie.Actors.Any())
                         {
-                            <p class="mb-3 text-dark fs-6"><strong>Cast:</strong> 
+                            <p class="mb-4 text-dark fs-6"><strong>Cast:</strong> 
                                 @foreach (var actor in selectedMovie.Actors)
                                 {
-                                    <a href="https://www.imdb.com/find/?q=@System.Uri.EscapeDataString(actor)&s=nm" target="_blank" class="text-decoration-none fw-semibold me-2">@actor</a>
+                                    <a href="https://www.imdb.com/find/?q=@System.Uri.EscapeDataString(actor)&s=nm" target="_blank" class="text-decoration-none text-secondary fw-semibold me-2">@actor</a>
                                 }
                             </p>
                         }
                         
-                        <p class="card-text fs-5 text-secondary flex-grow-1" style="line-height: 1.6;">
+                        <p class="card-text fs-6 text-secondary flex-grow-1" style="line-height: 1.7;">
                             @(string.IsNullOrEmpty(selectedMovie.Overview) ? "No overview available." : selectedMovie.Overview)
                         </p>
                         
-                        <div class="mt-4 pt-3 border-top">
-                            <a href="https://www.imdb.com/title/@lastPickedImdbId/" target="_blank" class="btn btn-dark btn-lg px-4 shadow-sm">
-                                🎬 Open on IMDb
+                        <div class="mt-4 pt-4 border-top">
+                            <a href="https://www.imdb.com/title/@lastPickedImdbId/" target="_blank" class="btn btn-dark btn-lg px-5 rounded-pill shadow-sm w-100 fw-semibold">
+                                Open on IMDb
                             </a>
                         </div>
                     </div>
@@ -190,7 +188,6 @@
     {
         try
         {
-            // Allow up to 10MB file
             using var stream = e.File.OpenReadStream(10_485_760);
             using var reader = new StreamReader(stream);
             
