@@ -19,7 +19,7 @@ public class WatchlistService
     private bool _genreMapLoadStarted;
     public bool IsInitializing { get; private set; } = true;
 
-    public List<WatchlistItem> Items { get; private set; } = new();
+    public List<WatchlistItem> Items { get; set; } = new();
     
     private List<WatchlistItem> _watchingCached = new();
     private List<WatchlistItem> _watchedCached = new();
@@ -649,7 +649,7 @@ public class WatchlistService
         }
     }
 
-    public async Task AddToWatchlistAsync(WatchlistItem item)
+    public async Task AddItemAsync(WatchlistItem item)
     {
         if (!Items.Any(i => i.ImdbId == item.ImdbId))
         {
@@ -659,12 +659,36 @@ public class WatchlistService
         }
     }
 
-    public async Task RemoveFromWatchlistAsync(WatchlistItem item)
+    public async Task AddToWatchlistAsync(WatchlistItem item)
+    {
+        await AddItemAsync(item);
+    }
+
+    public async Task RemoveItemAsync(WatchlistItem item)
     {
         var toRemove = Items.FirstOrDefault(i => i.ImdbId == item.ImdbId);
         if (toRemove != null)
         {
             Items.Remove(toRemove);
+            await UpdateListAsync(Items);
+        }
+    }
+
+    public async Task RemoveFromWatchlistAsync(WatchlistItem item)
+    {
+        await RemoveItemAsync(item);
+    }
+
+    public async Task UpdateItemAsync(WatchlistItem item)
+    {
+        var existing = Items.FirstOrDefault(i => i.ImdbId == item.ImdbId);
+        if (existing != null)
+        {
+            existing.Status = item.Status;
+            existing.CurrentSeason = item.CurrentSeason;
+            existing.CurrentEpisode = item.CurrentEpisode;
+            existing.UserRating = item.UserRating;
+            existing.Rating20 = item.Rating20;
             await UpdateListAsync(Items);
         }
     }
