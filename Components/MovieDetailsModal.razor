@@ -1,0 +1,248 @@
+@using MyPrivateWatchlist.Models
+@inject MyPrivateWatchlist.Services.WatchlistService WatchlistSvc
+@implements IDisposable
+
+@if (WatchlistSvc.IsModalOpen && WatchlistSvc.SelectedItem != null && WatchlistSvc.SelectedMovie != null)
+{
+    var item = WatchlistSvc.SelectedItem;
+    var movie = WatchlistSvc.SelectedMovie;
+
+    <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.85);" @onclick="WatchlistSvc.CloseModal">
+        <div class="modal-dialog modal-dialog-centered modal-xl" @onclick:stopPropagation="true">
+            <div class="modal-content bg-transparent border-0">
+                <div class="card bg-white text-dark shadow-lg border-0 rounded-2 overflow-hidden position-relative">
+                    <div class="row g-0">
+                        <!-- Media Section (Poster or Gallery) -->
+                        <div class="col-md-5 text-center p-0 bg-black d-flex flex-column" style="height: 680px;">
+                            @if (showScreenshots && movie.BackdropPaths.Any())
+                            {
+                                <div class="screenshot-gallery flex-grow-1 overflow-auto p-2 d-flex flex-column gap-2 custom-scrollbar">
+                                    @foreach (var path in movie.BackdropPaths)
+                                    {
+                                        <img src="https://image.tmdb.org/t/p/w780@(path)" 
+                                             class="img-fluid rounded shadow-sm border border-secondary backdrop-thumb" 
+                                             alt="Screenshot" 
+                                             @onclick="() => OpenLightbox(path)" 
+                                             @onclick:stopPropagation="true" />
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="flex-grow-1 d-flex align-items-center justify-content-center overflow-hidden">
+                                    <img src="@movie.FullPosterUrl" class="img-fluid px-2 py-2" alt="Poster" style="object-fit: contain; max-height: 100%; width: 100%;" />
+                                </div>
+                            }
+                            
+                            @if (movie.BackdropPaths.Any())
+                            {
+                                <div class="p-3 bg-dark border-top border-secondary d-flex justify-content-center">
+                                    <div class="form-check form-switch d-flex align-items-center gap-2">
+                                        <input class="form-check-input custom-switch" type="checkbox" id="galleryToggle" @bind="showScreenshots">
+                                        <label class="form-check-label text-white small fw-bold mb-0" for="galleryToggle" style="min-width: 50px;">
+                                            Images
+                                        </label>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Info Section -->
+                        <div class="col-md-7 position-relative">
+                            <button type="button" class="btn-close position-absolute top-0 end-0 m-4 shadow-none" aria-label="Close" @onclick="WatchlistSvc.CloseModal"></button>
+                            
+                            <div class="card-body p-5 d-flex flex-column h-100">
+                                <h2 class="card-title fw-bolder text-dark mb-1 pe-4">
+                                    <a href="https://www.imdb.com/title/@item.ImdbId/" target="_blank" class="text-decoration-none text-dark hover-opacity">@movie.Title</a>
+                                </h2>
+
+                                @if (!string.IsNullOrEmpty(movie.ReleaseDate))
+                                {
+                                    <p class="text-secondary fw-semibold small mb-4 text-uppercase tracking-wide">Released: @movie.ReleaseDate</p>
+                                }
+
+                                <div class="mb-4 d-flex align-items-center gap-3">
+                                    <span class="badge bg-dark text-white fs-6 px-3 py-2 rounded-pill shadow-sm">
+                                        <i class="bi bi-star-fill text-warning me-1"></i> @movie.VoteAverage.ToString("0.0") / 10
+                                    </span>
+                                    
+                                    @if (item.Status == WatchlistStatus.Watched && item.Rating20.HasValue)
+                                    {
+                                        <span class="badge bg-success text-white fs-6 px-3 py-2 rounded-pill shadow-sm">
+                                            My Rating: @(item.Rating20.Value / 2.0)
+                                        </span>
+                                    }
+                                </div>
+
+                                <div class="info-content custom-scrollbar overflow-auto flex-grow-1 pe-2" style="max-height: 350px;">
+                                    @if (movie.Directors.Any())
+                                    {
+                                        <p class="mb-2 text-dark fs-6"><strong>Director:</strong> 
+                                            @foreach (var dir in movie.Directors)
+                                            {
+                                                <a href="https://www.imdb.com/find/?q=@System.Uri.EscapeDataString(dir)&s=nm" target="_blank" class="text-decoration-none text-secondary fw-semibold me-2 hover-opacity">@dir</a>
+                                            }
+                                        </p>
+                                    }
+
+                                    @if (movie.Actors.Any())
+                                    {
+                                        <p class="mb-4 text-dark fs-6"><strong>Cast:</strong> 
+                                            @foreach (var actor in movie.Actors)
+                                            {
+                                                <a href="https://www.imdb.com/find/?q=@System.Uri.EscapeDataString(actor)&s=nm" target="_blank" class="text-decoration-none text-secondary fw-semibold me-2 hover-opacity">@actor</a>
+                                            }
+                                        </p>
+                                    }
+                                    
+                                    <p class="card-text fs-6 text-secondary" style="line-height: 1.7;">
+                                        @if (WatchlistSvc.IsLoadingDetails)
+                                        {
+                                            <div class="d-flex align-items-center gap-2 text-secondary py-3">
+                                                <div class="spinner-border spinner-border-sm" role="status"></div>
+                                                <span>Fetching cinematic details...</span>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            @(string.IsNullOrEmpty(movie.Overview) ? "No overview available." : movie.Overview)
+                                        }
+                                    </p>
+                                </div>
+                                
+                                <div class="mt-auto pt-4 border-top">
+                                    <div class="d-flex gap-2">
+                                        <a href="https://www.imdb.com/title/@item.ImdbId/" target="_blank" class="btn btn-dark btn-lg px-5 rounded-pill shadow-sm flex-grow-1 fw-semibold d-flex align-items-center justify-content-center">
+                                            <i class="bi bi-link-45deg me-2 fs-4"></i> Open on IMDb
+                                        </a>
+                                        @if (item.Status != WatchlistStatus.Watched)
+                                        {
+                                            <button class="btn btn-outline-danger btn-lg px-4 rounded-pill shadow-sm fw-semibold" @onclick="RemoveItem">
+                                                Remove
+                                            </button>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (selectedLightboxPath != null)
+{
+        <div class="lightbox-overlay" @onclick="CloseLightbox">
+            <div class="lightbox-content shadow-lg">
+                <img src="https://image.tmdb.org/t/p/original@(selectedLightboxPath)" class="img-fluid rounded border border-secondary border-opacity-25 shadow-lg" alt="Full Image" />
+            <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-4 shadow-lg p-2 rounded-circle bg-dark" aria-label="Close" @onclick="CloseLightbox" style="z-index: 2005;"></button>
+        </div>
+    </div>
+}
+}
+
+<style>
+    .hover-opacity:hover { opacity: 0.7; }
+    
+    .screenshot-gallery {
+        max-height: 600px;
+        background: #111;
+    }
+
+    .backdrop-thumb {
+        cursor: zoom-in;
+        transition: none;
+    }
+    .backdrop-thumb:hover {
+        outline: 3px solid #fff;
+        outline-offset: -3px;
+        box-shadow: 0 0 15px rgba(255,255,255,0.5);
+    }
+    
+    .lightbox-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0,0,0,0.92);
+        backdrop-filter: blur(10px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2000;
+        padding: 60px;
+    }
+    
+    .lightbox-content {
+        position: relative;
+        max-width: 100%;
+        max-height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .lightbox-content img {
+        max-height: 90vh;
+        object-fit: contain;
+    }
+    
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: rgba(0,0,0,0.1);
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: rgba(255,255,255,0.2);
+        border-radius: 10px;
+    }
+    
+    .custom-switch {
+        cursor: pointer;
+        width: 3em !important;
+        height: 1.5em !important;
+    }
+    
+    .custom-switch:checked {
+        background-color: #198754;
+        border-color: #198754;
+    }
+</style>
+
+@code {
+    private bool showScreenshots = false;
+    private string? selectedLightboxPath;
+
+    private void OpenLightbox(string path)
+    {
+        selectedLightboxPath = path;
+    }
+
+    private void CloseLightbox()
+    {
+        selectedLightboxPath = null;
+    }
+
+    protected override void OnInitialized()
+    {
+        WatchlistSvc.OnStateChanged += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        WatchlistSvc.OnStateChanged -= StateHasChanged;
+    }
+
+    private async Task RemoveItem()
+    {
+        if (WatchlistSvc.SelectedItem != null)
+        {
+            await WatchlistSvc.RemoveFromWatchlistAsync(WatchlistSvc.SelectedItem);
+            WatchlistSvc.CloseModal();
+        }
+    }
+}

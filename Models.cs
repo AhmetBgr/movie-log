@@ -78,6 +78,7 @@ public class TmdbMovie
     // --- NEW EXTENDED FIELDS ---
     public List<string> Directors { get; set; } = new();
     public List<string> Actors { get; set; } = new();
+    public List<string> BackdropPaths { get; set; } = new();
 
     public string FullPosterUrl => string.IsNullOrEmpty(PosterPath)
         ? "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" 
@@ -204,4 +205,16 @@ public class TmdbGenreListResponse
 {
     [JsonPropertyName("genres")]
     public List<TmdbGenre> Genres { get; set; } = new();
+}
+
+public class TmdbImages
+{
+    [JsonPropertyName("backdrops")]
+    public List<TmdbImage> Backdrops { get; set; } = new();
+}
+
+public class TmdbImage
+{
+    [JsonPropertyName("file_path")]
+    public string FilePath { get; set; } = "";
 }

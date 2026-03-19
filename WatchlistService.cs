@@ -19,6 +19,12 @@ public class WatchlistService
     private List<WatchlistItem> _watchedCached = new();
     private List<WatchlistItem> _filteredCached = new();
     private List<WatchlistItem> _filteredWatchedCached = new();
+    
+    // Global Modal State
+    public WatchlistItem? SelectedItem { get; private set; }
+    public TmdbMovie? SelectedMovie { get; private set; }
+    public bool IsModalOpen { get; private set; }
+    public bool IsLoadingDetails { get; private set; }
 
     private string _selectedType = "All";
     public string SelectedType 
@@ -272,6 +278,13 @@ public class WatchlistService
                         movie.Directors = credits.Crew.Where(c => c.Job == "Director").Select(c => c.Name).Distinct().ToList();
                         movie.Actors = credits.Cast.Take(5).Select(c => c.Name).ToList();
                     }
+                    
+                    var imagesUrl = $"https://api.themoviedb.org/3/movie/{movie.Id}/images?api_key={apiKey}";
+                    var images = await _http.GetFromJsonAsync<TmdbImages>(imagesUrl);
+                    if (images != null)
+                    {
+                        movie.BackdropPaths = images.Backdrops.Take(10).Select(b => b.FilePath).ToList();
+                    }
                 } catch { } 
 
                 _movieCache[imdbId] = movie;
@@ -300,6 +313,13 @@ public class WatchlistService
                     {
                         movie.Directors = credits.Crew.Where(c => c.Job == "Executive Producer" || c.Job == "Director").Select(c => c.Name).Distinct().ToList();
                         movie.Actors = credits.Cast.Take(5).Select(c => c.Name).ToList();
+                    }
+                    
+                    var imagesUrl = $"https://api.themoviedb.org/3/tv/{tv.Id}/images?api_key={apiKey}";
+                    var images = await _http.GetFromJsonAsync<TmdbImages>(imagesUrl);
+                    if (images != null)
+                    {
+                        movie.BackdropPaths = images.Backdrops.Take(10).Select(b => b.FilePath).ToList();
                     }
                 } catch { } 
 
@@ -338,8 +358,15 @@ public class WatchlistService
                         var credits = await _http.GetFromJsonAsync<TmdbCredits>(creditsUrl);
                         if (credits != null)
                         {
-                            movie.Directors = credits.Crew.Where(c => c.Job == "Director").Select(c => c.Name).Distinct().ToList();
+                        movie.Directors = credits.Crew.Where(c => c.Job == "Director").Select(c => c.Name).Distinct().ToList();
                             movie.Actors = credits.Cast.Take(5).Select(c => c.Name).ToList();
+                        }
+                        
+                        var imagesUrl = $"https://api.themoviedb.org/3/movie/{tmdbId}/images?api_key={apiKey}";
+                        var images = await _http.GetFromJsonAsync<TmdbImages>(imagesUrl);
+                        if (images != null)
+                        {
+                            movie.BackdropPaths = images.Backdrops.Take(10).Select(b => b.FilePath).ToList();
                         }
                     } catch { } 
                     return movie;
@@ -375,8 +402,15 @@ public class WatchlistService
                         var credits = await _http.GetFromJsonAsync<TmdbCredits>(creditsUrl);
                         if (credits != null)
                         {
-                            movie.Directors = credits.Crew.Where(c => c.Job == "Executive Producer" || c.Job == "Director").Select(c => c.Name).Distinct().ToList();
+                        movie.Directors = credits.Crew.Where(c => c.Job == "Executive Producer" || c.Job == "Director").Select(c => c.Name).Distinct().ToList();
                             movie.Actors = credits.Cast.Take(5).Select(c => c.Name).ToList();
+                        }
+                        
+                        var imagesUrl = $"https://api.themoviedb.org/3/tv/{tv.Id}/images?api_key={apiKey}";
+                        var images = await _http.GetFromJsonAsync<TmdbImages>(imagesUrl);
+                        if (images != null)
+                        {
+                            movie.BackdropPaths = images.Backdrops.Take(10).Select(b => b.FilePath).ToList();
                         }
                     } catch { } 
                     return movie;
@@ -519,6 +553,80 @@ public class WatchlistService
             WatchedSortDescending = (column == "DateAdded" || column == "Year" || column == "Rating");
         }
         NotifyStateChanged();
+    }
+
+    // Modal Control
+    public async Task ShowDetailsAsync(WatchlistItem item)
+    {
+        SelectedItem = item;
+        SelectedMovie = new TmdbMovie 
+        { 
+            Title = item.Title, 
+            OriginalTitle = item.OriginalTitle,
+            ReleaseDate = item.Year 
+        };
+        IsModalOpen = true;
+        IsLoadingDetails = true;
+        NotifyStateChanged(fullRefresh: false);
+
+        var details = await GetTmdbDetailsAsync(item.ImdbId);
+        if (details != null && SelectedItem == item)
+        {
+            SelectedMovie = details;
+            IsLoadingDetails = false;
+            NotifyStateChanged(fullRefresh: false);
+        }
+    }
+
+    public async Task ShowDetailsAsync(TmdbSearchResultItem searchItem)
+    {
+        var tempItem = new WatchlistItem
+        {
+            ImdbId = "",
+            Title = searchItem.DisplayTitle,
+            OriginalTitle = searchItem.DisplayOriginalTitle,
+            Year = searchItem.DisplayDate,
+            TitleType = searchItem.MediaType == "movie" ? "Movie" : "TV Series"
+        };
+        
+        SelectedItem = tempItem;
+        SelectedMovie = new TmdbMovie 
+        { 
+            Title = tempItem.Title, 
+            OriginalTitle = tempItem.OriginalTitle,
+            ReleaseDate = tempItem.Year,
+            PosterPath = searchItem.PosterPath
+        };
+        IsModalOpen = true;
+        IsLoadingDetails = true;
+        NotifyStateChanged(fullRefresh: false);
+
+        var details = await GetTmdbDetailsByIdAsync(searchItem.Id, searchItem.MediaType);
+        if (details != null && SelectedItem == tempItem)
+        {
+            SelectedMovie = details;
+            SelectedItem.ImdbId = details.ImdbId ?? "";
+            IsLoadingDetails = false;
+            NotifyStateChanged(fullRefresh: false);
+        }
+    }
+
+    public async Task ShowRandomMovieAsync()
+    {
+        var pool = FilteredItems.Any() ? FilteredItems.ToList() : Items.Where(i => i.Status == WatchlistStatus.Pending).ToList();
+        if (pool.Any())
+        {
+            var random = pool[new Random().Next(pool.Count)];
+            await ShowDetailsAsync(random);
+        }
+    }
+
+    public void CloseModal()
+    {
+        IsModalOpen = false;
+        SelectedItem = null;
+        SelectedMovie = null;
+        NotifyStateChanged(fullRefresh: false);
     }
 }
 

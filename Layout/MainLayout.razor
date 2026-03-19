@@ -1,5 +1,6 @@
 @inherits LayoutComponentBase
 @inject NavigationManager NavManager
+@using MyPrivateWatchlist.Components
 
 <div class="page">
     <div class="sidebar">
@@ -20,6 +21,8 @@
         <article class="content px-4 mt-2">
             @Body
         </article>
+
+        <MovieDetailsModal />
     </main>
 </div>
 

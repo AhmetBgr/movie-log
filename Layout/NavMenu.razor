@@ -1,3 +1,4 @@
+@inject MyPrivateWatchlist.Services.WatchlistService WatchlistSvc
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="">MyPrivateWatchlist</a>
@@ -28,6 +29,11 @@
             <NavLink class="nav-link" href="watchlist">
                 <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Watchlist
             </NavLink>
+        </div>
+        <div class="nav-item px-3 mt-2">
+            <a class="nav-link" style="cursor: pointer;" @onclick="WatchlistSvc.ShowRandomMovieAsync">
+                <span class="bi bi-dice-5-fill" aria-hidden="true"></span> Random Movie
+            </a>
         </div>
         <div class="nav-item px-3 border-top mt-2 pt-2">
             <NavLink class="nav-link" href="setup">

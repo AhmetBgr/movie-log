@@ -69,7 +69,7 @@
                                         </button>
                                     </div>
                                 </td>
-                                <td style="cursor: pointer;" class="px-3" @onclick="() => ShowMovieDetails(item)">
+                                <td style="cursor: pointer;" class="px-3" @onclick="() => WatchlistSvc.ShowDetailsAsync(item)">
                                     <span class="fw-bold text-dark" style="transition: opacity 0.2s;" onmouseover="this.style.opacity='0.6'" onmouseout="this.style.opacity='1'">
                                         @item.Title
                                     </span>
@@ -147,7 +147,7 @@
                             </div>
 
                             <div class="d-grid gap-2 pt-2">
-                                <button class="btn btn-dark rounded-pill py-2 shadow-sm border-0 fw-semibold" @onclick="ShowRandomMovie">
+                                <button class="btn btn-dark rounded-pill py-2 shadow-sm border-0 fw-semibold" @onclick="WatchlistSvc.ShowRandomMovieAsync">
                                     <i class="bi bi-dice-5 me-2"></i> Pick Random Movie
                                 </button>
                                 <button class="btn btn-outline-secondary btn-sm border-0 py-2" @onclick="ClearFilters">
@@ -160,103 +160,9 @@
             }
         </div>
     }
-
-
-    @if (selectedMovie != null)
-    {
-        <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.85);" @onclick="CloseModal">
-            <div class="modal-dialog modal-dialog-centered modal-xl" @onclick:stopPropagation="true">
-                <div class="modal-content bg-transparent border-0">
-                    <div class="card bg-white text-dark shadow-lg border-0 rounded-2 overflow-hidden">
-                        <div class="row g-0">
-                            <div class="col-md-5 text-center p-0 bg-black d-flex align-items-center justify-content-center" style="min-height: 600px;">
-                                <img src="@selectedMovie.FullPosterUrl" class="img-fluid px-2 py-2" alt="Poster" style="object-fit: contain; max-height: 100%; width: 100%;" />
-                            </div>
-                            <div class="col-md-7 position-relative">
-                                <button type="button" class="btn-close position-absolute top-0 end-0 m-4" aria-label="Close" @onclick="CloseModal"></button>
-                                <div class="card-body p-5 d-flex flex-column h-100">
-                                    <h2 class="card-title fw-bolder text-dark mb-1 pe-4">
-                                        <a href="https://www.imdb.com/title/@selectedItem!.ImdbId/" target="_blank" class="text-decoration-none text-dark" onmouseover="this.style.opacity='0.6'" onmouseout="this.style.opacity='1'">@selectedMovie.Title</a>
-                                    </h2>
-                                    
-                                    @if (!string.IsNullOrEmpty(selectedMovie.ReleaseDate))
-                                    {
-                                        <p class="text-secondary fw-semibold small mb-4 text-uppercase tracking-wide">Released: @selectedMovie.ReleaseDate</p>
-                                    }
-
-                                    <div class="mb-4 d-flex align-items-center gap-3">
-                                        <span class="badge bg-dark text-white fs-6 px-3 py-2 rounded-pill shadow-sm">
-                                            @selectedMovie.VoteAverage.ToString("0.0") / 10
-                                        </span>
-                                        <button class="btn btn-outline-danger rounded-pill px-4 fw-bold" @onclick="RemoveFromWatchlistFromModal">
-                                            <i class="bi bi-x-lg me-2"></i> Remove from Watchlist
-                                        </button>
-                                    </div>
-
-                                    @if (!string.IsNullOrEmpty(selectedItem!.Genres))
-                                    {
-                                        <div class="mb-4">
-                                            @foreach (var genre in selectedItem.Genres.Split(','))
-                                            {
-                                                <a href="https://www.imdb.com/search/title/?genres=@genre.Trim().ToLower()" target="_blank" class="badge bg-light text-dark border me-1 text-decoration-none rounded-pill shadow-sm px-3 py-2">
-                                                    @genre.Trim()
-                                                </a>
-                                            }
-                                        </div>
-                                    }
-
-                                    @if (selectedMovie.Directors.Any())
-                                    {
-                                        <p class="mb-2 text-dark fs-6"><strong>Director:</strong> 
-                                            @foreach (var dir in selectedMovie.Directors)
-                                            {
-                                                <a href="https://www.imdb.com/find/?q=@System.Uri.EscapeDataString(dir)&s=nm" target="_blank" class="text-decoration-none text-secondary fw-semibold me-2">@dir</a>
-                                            }
-                                        </p>
-                                    }
-
-                                    @if (selectedMovie.Actors.Any())
-                                    {
-                                        <p class="mb-4 text-dark fs-6"><strong>Cast:</strong> 
-                                            @foreach (var actor in selectedMovie.Actors)
-                                            {
-                                                <a href="https://www.imdb.com/find/?q=@System.Uri.EscapeDataString(actor)&s=nm" target="_blank" class="text-decoration-none text-secondary fw-semibold me-2">@actor</a>
-                                            }
-                                        </p>
-                                    }
-                                    
-                                    <p class="card-text fs-6 text-secondary flex-grow-1" style="line-height: 1.7;">
-                                        @if (string.IsNullOrEmpty(selectedMovie.Overview) && string.IsNullOrEmpty(selectedMovie.Directors.FirstOrDefault()))
-                                        {
-                                            <div class="d-flex align-items-center gap-2 text-secondary">
-                                                <div class="spinner-border spinner-border-sm" role="status"></div>
-                                                <span>Loading full details...</span>
-                                            </div>
-                                        }
-                                        else
-                                        {
-                                            @(string.IsNullOrEmpty(selectedMovie.Overview) ? "No overview available." : selectedMovie.Overview)
-                                        }
-                                    </p>
-                                    
-                                    <div class="mt-4 pt-4 border-top">
-                                        <a href="https://www.imdb.com/title/@selectedItem.ImdbId/" target="_blank" class="btn btn-dark btn-lg px-5 rounded-pill shadow-sm w-100 fw-semibold">
-                                            Open on IMDb
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    }
 </div>
 
 @code {
-    private TmdbMovie? selectedMovie;
-    private WatchlistItem? selectedItem;
     private bool showFilters = false;
     private List<WatchlistItem> _filteredItems = new();
 
@@ -306,61 +212,15 @@
         .OrderBy(g => g)
         .ToList();
 
-    private async Task RemoveFromWatchlistFromModal()
-    {
-        if (selectedItem != null)
-        {
-            await WatchlistSvc.RemoveFromWatchlistAsync(selectedItem);
-            CloseModal();
-        }
-    }
-
-    private async Task RemoveFromWatchlist(WatchlistItem item)
-    {
-        await WatchlistSvc.RemoveFromWatchlistAsync(item);
-    }
-
     private async Task StartWatching(WatchlistItem item)
     {
         await WatchlistSvc.UpdateStatusAsync(item, WatchlistStatus.Watching);
         StateHasChanged();
     }
-    
-    private async Task ShowMovieDetails(WatchlistItem item)
+
+    private async Task RemoveFromWatchlist(WatchlistItem item)
     {
-        selectedItem = item;
-        // Show basic info instantly
-        selectedMovie = new TmdbMovie 
-        { 
-            Title = item.Title, 
-            OriginalTitle = item.OriginalTitle,
-            ReleaseDate = item.Year
-        };
+        await WatchlistSvc.RemoveFromWatchlistAsync(item);
         StateHasChanged();
-
-        // Load full details in background
-        var fullDetails = await WatchlistSvc.GetTmdbDetailsAsync(item.ImdbId);
-        if (fullDetails != null && selectedItem == item) // Ensure we haven't switched movies
-        {
-            selectedMovie = fullDetails;
-            StateHasChanged();
-        }
-    }
-
-    private async Task ShowRandomMovie()
-    {
-        var filtered = WatchlistSvc.FilteredItems.ToList();
-        if (filtered.Any())
-        {
-            var random = new Random();
-            var item = filtered[random.Next(filtered.Count)];
-            await ShowMovieDetails(item);
-        }
-    }
-
-    private void CloseModal()
-    {
-        selectedMovie = null;
-        selectedItem = null;
     }
 }
