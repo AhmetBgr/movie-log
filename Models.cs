@@ -94,3 +94,37 @@ public class TmdbCrew
     [JsonPropertyName("job")]
     public string Job { get; set; } = "";
 }
+
+public class TmdbSearchResponse
+{
+    [JsonPropertyName("results")]
+    public List<TmdbSearchResultItem> Results { get; set; } = new();
+}
+
+public class TmdbSearchResultItem
+{
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+
+    [JsonPropertyName("name")]
+    public string? Name { get; set; } 
+
+    [JsonPropertyName("title")]
+    public string? Title { get; set; } 
+
+    [JsonPropertyName("media_type")]
+    public string MediaType { get; set; } = "";
+
+    [JsonPropertyName("poster_path")]
+    public string? PosterPath { get; set; }
+
+    [JsonPropertyName("release_date")]
+    public string? ReleaseDate { get; set; }
+
+    [JsonPropertyName("first_air_date")]
+    public string? FirstAirDate { get; set; }
+
+    public string DisplayTitle => Title ?? Name ?? "Unknown";
+    public string DisplayDate => ReleaseDate ?? FirstAirDate ?? "Unknown Date";
+    public string FullPosterUrl => string.IsNullOrEmpty(PosterPath) ? "https://via.placeholder.com/300x450?text=No+Poster" : $"https://image.tmdb.org/t/p/w300{PosterPath}";
+}
