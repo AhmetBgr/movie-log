@@ -43,7 +43,10 @@
                         <input type="number" class="form-control border-0 bg-light shadow-none" placeholder="To" 
                                @bind="WatchlistSvc.EndYear" />
                     </div>
-                    <div class="col-md-2 text-end">
+                    <div class="col-md-2 text-end d-flex gap-2 justify-content-end">
+                        <button class="btn btn-dark btn-sm rounded-pill px-3 shadow-sm border-0" @onclick="ShowRandomMovie">
+                            <i class="bi bi-dice-5 me-1"></i> Random
+                        </button>
                         <button class="btn btn-outline-secondary btn-sm border-0" @onclick="ClearFilters">Clear All</button>
                     </div>
                 </div>
@@ -236,6 +239,17 @@
         isLoading = true;
         selectedMovie = await WatchlistSvc.GetTmdbDetailsAsync(item.ImdbId);
         isLoading = false;
+    }
+
+    private async Task ShowRandomMovie()
+    {
+        var filtered = WatchlistSvc.FilteredItems.ToList();
+        if (filtered.Any())
+        {
+            var random = new Random();
+            var item = filtered[random.Next(filtered.Count)];
+            await ShowMovieDetails(item);
+        }
     }
 
     private void CloseModal()
