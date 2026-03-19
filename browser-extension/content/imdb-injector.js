@@ -36,51 +36,52 @@
             imdbId = urlMatch[1];
         }
 
-        // Extract movie details
-        try {
-            movieData = {
-                imdbId: imdbId,
-                title: document.querySelector('h1[data-testid="hero__pageTitle"]')?.textContent?.trim() || 
-                       document.querySelector('h1')?.textContent?.trim() || '',
-                year: document.querySelector('[data-testid="title-details-releasedate"] .ipc-link-color')?.textContent?.trim() || 
-                      document.querySelector('.sc-8c396aa2-2')?.textContent?.match(/\d{4}/)?.[0] || '',
-                type: determineMovieType(),
-                genres: extractGenres(),
-                director: extractDirector(),
-                poster: extractPosterUrl(),
-                rating: extractRating()
-            };
-        } catch (error) {
-            console.error('Movie Log: Error extracting movie data:', error);
-        }
-    }
+        // Extract title
+        const titleElement = document.querySelector('[data-testid="hero__primary-text"] h1') || 
+                           document.querySelector('h1[data-testid="hero__pageTitle"]') ||
+                           document.querySelector('h1');
+        const title = titleElement?.textContent?.trim() || '';
 
-    function determineMovieType() {
-        const metaInfo = document.querySelector('[data-testid="hero-subnav-bar"]')?.textContent || '';
-        if (metaInfo.includes('TV Series') || metaInfo.includes('TV Mini Series')) {
-            return 'TV Series';
-        }
-        return 'Movie';
-    }
+        // Extract year
+        const yearElement = document.querySelector('[data-testid="title-details-certificate"]') ||
+                          document.querySelector('.sc-afe28a6-0');
+        const yearMatch = yearElement?.textContent?.match(/\d{4}/);
+        const year = yearMatch ? yearMatch[0] : '';
 
-    function extractGenres() {
-        const genreElements = document.querySelectorAll('[data-testid="genres"] a');
-        return Array.from(genreElements).map(el => el.textContent.trim()).join(', ');
-    }
+        // Extract type (Movie/TV Series)
+        const typeElement = document.querySelector('[data-testid="hero-title-block__metadata"]') ||
+                           document.querySelector('.title-type');
+        const typeText = typeElement?.textContent?.trim() || '';
+        const type = typeText.includes('TV') ? 'TV Series' : 'Movie';
 
-    function extractDirector() {
-        const directorElement = document.querySelector('[data-testid="title-pc-wide-screen"] a[href*="/name/"]');
-        return directorElement?.textContent?.trim() || '';
-    }
+        // Extract genres
+        const genreElements = document.querySelectorAll('[data-testid="genres"] a, .ipc-chip-list__item a');
+        const genres = Array.from(genreElements).map(el => el.textContent.trim()).join(', ') || '';
 
-    function extractPosterUrl() {
-        const posterImg = document.querySelector('[data-testid="hero-media__poster"] img');
-        return posterImg?.src || '';
-    }
+        // Extract director
+        const directorElement = document.querySelector('[data-testid="title-pc-wide-screen"] a[href*="/name/nm"]') ||
+                             document.querySelector('.ipc-metadata-list-item a[href*="/name/nm"]');
+        const director = directorElement?.textContent?.trim() || '';
 
-    function extractRating() {
+        // Extract poster
+        const posterElement = document.querySelector('[data-testid="hero-media-poster"] img') ||
+                            document.querySelector('.ipc-image img');
+        const poster = posterElement?.src || '';
+
+        // Extract rating
         const ratingElement = document.querySelector('[data-testid="hero-rating-bar__aggregate-rating__score"] span');
-        return ratingElement?.textContent?.trim() || '';
+        const rating = ratingElement?.textContent?.trim() || '';
+
+        movieData = {
+            imdbId,
+            title,
+            year,
+            type,
+            genres,
+            director,
+            poster,
+            rating
+        };
     }
 
     // Check if movie is already in watchlist
@@ -284,7 +285,7 @@
                 const response = await chrome.runtime.sendMessage({
                     action: 'saveToMovieLog',
                     movie: {
-                        ...movieData,
+                        ImdbId: movieData.imdbId,
                         action: 'remove'
                     }
                 });
@@ -307,14 +308,14 @@
                     Title: movieData.title,
                     TitleType: movieData.type || "Movie",
                     Year: movieData.year || "",
-                    Genres: null,
+                    Genres: movieData.genres || null,
                     Director: movieData.director || "",
                     OriginalTitle: null,
                     ParsedYear: parseInt(movieData.year) || 0,
                     Status: 0, // Pending
                     CurrentSeason: null,
                     CurrentEpisode: null,
-                    DateAdded: new Date().toISOString(),
+                    DateAdded: new Date().toISOString().slice(0, 10), // Format: YYYY-MM-DD
                     UserRating: null,
                     Rating20: null,
                     Overview: null,
