@@ -53,7 +53,11 @@
                                     }
                                     else
                                     {
-                                        <i class="bi bi-check-lg text-success fs-5" title="In Watchlist"></i>
+                                        <button class="btn btn-sm btn-link text-danger p-0 shadow-none d-inline-flex align-items-center justify-content-center" 
+                                                style="width: 30px; height: 30px;"
+                                                @onclick="() => HandleRemoveClick(item)" @onclick:stopPropagation="true" title="Remove from Watchlist">
+                                            <i class="bi bi-x-lg fs-4"></i>
+                                        </button>
                                     }
                                 </td>
                                 <td style="cursor: pointer;" class="px-4" @onclick="() => ShowMovieDetails(item)">
@@ -122,9 +126,9 @@
                                         }
                                         else
                                         {
-                                            <span class="badge bg-success text-white fs-6 px-3 py-2 rounded-pill shadow-sm">
-                                                <i class="bi bi-check-lg me-2"></i> In Watchlist
-                                            </span>
+                                            <button class="btn btn-outline-danger rounded-pill px-4 fw-bold" @onclick="RemoveFromWatchlistFromModal">
+                                                <i class="bi bi-x-lg me-2"></i> Remove from Watchlist
+                                            </button>
                                         }
                                     </div>
 
@@ -244,6 +248,29 @@
                 Genres = ""
             });
             StateHasChanged();
+        }
+    }
+
+    private async Task RemoveFromWatchlistFromModal()
+    {
+        if (selectedMovie != null && !string.IsNullOrEmpty(selectedMovie.ImdbId))
+        {
+            await WatchlistSvc.RemoveFromWatchlistByImdbIdAsync(selectedMovie.ImdbId);
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleRemoveClick(TmdbSearchResultItem item)
+    {
+        // We might not have ImdbId in the item, so we fetch it if needed, or if we have a way to match.
+        // Actually, IsAlreadyInWatchlist uses Fuzzy check. 
+        // For removal from search list, we should be careful. 
+        // Let's find the item in watchlist correctly.
+        var wlItem = WatchlistSvc.Items.FirstOrDefault(i => i.Title.Equals(item.DisplayTitle, StringComparison.OrdinalIgnoreCase) && 
+                                                         (item.DisplayDate.Length >= 4 && i.Year.Contains(item.DisplayDate.Substring(0,4))));
+        if (wlItem != null)
+        {
+            await WatchlistSvc.RemoveFromWatchlistAsync(wlItem);
         }
     }
 

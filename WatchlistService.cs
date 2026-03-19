@@ -286,6 +286,29 @@ public class WatchlistService
         {
             Items.Add(item);
             await UpdateListAsync(Items);
+            NotifyStateChanged();
+        }
+    }
+
+    public async Task RemoveFromWatchlistAsync(WatchlistItem item)
+    {
+        var toRemove = Items.FirstOrDefault(i => i.ImdbId == item.ImdbId);
+        if (toRemove != null)
+        {
+            Items.Remove(toRemove);
+            await UpdateListAsync(Items);
+            NotifyStateChanged();
+        }
+    }
+
+    public async Task RemoveFromWatchlistByImdbIdAsync(string imdbId)
+    {
+        var toRemove = Items.FirstOrDefault(i => i.ImdbId == imdbId);
+        if (toRemove != null)
+        {
+            Items.Remove(toRemove);
+            await UpdateListAsync(Items);
+            NotifyStateChanged();
         }
     }
 

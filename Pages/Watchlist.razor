@@ -55,7 +55,8 @@
                 <table class="table table-hover align-middle mb-0 border-light">
                     <thead class="bg-light text-secondary fw-semibold" style="position: sticky; top: 0; z-index: 1;">
                         <tr>
-                            <th scope="col" style="width: 50%; cursor: pointer;" class="border-bottom py-3 px-4" @onclick='() => WatchlistSvc.ToggleSort("Title")'>
+                            <th scope="col" style="width: 5%;" class="border-bottom py-3 px-4 text-center"></th>
+                            <th scope="col" style="width: 45%; cursor: pointer;" class="border-bottom py-3 px-4" @onclick='() => WatchlistSvc.ToggleSort("Title")'>
                                 Title 
                                 @if (WatchlistSvc.SortColumn == "Title") { <i class="bi @(WatchlistSvc.SortDescending ? "bi-sort-alpha-up-alt" : "bi-sort-alpha-down") ms-1"></i> }
                                 <span class="badge bg-secondary text-white shadow-sm fw-normal ms-2 rounded-2 px-2 py-1">@WatchlistSvc.FilteredItems.Count() Items</span>
@@ -74,6 +75,11 @@
                     <tbody class="border-top-0">
                         <Virtualize Items="WatchlistSvc.FilteredItems.ToList()" Context="item" ItemSize="56">
                             <tr>
+                                <td class="text-center px-3">
+                                    <button class="btn btn-sm btn-link text-danger p-0 shadow-none d-inline-flex align-items-center justify-content-center" @onclick="() => WatchlistSvc.RemoveFromWatchlistAsync(item)" title="Remove from Watchlist">
+                                        <i class="bi bi-x-lg fs-4"></i>
+                                    </button>
+                                </td>
                                 <td style="cursor: pointer;" class="px-4" @onclick="() => ShowMovieDetails(item)">
                                     <span class="fw-bold text-dark" style="transition: opacity 0.2s;" onmouseover="this.style.opacity='0.6'" onmouseout="this.style.opacity='1'">
                                         @item.Title
@@ -127,20 +133,26 @@
                                         <p class="text-secondary fw-semibold small mb-4 text-uppercase tracking-wide">Released: @selectedMovie.ReleaseDate</p>
                                     }
 
-                                    <div class="mb-4">
-                                        <span class="badge bg-dark text-white fs-6 px-3 py-2 rounded-pill shadow-sm me-2">
+                                    <div class="mb-4 d-flex align-items-center gap-3">
+                                        <span class="badge bg-dark text-white fs-6 px-3 py-2 rounded-pill shadow-sm">
                                             @selectedMovie.VoteAverage.ToString("0.0") / 10
                                         </span>
-                                        @if (!string.IsNullOrEmpty(selectedItem!.Genres))
-                                        {
+                                        <button class="btn btn-outline-danger rounded-pill px-4 fw-bold" @onclick="RemoveFromWatchlistFromModal">
+                                            <i class="bi bi-x-lg me-2"></i> Remove from Watchlist
+                                        </button>
+                                    </div>
+
+                                    @if (!string.IsNullOrEmpty(selectedItem!.Genres))
+                                    {
+                                        <div class="mb-4">
                                             @foreach (var genre in selectedItem.Genres.Split(','))
                                             {
                                                 <a href="https://www.imdb.com/search/title/?genres=@genre.Trim().ToLower()" target="_blank" class="badge bg-light text-dark border me-1 text-decoration-none rounded-pill shadow-sm px-3 py-2">
                                                     @genre.Trim()
                                                 </a>
                                             }
-                                        }
-                                    </div>
+                                        </div>
+                                    }
 
                                     @if (selectedMovie.Directors.Any())
                                     {
@@ -207,6 +219,15 @@
         WatchlistSvc.StartYear = "";
         WatchlistSvc.EndYear = "";
         WatchlistSvc.NotifyStateChanged();
+    }
+
+    private async Task RemoveFromWatchlistFromModal()
+    {
+        if (selectedItem != null)
+        {
+            await WatchlistSvc.RemoveFromWatchlistAsync(selectedItem);
+            CloseModal();
+        }
     }
 
     private async Task ShowMovieDetails(WatchlistItem item)
