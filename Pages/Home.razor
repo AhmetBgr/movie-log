@@ -9,7 +9,7 @@
 <div class="container mt-4">
     <h1 class="mb-4 fw-bold text-dark border-bottom pb-3">My Private Watchlist</h1>
 
-    <div class="card p-4 mb-4 border-0 shadow-sm rounded-4 bg-white">
+    <div class="card p-4 mb-4 border-0 shadow-sm rounded-2 bg-white">
         <h5 class="fw-semibold mb-3">Step 1: Import IMDb Watchlist</h5>
         <InputFile OnChange="HandleFileSelected" class="form-control form-control-lg bg-light" />
         
@@ -21,7 +21,7 @@
         }
     </div>
 
-    <div class="row g-3 mb-5 bg-white p-4 rounded-4 shadow-sm border-0">
+    <div class="row g-3 mb-5 bg-white p-4 rounded-2 shadow-sm border-0">
         <div class="col-md-3">
             <label class="fw-semibold text-secondary mb-2">Type</label>
             <select class="form-select border-light shadow-sm" @bind="Watchlist.SelectedType">
@@ -65,10 +65,10 @@
 
     @if (selectedMovie != null)
     {
-        <div class="card bg-white text-dark shadow-lg mt-4 border-0 rounded-4 overflow-hidden" style="transition: transform 0.3s ease;">
+        <div class="card bg-white text-dark shadow-lg mt-4 border-0 rounded-2 overflow-hidden" style="transition: transform 0.3s ease;">
             <div class="row g-0">
                 <div class="col-md-4 text-center p-0 bg-dark d-flex align-items-center justify-content-center">
-                    <img src="@selectedMovie.FullPosterUrl" class="img-fluid" alt="Poster" style="object-fit: cover; height: 100%; width: 100%; cursor: pointer;" @onclick="TogglePoster" />
+                    <img src="@selectedMovie.FullPosterUrl" class="img-fluid px-2 py-2" alt="Poster" style="object-fit: contain; max-height: 550px; width: 100%; cursor: pointer;" @onclick="TogglePoster" />
                 </div>
                 <div class="col-md-8">
                     <div class="card-body p-5 d-flex flex-column h-100">
