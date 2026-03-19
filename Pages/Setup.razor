@@ -62,7 +62,19 @@
                         </div>
                         <h5 class="card-title mb-0 fw-bold">Import IMDb Data</h5>
                     </div>
-                    <p class="text-secondary small mb-4">Upload your exported IMDb Watchlist CSV file to populate your local database.</p>
+                    <p class="text-secondary small mb-4">Upload your exported IMDb, Letterboxd, Trakt, or generic CSV file to populate your local database.</p>
+                    
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary text-uppercase">Import Source</label>
+                        <select class="form-select border-0 bg-light shadow-none" @bind="selectedImportSource">
+                            <option value="Auto">Auto Detect</option>
+                            <option value="Imdb">IMDb</option>
+                            <option value="Letterboxd">Letterboxd</option>
+                            <option value="Trakt">Trakt</option>
+                            <option value="Generic">Generic CSV</option>
+                        </select>
+                        <div class="form-text x-small mt-1 text-muted">Use Auto for mixed files, or force a source preset for better column matching.</div>
+                    </div>
                     
                     <div class="form-check form-switch mb-3">
                         <input class="form-check-input" type="checkbox" id="importAsWatched" @bind="importAsWatched">
@@ -152,6 +164,7 @@
 @code {
     private string statusMessage = "";
     private bool importAsWatched = false;
+    private string selectedImportSource = "Auto";
     private int importProgress = 0;
     private int importTotal = 0;
 
@@ -216,6 +229,8 @@
                 return null;
             }
 
+            var aliasSet = GetAliasSet(selectedImportSource);
+
             importTotal = 0;
             importProgress = 0;
             int importErrorCount = 0;
@@ -232,19 +247,20 @@
                     StateHasChanged();
                 }
 
-                var id = ReadByAliases(csv, normalizedHeaderToActual, new[] { "const", "imdbid", "id", "critickerid", "tconst", "imdb", "ttid" });
-                var title = ReadByAliases(csv, normalizedHeaderToActual, new[] { "title", "name", "filmtitle", "subject", "originalname", "filmname", "movietitle" });
-                var year = ReadByAliases(csv, normalizedHeaderToActual, new[] { "year", "releasedate", "yearpublished", "release", "releaseyear", "filmyear" });
-                var rating = ReadByAliases(csv, normalizedHeaderToActual, new[] { "yourrating", "rating", "score", "userrating", "star", "filmrating" });
-                var type = ReadByAliases(csv, normalizedHeaderToActual, new[] { "titletype", "type", "mediatype" });
-                var directors = ReadByAliases(csv, normalizedHeaderToActual, new[] { "directors", "director" });
+                var id = ReadByAliases(csv, normalizedHeaderToActual, aliasSet.IdAliases);
+                var tmdbIdRaw = ReadByAliases(csv, normalizedHeaderToActual, aliasSet.TmdbAliases);
+                var title = ReadByAliases(csv, normalizedHeaderToActual, aliasSet.TitleAliases);
+                var year = ReadByAliases(csv, normalizedHeaderToActual, aliasSet.YearAliases);
+                var rating = ReadByAliases(csv, normalizedHeaderToActual, aliasSet.RatingAliases);
+                var type = ReadByAliases(csv, normalizedHeaderToActual, aliasSet.TypeAliases);
+                var directors = ReadByAliases(csv, normalizedHeaderToActual, aliasSet.DirectorAliases);
 
                 if (string.IsNullOrEmpty(title)) {
                     importErrorCount++;
                     continue;
                 }
 
-                string? finalImdbId = id;
+                string? finalImdbId = NormalizeImdbId(id);
                 int? parsedYear = null;
                 if (!string.IsNullOrEmpty(year))
                 {
@@ -255,7 +271,17 @@
                 // Hydration: If ID is missing, resolve it asynchronously
                 if (string.IsNullOrEmpty(finalImdbId))
                 {
-                    finalImdbId = await WatchlistSvc.ResolveImdbIdAsync(title, parsedYear);
+                    if (!string.IsNullOrWhiteSpace(tmdbIdRaw) && int.TryParse(new string(tmdbIdRaw.Where(char.IsDigit).ToArray()), out var tmdbId))
+                    {
+                        var mediaType = InferMediaType(type);
+                        var tmdbMovie = await WatchlistSvc.GetTmdbDetailsByIdAsync(tmdbId, mediaType);
+                        finalImdbId = NormalizeImdbId(tmdbMovie?.ImdbId);
+                    }
+
+                    if (string.IsNullOrEmpty(finalImdbId))
+                    {
+                        finalImdbId = await WatchlistSvc.ResolveImdbIdAsync(title, parsedYear);
+                    }
                 }
 
                 if (!string.IsNullOrEmpty(finalImdbId))
@@ -312,10 +338,10 @@
 
             if (newItemsCount > 0) {
                 await WatchlistSvc.UpdateListAsync(mergedItems);
-                statusMessage = $"Success: Added {newItemsCount} new items. (Skipped {duplicateCount} duplicates, {importErrorCount} failures)";
+                statusMessage = $"Success ({selectedImportSource}): Added {newItemsCount} new items. (Skipped {duplicateCount} duplicates, {importErrorCount} failures)";
             }
             else {
-                statusMessage = $"No new items found. ({duplicateCount} already in library, {importErrorCount} failures)";
+                statusMessage = $"No new items found ({selectedImportSource}). ({duplicateCount} already in library, {importErrorCount} failures)";
             }
 
 
@@ -326,6 +352,107 @@
             Console.WriteLine($"CSV Import Detail Error: {ex}");
             statusMessage = $"Error: {ex.Message}";
         }
+    }
+
+    private static string? NormalizeImdbId(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+            return null;
+
+        var value = raw.Trim();
+        if (value.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+        {
+            var marker = value.IndexOf("/title/", StringComparison.OrdinalIgnoreCase);
+            if (marker >= 0)
+            {
+                var rest = value[(marker + "/title/".Length)..];
+                var slash = rest.IndexOf('/');
+                value = slash >= 0 ? rest[..slash] : rest;
+            }
+        }
+
+        if (!value.StartsWith("tt", StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        return value.ToLowerInvariant();
+    }
+
+    private static string InferMediaType(string? type)
+    {
+        if (string.IsNullOrWhiteSpace(type))
+            return "movie";
+
+        var t = type.ToLowerInvariant();
+        if (t.Contains("tv") || t.Contains("show") || t.Contains("series") || t.Contains("episode"))
+            return "tv";
+        return "movie";
+    }
+
+    private sealed class ImportAliasSet
+    {
+        public string[] IdAliases { get; init; } = Array.Empty<string>();
+        public string[] TmdbAliases { get; init; } = Array.Empty<string>();
+        public string[] TitleAliases { get; init; } = Array.Empty<string>();
+        public string[] YearAliases { get; init; } = Array.Empty<string>();
+        public string[] RatingAliases { get; init; } = Array.Empty<string>();
+        public string[] TypeAliases { get; init; } = Array.Empty<string>();
+        public string[] DirectorAliases { get; init; } = Array.Empty<string>();
+    }
+
+    private static ImportAliasSet GetAliasSet(string source)
+    {
+        var imdb = new ImportAliasSet
+        {
+            IdAliases = new[] { "const", "imdbid", "id", "tconst", "imdb", "ttid", "imdburl" },
+            TmdbAliases = new[] { "tmdbid", "tmdb", "tmdb_id" },
+            TitleAliases = new[] { "title", "name", "filmtitle", "subject", "movietitle" },
+            YearAliases = new[] { "year", "releasedate", "releaseyear", "release", "filmyear" },
+            RatingAliases = new[] { "yourrating", "rating", "score", "userrating", "star", "filmrating" },
+            TypeAliases = new[] { "titletype", "type", "mediatype" },
+            DirectorAliases = new[] { "directors", "director" }
+        };
+
+        var letterboxd = new ImportAliasSet
+        {
+            IdAliases = new[] { "imdbid", "imdb", "imdburl", "const", "id" },
+            TmdbAliases = new[] { "tmdbid", "tmdb", "tmdb_id" },
+            TitleAliases = new[] { "name", "title", "filmtitle" },
+            YearAliases = new[] { "year", "releasedate" },
+            RatingAliases = new[] { "rating", "yourrating", "score" },
+            TypeAliases = new[] { "type", "mediatype", "titletype" },
+            DirectorAliases = new[] { "director", "directors" }
+        };
+
+        var trakt = new ImportAliasSet
+        {
+            IdAliases = new[] { "imdb", "imdbid", "const", "id", "imdburl" },
+            TmdbAliases = new[] { "tmdb", "tmdbid", "tmdb_id" },
+            TitleAliases = new[] { "title", "show", "movie", "name" },
+            YearAliases = new[] { "year", "released", "releasedate", "firstaired" },
+            RatingAliases = new[] { "rating", "score", "userrating" },
+            TypeAliases = new[] { "type", "mediatype", "titletype" },
+            DirectorAliases = new[] { "director", "directors" }
+        };
+
+        var generic = new ImportAliasSet
+        {
+            IdAliases = new[] { "imdbid", "imdb", "id", "const", "critickerid", "tconst", "ttid", "imdburl" },
+            TmdbAliases = new[] { "tmdb", "tmdbid", "tmdb_id" },
+            TitleAliases = new[] { "title", "name", "filmtitle", "subject", "originalname", "filmname", "movietitle" },
+            YearAliases = new[] { "year", "releasedate", "yearpublished", "release", "releaseyear", "filmyear", "firstaired" },
+            RatingAliases = new[] { "yourrating", "rating", "score", "userrating", "star", "filmrating" },
+            TypeAliases = new[] { "titletype", "type", "mediatype" },
+            DirectorAliases = new[] { "directors", "director" }
+        };
+
+        return source switch
+        {
+            "Imdb" => imdb,
+            "Letterboxd" => letterboxd,
+            "Trakt" => trakt,
+            "Generic" => generic,
+            _ => generic
+        };
     }
 }
 
