@@ -1,5 +1,6 @@
 using MyPrivateWatchlist.Models;
 using System.Net.Http.Json;
+using System.Text.Json.Serialization;
 
 namespace MyPrivateWatchlist.Services;
 
@@ -12,6 +13,10 @@ public class WatchlistService
     private Dictionary<int, string> _genreMap = new();
 
     public List<WatchlistItem> Items { get; private set; } = new();
+    
+    private List<WatchlistItem> _watchingCached = new();
+    private List<WatchlistItem> _watchedCached = new();
+    private List<WatchlistItem> _filteredCached = new();
 
     private string _selectedType = "All";
     public string SelectedType 
@@ -52,7 +57,54 @@ public class WatchlistService
     public bool SortDescending { get; set; } = false;
 
     public event Action? OnStateChanged;
-    public void NotifyStateChanged() => OnStateChanged?.Invoke();
+    public void NotifyStateChanged() 
+    {
+        RefreshCalculatedLists();
+        OnStateChanged?.Invoke();
+    }
+    
+    private void RefreshCalculatedLists()
+    {
+        _watchingCached = Items.Where(i => i.Status == WatchlistStatus.Watching).ToList();
+        _watchedCached = Items.Where(i => i.Status == WatchlistStatus.Watched).OrderByDescending(i => i.DateAdded).ToList();
+        
+        // Recalculate Filtered
+        int sYear = 0, eYear = 0;
+        bool hasStart = int.TryParse(StartYear, out sYear);
+        bool hasEnd = int.TryParse(EndYear, out eYear);
+        bool checkType = SelectedType != "All";
+        bool checkGenre = SelectedGenre != "All";
+        bool checkSearch = !string.IsNullOrWhiteSpace(SearchQuery);
+
+        var query = Items.Where(m => m.Status == WatchlistStatus.Pending).Where(m =>
+        {
+            if (checkType && !m.TitleType.Equals(SelectedType, StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            if (checkGenre && !m.Genres.Contains(SelectedGenre, StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            if (hasStart && m.ParsedYear < sYear)
+                return false;
+
+            if (hasEnd && m.ParsedYear > eYear)
+                return false;
+
+            if (checkSearch && !m.Title.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase) && 
+                !(m.Director != null && m.Director.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase)))
+                return false;
+
+            return true;
+        });
+
+        _filteredCached = (SortColumn switch
+        {
+            "Year" => SortDescending ? query.OrderByDescending(m => m.ParsedYear) : query.OrderBy(m => m.ParsedYear),
+            "Type" => SortDescending ? query.OrderByDescending(m => m.TitleType) : query.OrderBy(m => m.TitleType),
+            "DateAdded" => SortDescending ? query.OrderByDescending(m => m.DateAdded) : query.OrderBy(m => m.DateAdded),
+            _ => SortDescending ? query.OrderByDescending(m => m.Title) : query.OrderBy(m => m.Title)
+        }).ToList();
+    }
 
     public WatchlistService(HttpClient http, LocalStorageService storage, IConfiguration config)
     {
@@ -79,6 +131,7 @@ public class WatchlistService
         }
 
         await FetchGenreMapAsync();
+        RefreshCalculatedLists();
     }
 
     private async Task FetchGenreMapAsync()
@@ -108,51 +161,13 @@ public class WatchlistService
     {
         Items = newList;
         await _storage.SaveListAsync("my_movie_list", Items);
+        NotifyStateChanged();
     }
 
-    public IEnumerable<WatchlistItem> WatchingItems => Items.Where(i => i.Status == WatchlistStatus.Watching);
-    public IEnumerable<WatchlistItem> WatchedItems => Items.Where(i => i.Status == WatchlistStatus.Watched);
+    public IEnumerable<WatchlistItem> WatchingItems => _watchingCached;
+    public IEnumerable<WatchlistItem> WatchedItems => _watchedCached;
+    public IEnumerable<WatchlistItem> FilteredItems => _filteredCached;
 
-    public IEnumerable<WatchlistItem> FilteredItems
-    {
-        get
-        {
-            int sYear = 0, eYear = 0;
-            bool hasStart = int.TryParse(StartYear, out sYear);
-            bool hasEnd = int.TryParse(EndYear, out eYear);
-            bool checkType = SelectedType != "All";
-            bool checkGenre = SelectedGenre != "All";
-            bool checkSearch = !string.IsNullOrWhiteSpace(SearchQuery);
-
-            var query = Items.Where(m => m.Status == WatchlistStatus.Pending).Where(m =>
-            {
-                if (checkType && !m.TitleType.Equals(SelectedType, StringComparison.OrdinalIgnoreCase))
-                    return false;
-
-                if (checkGenre && !m.Genres.Contains(SelectedGenre, StringComparison.OrdinalIgnoreCase))
-                    return false;
-
-                if (hasStart && m.ParsedYear < sYear)
-                    return false;
-
-                if (hasEnd && m.ParsedYear > eYear)
-                    return false;
-
-                if (checkSearch && !m.Title.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase) && 
-                    !(m.Director != null && m.Director.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase)))
-                    return false;
-
-                return true;
-            });
-
-            return SortColumn switch
-            {
-                "Year" => SortDescending ? query.OrderByDescending(m => m.ParsedYear) : query.OrderBy(m => m.ParsedYear),
-                "Type" => SortDescending ? query.OrderByDescending(m => m.TitleType) : query.OrderBy(m => m.TitleType),
-                _ => SortDescending ? query.OrderByDescending(m => m.Title) : query.OrderBy(m => m.Title)
-            };
-        }
-    }
 
     public void ToggleSort(string column)
     {
@@ -293,7 +308,7 @@ public class WatchlistService
                             movie.ImdbId = imdbProp.GetString();
                         }
 
-                        var creditsUrl = $"https://api.themoviedb.org/3/tv/{tmdbId}/credits?api_key={apiKey}";
+                        var creditsUrl = $"https://api.themoviedb.org/3/tv/{tv.Id}/credits?api_key={apiKey}";
                         var credits = await _http.GetFromJsonAsync<TmdbCredits>(creditsUrl);
                         if (credits != null)
                         {
@@ -312,6 +327,29 @@ public class WatchlistService
         return null;
     }
 
+    public async Task<string?> ResolveImdbIdAsync(string title, int? year)
+    {
+        var apiKey = _config["TmdbApiKey"];
+        var query = System.Uri.EscapeDataString(title);
+        var url = $"https://api.themoviedb.org/3/search/multi?api_key={apiKey}&query={query}";
+        if (year.HasValue) url += $"&year={year.Value}&first_air_date_year={year.Value}";
+
+        try
+        {
+            var searchResult = await _http.GetFromJsonAsync<TmdbSearchResult>(url);
+            var first = searchResult?.Results?.FirstOrDefault(r => r.MediaType == "movie" || r.MediaType == "tv");
+            
+            if (first != null)
+            {
+                var extUrl = $"https://api.themoviedb.org/3/{first.MediaType}/{first.Id}/external_ids?api_key={apiKey}";
+                var extIds = await _http.GetFromJsonAsync<TmdbExternalIds>(extUrl);
+                return extIds?.ImdbId;
+            }
+        }
+        catch { }
+        return null;
+    }
+
     public async Task UpdateStatusAsync(WatchlistItem item, WatchlistStatus status)
     {
         var existing = Items.FirstOrDefault(i => i.ImdbId == item.ImdbId);
@@ -323,6 +361,17 @@ public class WatchlistService
                 existing.CurrentSeason ??= 1;
                 existing.CurrentEpisode ??= 1;
             }
+            await UpdateListAsync(Items);
+            NotifyStateChanged();
+        }
+    }
+
+    public async Task UpdateRatingAsync(WatchlistItem item, int? rating)
+    {
+        var existing = Items.FirstOrDefault(i => i.ImdbId == item.ImdbId);
+        if (existing != null)
+        {
+            existing.UserRating = rating;
             await UpdateListAsync(Items);
             NotifyStateChanged();
         }
@@ -344,7 +393,7 @@ public class WatchlistService
     {
         if (!Items.Any(i => i.ImdbId == item.ImdbId))
         {
-
+            if (item.DateAdded == default) item.DateAdded = DateTime.Now;
             Items.Add(item);
             await UpdateListAsync(Items);
             NotifyStateChanged();
@@ -381,3 +430,36 @@ public class WatchlistService
                               (string.IsNullOrEmpty(year) || i.Year.Contains(year)));
     }
 }
+
+public class TmdbFindResult
+{
+    [JsonPropertyName("movie_results")]
+    public List<TmdbMovie> MovieResults { get; set; } = new();
+    [JsonPropertyName("tv_results")]
+    public List<TmdbTvResult> TvResults { get; set; } = new();
+}
+
+public class TmdbSearchResult
+{
+    [JsonPropertyName("results")]
+    public List<TmdbSearchItem> Results { get; set; } = new();
+}
+
+public class TmdbSearchItem
+{
+    public int Id { get; set; }
+    [JsonPropertyName("media_type")]
+    public string? MediaType { get; set; }
+    public string? Name { get; set; }
+    public string? Title { get; set; }
+    [JsonPropertyName("first_air_date")]
+    public string? FirstAirDate { get; set; }
+    [JsonPropertyName("release_date")]
+    public string? ReleaseDate { get; set; }
+}
+
+public class TmdbExternalIds
+{
+    [JsonPropertyName("imdb_id")]
+    public string? ImdbId { get; set; }
+}

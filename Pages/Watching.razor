@@ -28,9 +28,10 @@
                         <tr>
                             <th scope="col" style="width: 5%;" class="border-bottom py-3 px-3 text-center"></th>
                             <th scope="col" style="width: 40%;" class="border-bottom py-3 px-3">Title</th>
-                            <th scope="col" style="width: 25%;" class="border-bottom py-3 px-3 text-center">Tracking</th>
-                            <th scope="col" style="width: 15%;" class="border-bottom py-3">Year</th>
-                            <th scope="col" style="width: 15%;" class="border-bottom py-3">Type</th>
+                            <th scope="col" style="width: 20%;" class="border-bottom py-3 px-3 text-center">Tracking</th>
+                            <th scope="col" style="width: 10%;" class="border-bottom py-3">Year</th>
+                            <th scope="col" style="width: 12%;" class="border-bottom py-3">Added</th>
+                            <th scope="col" style="width: 13%;" class="border-bottom py-3">Type</th>
                         </tr>
                     </thead>
                     <tbody class="border-top-0">
@@ -104,6 +105,9 @@
                                 </td>
                                 <td class="text-secondary fw-medium">
                                     @item.Year
+                                </td>
+                                <td class="text-secondary small">
+                                    @item.DateAdded.ToString("MMM dd")
                                 </td>
                                 <td>
                                     <span class="badge rounded-pill @(item.TitleType.Equals("Movie", StringComparison.OrdinalIgnoreCase) ? "bg-secondary text-white" : "bg-light text-dark border")">

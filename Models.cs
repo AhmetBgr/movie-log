@@ -22,6 +22,8 @@ public class WatchlistItem
     public WatchlistStatus Status { get; set; } = WatchlistStatus.Pending;
     public int? CurrentSeason { get; set; }
     public int? CurrentEpisode { get; set; }
+    public DateTime DateAdded { get; set; } = DateTime.Now;
+    public int? UserRating { get; set; }
 
     public string? DisplayOriginalTitle 
     {

@@ -38,18 +38,22 @@
                                 <span class="badge bg-secondary text-white shadow-sm fw-normal ms-2 rounded-2 px-2 py-1">@WatchlistSvc.FilteredItems.Count() Items</span>
                             </th>
                             <th scope="col" style="width: 25%;" class="border-bottom py-2.5 px-3">Director</th>
-                            <th scope="col" style="width: 15%; cursor: pointer;" class="border-bottom py-2.5" @onclick='() => WatchlistSvc.ToggleSort("Year")'>
+                             <th scope="col" style="width: 12%; cursor: pointer;" class="border-bottom py-2.5" @onclick='() => WatchlistSvc.ToggleSort("Year")'>
                                 Year
                                 @if (WatchlistSvc.SortColumn == "Year") { <i class="bi @(WatchlistSvc.SortDescending ? "bi-sort-numeric-up-alt" : "bi-sort-numeric-down") ms-1"></i> }
                             </th>
-                            <th scope="col" style="width: 15%; cursor: pointer;" class="border-bottom py-2.5" @onclick='() => WatchlistSvc.ToggleSort("Type")'>
+                            <th scope="col" style="width: 10%; cursor: pointer;" class="border-bottom py-2.5" @onclick='() => WatchlistSvc.ToggleSort("DateAdded")'>
+                                Added
+                                @if (WatchlistSvc.SortColumn == "DateAdded") { <i class="bi @(WatchlistSvc.SortDescending ? "bi-sort-numeric-up-alt" : "bi-sort-numeric-down") ms-1"></i> }
+                            </th>
+                            <th scope="col" style="width: 13%; cursor: pointer;" class="border-bottom py-2.5" @onclick='() => WatchlistSvc.ToggleSort("Type")'>
                                 Type
                                 @if (WatchlistSvc.SortColumn == "Type") { <i class="bi @(WatchlistSvc.SortDescending ? "bi-sort-alpha-up-alt" : "bi-sort-alpha-down") ms-1"></i> }
                             </th>
                         </tr>
                     </thead>
                     <tbody class="border-top-0">
-                        <Virtualize Items="_filteredItems" Context="item" ItemSize="52" OverscanCount="10">
+                        <Virtualize Items="_filteredItems" Context="item" ItemSize="60" OverscanCount="20">
                             <tr @key="item">
                                 <td class="text-center px-3">
                                     <div class="d-flex align-items-center justify-content-center gap-1">
@@ -79,6 +83,9 @@
                                 </td>
                                 <td class="text-secondary fw-medium">
                                     @item.Year
+                                </td>
+                                <td class="text-secondary small">
+                                    @item.DateAdded.ToString("MMM dd")
                                 </td>
                                 <td>
                                     <span class="badge rounded-pill @(item.TitleType.Equals("Movie", StringComparison.OrdinalIgnoreCase) ? "bg-secondary text-white" : "bg-light text-dark border")">

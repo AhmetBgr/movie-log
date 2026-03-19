@@ -11,11 +11,16 @@
 - [x] **Wider Scrollbars**: Doubled the scrollbar width (16px) for easier navigation.
 - [x] **Watching Tab**: Dedicated space for tracking active movies and TV shows.
 - [x] **Episode Tracking**: Increment/decrement buttons for Season and Episode.
+- [x] **Watched History**: Dedicated "Watched" tab with personalized ratings (1-10).
+- [x] **Chronological Tracking**: "Date Added" timestamps for every item across all lists.
+- [x] **History Import**: "Import as Watched" toggle in Setup to skip the watchlist.
+- [x] **Movie Log PWA**: Native-feel desktop experience with custom branding and icons.
+- [x] **Quick-Launch Batch**: Self-minimizing background server for instant start.
+
 
 ## Potential Next Steps
 - [ ] **Export to CSV**: Export your filtered Watchlist view back to a file.
 - [ ] **Watchlist Statistics**: Pie charts or stats for genre distribution and year ranges.
-- [ ] **Watch History**: Move items from "Watchlist" to a "Watched" list with ratings.
 - [ ] **Cloud Backup**: Optional integration for saving your list beyond local storage.
 - [ ] **Dark/Light Mode Toggle**: Manual theme switcher (currently defaults to system/premium dark).
 

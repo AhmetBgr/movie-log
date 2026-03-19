@@ -1,11 +1,11 @@
 {
-  "name": "MyPrivateWatchlist",
-  "short_name": "MyPrivateWatchlist",
+  "name": "Movie Log",
+  "short_name": "Movie Log",
   "id": "./",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#03173d",
+  "theme_color": "#0f172a",
   "prefer_related_applications": false,
   "icons": [
     {

@@ -25,6 +25,11 @@
                     </div>
                     <p class="text-secondary small mb-4">Upload your exported IMDb Watchlist CSV file to populate your local database.</p>
                     
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="importAsWatched" @bind="importAsWatched">
+                        <label class="form-check-label small fw-bold text-secondary" for="importAsWatched">Import as "Watched" History</label>
+                    </div>
+
                     <InputFile OnChange="HandleFileSelected" class="form-control bg-light border-0 py-2 mb-3" />
                     
                     @if (!string.IsNullOrEmpty(statusMessage))
@@ -90,12 +95,15 @@
 
 @code {
     private string statusMessage = "";
+    private bool importAsWatched = false;
+    private int importProgress = 0;
+    private int importTotal = 0;
 
     private async Task HandleFileSelected(InputFileChangeEventArgs e)
     {
         try
         {
-            statusMessage = "Loading...";
+            statusMessage = "Reading file...";
             StateHasChanged();
 
             using var stream = e.File.OpenReadStream(10_485_760);
@@ -103,46 +111,129 @@
             
             var config = new CsvHelper.Configuration.CsvConfiguration(System.Globalization.CultureInfo.InvariantCulture)
             {
-                PrepareHeaderForMatch = args => args.Header.ToLower(),
+                PrepareHeaderForMatch = args => args.Header.ToLower().Replace(" ", "").Replace("_", "").Replace("\"", ""),
                 HeaderValidated = null,
-                MissingFieldFound = null
+                MissingFieldFound = null,
+                TrimOptions = CsvHelper.Configuration.TrimOptions.Trim
             };
 
             using var csv = new CsvHelper.CsvReader(reader, config);
-            var tempItems = new List<WatchlistItem>();
-
             await csv.ReadAsync();
             csv.ReadHeader(); 
             
+            var headers = csv.HeaderRecord?.ToList() ?? new List<string>();
+            Console.WriteLine($"Import debug: Headers found: {string.Join(", ", headers)}");
+            
+            var records = new List<Dictionary<string, string>>();
             while (await csv.ReadAsync())
             {
-                var imdbId = csv.HeaderRecord.Contains("Const", StringComparer.OrdinalIgnoreCase) ? csv.GetField("Const") : null;
-                var title = csv.HeaderRecord.Contains("Title", StringComparer.OrdinalIgnoreCase) ? csv.GetField("Title") : null;
-                var type = csv.HeaderRecord.Contains("Title Type", StringComparer.OrdinalIgnoreCase) ? csv.GetField("Title Type") : null;
-                var year = csv.HeaderRecord.Contains("Year", StringComparer.OrdinalIgnoreCase) ? csv.GetField("Year") : null;
-                var genres = csv.HeaderRecord.Contains("Genres", StringComparer.OrdinalIgnoreCase) ? csv.GetField("Genres") : null;
-                var directors = csv.HeaderRecord.Contains("Directors", StringComparer.OrdinalIgnoreCase) ? csv.GetField("Directors") : null;
+                var dict = new Dictionary<string, string>();
+                foreach (var h in headers) dict[h] = csv.GetField(h) ?? "";
+                records.Add(dict);
+            }
 
-                if (!string.IsNullOrEmpty(imdbId) && !string.IsNullOrEmpty(title))
+            // Smart Mapping Helper
+            string? GetVal(Dictionary<string, string> row, string[] aliases) {
+                foreach(var alias in aliases) {
+                    var match = headers.FirstOrDefault(h => h.ToLower().Replace(" ", "").Replace("_", "").Replace("\"", "") == alias.ToLower());
+                    if (match != null && row.TryGetValue(match, out var value)) return value;
+                }
+                return null;
+            }
+
+            var mergedItems = new List<WatchlistItem>(Watchlist.Items);
+            importTotal = records.Count;
+            importProgress = 0;
+            int importErrorCount = 0;
+            int newItemsCount = 0;
+            int duplicateCount = 0;
+
+            foreach (var row in records)
+            {
+                importProgress++;
+                if (importProgress % 5 == 0) {
+                    statusMessage = $"Hydrating {importProgress} / {importTotal}...";
+                    StateHasChanged();
+                }
+
+                var id = GetVal(row, new[] { "const", "imdbid", "id", "critickerid", "tconst", "imdb", "ttid" });
+                var title = GetVal(row, new[] { "title", "name", "filmtitle", "subject", "originalname", "filmname", "movietitle" });
+                var year = GetVal(row, new[] { "year", "releasedate", "yearpublished", "release", "releaseyear", "filmyear" });
+                var rating = GetVal(row, new[] { "yourrating", "rating", "score", "userrating", "star", "filmrating" });
+                var type = GetVal(row, new[] { "titletype", "type", "mediatype" });
+                var directors = GetVal(row, new[] { "directors", "director" });
+
+                if (string.IsNullOrEmpty(title)) {
+                    importErrorCount++;
+                    continue;
+                }
+
+                string? finalImdbId = id;
+                int? parsedYear = null;
+                if (!string.IsNullOrEmpty(year))
                 {
-                    var cleanYear = year?.Trim() ?? "";
-                    var yearDigits = new string(cleanYear.TakeWhile(char.IsDigit).ToArray());
-                    int.TryParse(yearDigits, out int parsedYear);
+                    var yearDigits = new string(year.TakeWhile(char.IsDigit).ToArray());
+                    if (int.TryParse(yearDigits, out int py)) parsedYear = py;
+                }
 
-                    tempItems.Add(new WatchlistItem {
-                        ImdbId = imdbId.Trim(),
+                // Hydration: If ID is missing, resolve it asynchronously
+                if (string.IsNullOrEmpty(finalImdbId))
+                {
+                    finalImdbId = await Watchlist.ResolveImdbIdAsync(title, parsedYear);
+                }
+
+                if (!string.IsNullOrEmpty(finalImdbId))
+                {
+                    if (mergedItems.Any(i => i.ImdbId == finalImdbId)) {
+                        duplicateCount++;
+                        continue;
+                    }
+
+                    int? userRating = null;
+                    if (!string.IsNullOrEmpty(rating))
+                    {
+                        var ratingDigits = new string(rating.TakeWhile(char.IsDigit).ToArray());
+                        if (int.TryParse(ratingDigits, out int pr)) {
+                            userRating = pr > 10 ? (int)Math.Round(pr / 10.0) : pr;
+                            if (userRating > 10) userRating = 10;
+                            if (userRating < 1) userRating = 1;
+                        }
+                    }
+
+                    var dateAddedStr = GetVal(row, new[] { "daterated", "dateadded", "watchedon", "datewatched" });
+                    DateTime dateAdded = DateTime.Now;
+                    if (!string.IsNullOrEmpty(dateAddedStr) && DateTime.TryParse(dateAddedStr, out var parsedDate)) {
+                        dateAdded = parsedDate;
+                    }
+
+                    mergedItems.Add(new WatchlistItem {
+                        ImdbId = finalImdbId.Trim(),
                         Title = title.Trim(),
-                        TitleType = type?.Trim() ?? "",
-                        Year = cleanYear,
-                        Genres = genres?.Trim() ?? "",
+                        TitleType = type?.Trim() ?? "Movie",
+                        Year = year?.Trim() ?? "",
                         Director = directors?.Trim() ?? "",
-                        ParsedYear = parsedYear,
-                        Status = WatchlistStatus.Pending
+                        ParsedYear = parsedYear ?? 0,
+                        Status = importAsWatched ? WatchlistStatus.Watched : WatchlistStatus.Pending,
+                        DateAdded = DateTime.Now,
+                        UserRating = userRating
                     });
+                    newItemsCount++;
+                }
+                else {
+                    importErrorCount++;
                 }
             }
-            await Watchlist.UpdateListAsync(tempItems);
-            statusMessage = $"Successfully imported {tempItems.Count} items.";
+
+            if (newItemsCount > 0) {
+                await Watchlist.UpdateListAsync(mergedItems);
+                statusMessage = $"Success: Added {newItemsCount} new items. (Skipped {duplicateCount} duplicates, {importErrorCount} failures)";
+            }
+            else {
+                statusMessage = $"No new items found. ({duplicateCount} already in library, {importErrorCount} failures)";
+            }
+
+
+
         }
         catch (Exception ex)
         {
@@ -151,3 +242,4 @@
         }
     }
 }
+
