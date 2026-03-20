@@ -1,19 +1,18 @@
-# Movie Log 🎬
+# Movie Log
 
 A personal movie watchlist management application built with Blazor WebAssembly.
 
 ## Features
 
-- 📝 **Watchlist Management**: Add, remove, and track movies you want to watch
-- 🎯 **Movie Details**: Store comprehensive movie information (title, year, genres, director, rating)
-- 🌐 **IMDb Integration**: Browser extension to add movies directly from IMDb
-- 💾 **Local Storage**: All data stored locally in your browser
-- 📱 **Responsive Design**: Works on desktop and mobile devices
-- 🔄 **Real-time Updates**: Instant synchronization between IMDb and your watchlist
+- **Watchlist Management**: Add, remove, and track movies you want to watch
+- **Movie Details**: Store comprehensive movie information (title, year, genres, director, rating)
+- **IMDb Integration**: Browser extension to add movies directly from IMDb
+- **Local Storage**: All data stored locally in your browser
+- **Responsive Design**: Works on desktop and mobile devices
 
 ## Live Demo
 
-🌐 **[View Live Application](https://ahmetbgr.github.io/movie-log/)**
+**[View Live Application](https://ahmetbgr.github.io/movie-log/)**
 
 ## IMDb Browser Extension
 
@@ -25,11 +24,10 @@ The browser extension allows you to add movies to your watchlist directly from I
 3. Click "Load Temporary Add-on" and select `browser-extension/manifest.json`
 
 ### Features
-- ✅ Add movies from IMDb with one click
-- ✅ Remove movies from watchlist
-- ✅ See if movie is already in your watchlist
-- ✅ Cross-domain communication with your Movie Log app
-- ✅ Real-time updates without page refresh
+- Add movies from IMDb with one click
+- Remove movies from watchlist
+- See if movie is already in your watchlist
+- Cross-domain communication with your Movie Log app
 
 ## Getting Started Locally
 
@@ -114,16 +112,5 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Acknowledgments
-
-- IMDb for movie data
-- Blazor team for the amazing framework
-- Firefox for extension support
-
----
-
-**Made with ❤️ for movie lovers** 🍿
-=======
 
 >>>>>>> e2b929a3d19396ab1f1389ee9c1bfa73d5373d7a
