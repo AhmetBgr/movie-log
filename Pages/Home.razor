@@ -19,7 +19,7 @@
                         </div>
                         <div>
                             <h6 class="text-secondary small fw-bold text-uppercase mb-1">Watchlist</h6>
-                            <h2 class="fw-bolder mb-0">@Watchlist.Items.Count</h2>
+                            <h2 class="fw-bolder mb-0">@WatchlistCount</h2>
                         </div>
                     </div>
                     <div class="progress" style="height: 6px; opacity: 0.1;">
@@ -151,6 +151,7 @@
 
 @code {
     private int TotalCount => Watchlist.Items.Count;
+    private int WatchlistCount => Watchlist.Items.Count(i => i.Status == WatchlistStatus.Pending);
     private int WatchingCount => Watchlist.Items.Count(i => i.Status == WatchlistStatus.Watching);
     private int WatchedCount => Watchlist.Items.Count(i => i.Status == WatchlistStatus.Watched);
 
