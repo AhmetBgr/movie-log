@@ -569,8 +569,8 @@ public class WatchlistService
         catch (Exception ex)
         { 
             Console.WriteLine($"API Error fetching TMDB ID {tmdbId}: {ex.Message}");
+            return null;
         }
-        return null;
     }
 
     public async Task<string?> ResolveImdbIdAsync(string title, int? year)
@@ -600,15 +600,23 @@ public class WatchlistService
                 {
                     return first.Id.ToString();
                 }
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Search API Error: {ex.Message}");
-            return null;
-        }
         return null;
     }
+
+    public async Task UpdateStatusAsync(WatchlistItem item, WatchlistStatus status)
+{
+    var existing = Items.FirstOrDefault(i => i.ImdbId == item.ImdbId);
+    if (existing != null)
+    {
+        existing.Status = status;
+        if (status == WatchlistStatus.Watching && existing.TitleType.Contains("TV", StringComparison.OrdinalIgnoreCase))
+        {
+            existing.CurrentSeason ??= 1;
+            existing.CurrentEpisode ??= 1;
+        }
+        await UpdateListAsync(Items);
+    }
+}
 
     public async Task ClearAllDataAsync()
     {
@@ -816,8 +824,6 @@ public class TmdbFindResult
     public List<TmdbMovie> MovieResults { get; set; } = new();
     [JsonPropertyName("tv_results")]
     public List<TmdbTvResult> TvResults { get; set; } = new();
-}
-}
 }
 
 public class TmdbSearchResult
