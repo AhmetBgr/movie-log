@@ -33,6 +33,7 @@
         }
     };
 </script>
+
 <body>
     <div id="app">
         <svg class="loading-progress">
@@ -51,8 +52,8 @@
         (function () {
             const redirect = sessionStorage.redirect;
             if (redirect) {
-            history.replaceState(null, null, redirect);
-            sessionStorage.removeItem("redirect");
+                history.replaceState(null, null, redirect);
+                sessionStorage.removeItem("redirect");
             }
         })();
     </script>
