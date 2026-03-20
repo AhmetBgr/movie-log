@@ -6,7 +6,9 @@
     <title>Movie Log - Redirect</title>
 <script>
   sessionStorage.redirect = location.pathname + location.search;
-  location.replace("/");
+  // Redirect to the repository path instead of the root domain.
+  // The app is hosted at /movie-log/ on GitHub Pages.
+  location.replace("/movie-log/");
 </script>
 </head>
 <body>
