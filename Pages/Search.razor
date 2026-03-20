@@ -41,6 +41,9 @@
                             {
                                 <th scope="col" style="width: 1%; white-space: nowrap; text-align: center;" class="border-bottom py-2.5 px-3"></th>
                             }
+                            <th scope="col" style="width: 1%; white-space: nowrap; text-align: center;" class="border-bottom py-2.5 px-3">
+                                <i class="bi bi-image fs-6 text-secondary"></i>
+                            </th>
                             <th scope="col" style="width: @(isEditing ? "35%" : "45%");" class="border-bottom py-2.5 px-3">
                                 Title <span class="badge bg-secondary text-white shadow-sm fw-normal ms-2 rounded-2 px-2 py-1">@results.Count(r => r.MediaType == "movie" || r.MediaType == "tv") Total Items</span>
                             </th>
@@ -61,36 +64,40 @@
                                                                                         (item.DisplayDate.Length >= 4 && i.Year.Contains(item.DisplayDate.Substring(0,4))));
                                         }
                                         <div class="d-flex align-items-center justify-content-center gap-1">
-                                                @if (libItem == null)
-                                                {
-                                                    <button class="btn btn-sm btn-light border-0 text-success bg-success bg-opacity-10 rounded-3 shadow-none p-1 d-inline-flex align-items-center justify-content-center" 
-                                                            style="width: 32px; height: 32px; transition: all 0.2s;"
-                                                            onmouseover="this.classList.replace('bg-opacity-10','bg-opacity-25')"
-                                                            onmouseout="this.classList.replace('bg-opacity-25','bg-opacity-10')"
-                                                            @onclick="() => HandleStatusClick(item, WatchlistStatus.Watching)" @onclick:stopPropagation="true" title="Start Watching">
-                                                        <i class="bi bi-play-fill fs-5"></i>
-                                                    </button>
-                                                    <button class="btn btn-sm btn-light border-0 text-primary bg-primary bg-opacity-10 rounded-3 shadow-none p-1 d-inline-flex align-items-center justify-content-center" 
-                                                            style="width: 32px; height: 32px; transition: all 0.2s;"
-                                                            onmouseover="this.classList.replace('bg-opacity-10','bg-opacity-25')"
-                                                            onmouseout="this.classList.replace('bg-opacity-25','bg-opacity-10')"
-                                                            @onclick="() => HandleStatusClick(item, WatchlistStatus.Pending)" @onclick:stopPropagation="true" title="Add to Watchlist">
-                                                        <i class="bi bi-plus-lg fs-6"></i>
-                                                    </button>
-                                                }
-                                                else
-                                                {
-                                                    <button class="btn btn-sm btn-light border-0 text-danger bg-danger bg-opacity-10 rounded-3 shadow-none p-1 d-inline-flex align-items-center justify-content-center" 
-                                                            style="width: 32px; height: 32px; transition: all 0.2s;"
-                                                            onmouseover="this.classList.replace('bg-opacity-10','bg-opacity-25')"
-                                                            onmouseout="this.classList.replace('bg-opacity-25','bg-opacity-10')"
-                                                            @onclick="() => HandleRemoveClick(item)" @onclick:stopPropagation="true" title="Remove from Watchlist">
-                                                        <i class="bi bi-trash3-fill fs-6"></i>
-                                                    </button>
-                                                }
-                                            </div>
-                                        </td>
-                                    }
+                                            @if (libItem == null)
+                                            {
+                                                <button class="btn btn-sm btn-light border-0 text-success bg-success bg-opacity-10 rounded-3 shadow-none p-1 d-inline-flex align-items-center justify-content-center" 
+                                                        style="width: 32px; height: 32px; transition: all 0.2s;"
+                                                        onmouseover="this.classList.replace('bg-opacity-10','bg-opacity-25')"
+                                                        onmouseout="this.classList.replace('bg-opacity-25','bg-opacity-10')"
+                                                        @onclick="() => HandleStatusClick(item, WatchlistStatus.Watching)" @onclick:stopPropagation="true" title="Start Watching">
+                                                    <i class="bi bi-play-fill fs-5"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-light border-0 text-primary bg-primary bg-opacity-10 rounded-3 shadow-none p-1 d-inline-flex align-items-center justify-content-center" 
+                                                        style="width: 32px; height: 32px; transition: all 0.2s;"
+                                                        onmouseover="this.classList.replace('bg-opacity-10','bg-opacity-25')"
+                                                        onmouseout="this.classList.replace('bg-opacity-25','bg-opacity-10')"
+                                                        @onclick="() => HandleStatusClick(item, WatchlistStatus.Pending)" @onclick:stopPropagation="true" title="Add to Watchlist">
+                                                    <i class="bi bi-plus-lg fs-6"></i>
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <button class="btn btn-sm btn-light border-0 text-danger bg-danger bg-opacity-10 rounded-3 shadow-none p-1 d-inline-flex align-items-center justify-content-center" 
+                                                        style="width: 32px; height: 32px; transition: all 0.2s;"
+                                                        onmouseover="this.classList.replace('bg-opacity-10','bg-opacity-25')"
+                                                        onmouseout="this.classList.replace('bg-opacity-25','bg-opacity-10')"
+                                                        @onclick="() => HandleRemoveClick(item)" @onclick:stopPropagation="true" title="Remove from Watchlist">
+                                                    <i class="bi bi-trash3-fill fs-6"></i>
+                                                </button>
+                                            }
+                                        </div>
+                                    </td>
+                                }
+                                <td style="width: 1%; white-space: nowrap; padding: 0.1rem;" class="text-center">
+                                    <img src="@(string.IsNullOrEmpty(item.PosterPath) ? "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" : $"https://image.tmdb.org/t/p/w92{item.PosterPath}")" 
+                                         class="rounded shadow-sm" style="width: 64px; height: 96px; object-fit: cover; border: 1px solid rgba(0,0,0,0.05);" alt="Thumbnail" />
+                                </td>
                                 <td style="cursor: pointer;" class="px-3" @onclick="() => WatchlistSvc.ShowDetailsAsync(item)">
                                     <span class="fw-bold text-dark" style="transition: opacity 0.2s;" onmouseover="this.style.opacity='0.6'" onmouseout="this.style.opacity='1'">
                                         @item.DisplayTitle
