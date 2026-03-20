@@ -36,25 +36,14 @@ jobs:
     - name: Publish
       run: dotnet publish MyPrivateWatchlist.csproj --configuration Release --output dist --no-restore
       
-    - name: Verify dist structure
-      run: |
-        echo "Dist structure:"
-        ls -la dist/
-        echo "WWWRoot structure:"
-        ls -la dist/wwwroot/
-        
     - name: Setup Pages
       uses: actions/configure-pages@v4
       
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v3
       with:
-        name: wwwroot
         path: dist/wwwroot
-        retention-days: 1
         
     - name: Deploy to GitHub Pages
       id: deployment
       uses: actions/deploy-pages@v4
-      with:
-        artifact_name: wwwroot

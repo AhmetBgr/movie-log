@@ -4,14 +4,13 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Movie Log - Redirect</title>
-    <base href="/movie-log/" />
     <script>
-        // Store the attempted path and redirect to index.html for client-side routing
+        // Redirect all 404s to the index.html for client-side routing
         sessionStorage.setItem('404-path', window.location.pathname);
         window.location.replace('/movie-log/');
     </script>
 </head>
 <body>
-    <p>Redirecting to Movie Log...</p>
+    <p>Redirecting...</p>
 </body>
 </html>

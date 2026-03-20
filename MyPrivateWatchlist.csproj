@@ -6,7 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
     <ServiceWorkerAssetsManifest>service-worker-assets.js</ServiceWorkerAssetsManifest>
-    </PropertyGroup>
+    <BasePath>/movie-log/</BasePath>
+  </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="CsvHelper" Version="33.1.0" />

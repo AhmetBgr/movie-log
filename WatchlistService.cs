@@ -1,7 +1,6 @@
 using MyPrivateWatchlist.Models;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
-using System.Linq;
 
 namespace MyPrivateWatchlist.Services;
 
@@ -453,10 +452,10 @@ public class WatchlistService
             }
         }
         catch (Exception ex)
-        {
+        { 
             Console.WriteLine($"API Error fetching {imdbId}: {ex.Message}");
-            return null;
         }
+        return null;
     }
 
     public async Task<TmdbMovie?> GetTmdbDetailsByIdAsync(int tmdbId, string mediaType)
@@ -569,54 +568,50 @@ public class WatchlistService
         catch (Exception ex)
         { 
             Console.WriteLine($"API Error fetching TMDB ID {tmdbId}: {ex.Message}");
-            return null;
         }
+        return null;
     }
 
     public async Task<string?> ResolveImdbIdAsync(string title, int? year)
     {
         var apiKey = _config["TmdbApiKey"];
-        if (string.IsNullOrEmpty(apiKey))
-        {
-            Console.WriteLine("TMDB API key not configured");
-            return null;
-        }
-
         var query = System.Uri.EscapeDataString(title);
         var url = $"https://api.themoviedb.org/3/search/multi?api_key={apiKey}&query={query}";
         if (year.HasValue) url += $"&year={year.Value}&first_air_date_year={year.Value}";
 
         try
         {
-            var response = await _http.GetFromJsonAsync<TmdbSearchResponse>(url);
-            var first = response?.Results?.FirstOrDefault(r => r.MediaType == "movie" || r.MediaType == "tv");
+            var searchResult = await _http.GetFromJsonAsync<TmdbSearchResult>(url);
+            var first = searchResult?.Results?.FirstOrDefault(r => r.MediaType == "movie" || r.MediaType == "tv");
+            
             if (first != null)
             {
-                if (first.MediaType == "movie")
-                {
-                    return first.Id.ToString();
-                }
-                else if (first.MediaType == "tv")
-                {
-                    return first.Id.ToString();
-                }
+                var extUrl = $"https://api.themoviedb.org/3/{first.MediaType}/{first.Id}/external_ids?api_key={apiKey}";
+                var extIds = await _http.GetFromJsonAsync<TmdbExternalIds>(extUrl);
+                return extIds?.ImdbId;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Resolve IMDb error for '{title}': {ex.Message}");
+        }
         return null;
     }
 
     public async Task UpdateStatusAsync(WatchlistItem item, WatchlistStatus status)
-{
-    var existing = Items.FirstOrDefault(i => i.ImdbId == item.ImdbId);
-    if (existing != null)
     {
-        existing.Status = status;
-        if (status == WatchlistStatus.Watching && existing.TitleType.Contains("TV", StringComparison.OrdinalIgnoreCase))
+        var existing = Items.FirstOrDefault(i => i.ImdbId == item.ImdbId);
+        if (existing != null)
         {
-            existing.CurrentSeason ??= 1;
-            existing.CurrentEpisode ??= 1;
+            existing.Status = status;
+            if (status == WatchlistStatus.Watching && existing.TitleType.Contains("TV", StringComparison.OrdinalIgnoreCase))
+            {
+                existing.CurrentSeason ??= 1;
+                existing.CurrentEpisode ??= 1;
+            }
+            await UpdateListAsync(Items);
         }
-        await UpdateListAsync(Items);
     }
-}
 
     public async Task ClearAllDataAsync()
     {
