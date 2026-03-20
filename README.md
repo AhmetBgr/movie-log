@@ -2,7 +2,7 @@
 
 Try it online: [ahmetbgr.github.io/movie-log/](https://ahmetbgr.github.io/movie-log/)
 
-Movie Log is a personal movie and TV show tracking application developed with Blazor WebAssembly. It works entirely within the browser and stores all data locally on your machine.
+Movie Log is a personal movie and TV show tracking application developed with Blazor WebAssembly. It works entirely within the browser and stores all data locally on your machine. Various AIs heavily used in development because I know nothing about web development. 
 
 ## Features
 
