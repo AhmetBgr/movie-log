@@ -292,7 +292,7 @@ public class WatchlistService
             _fetchPreference = await _storage.GetAsync<DataFetchPreference>("fetch_preference");
             _enableSearchHistory = await _storage.GetAsync<bool?>("enable_search_history") ?? false;
             SearchHistory = await _storage.GetAsync<List<string>>("search_history") ?? new();
-            _ = Task.Run(BackgroundHydrationLoop);
+            _ = BackgroundHydrationLoop();
         }
         catch (Exception ex)
         {
@@ -825,8 +825,14 @@ public class WatchlistService
         }
     }
 
+    // Track which items have been attempted this session to avoid re-queuing stuck items
+    private readonly HashSet<string> _hydratedThisSession = new();
+
     private async Task BackgroundHydrationLoop()
     {
+        // Initial delay so the app can fully load before starting background work
+        await Task.Delay(5000);
+        
         while (true)
         {
             try
@@ -834,7 +840,8 @@ public class WatchlistService
                 if (FetchPreference == DataFetchPreference.Background)
                 {
                     var itemWithMissingData = Items.FirstOrDefault(i => 
-                        !string.IsNullOrEmpty(i.ImdbId) && (
+                        !string.IsNullOrEmpty(i.ImdbId) &&
+                        !_hydratedThisSession.Contains(i.ImdbId) && (
                         string.IsNullOrEmpty(i.Overview) || 
                         string.IsNullOrEmpty(i.Genres) || 
                         string.IsNullOrEmpty(i.Director) || 
@@ -842,10 +849,19 @@ public class WatchlistService
 
                     if (itemWithMissingData != null)
                     {
-                        var details = await GetTmdbDetailsAsync(itemWithMissingData.ImdbId);
+                        // Mark as attempted before fetching to avoid infinite loops on failures
+                        _hydratedThisSession.Add(itemWithMissingData.ImdbId);
+                        
+                        var details = await GetTmdbEssentialsAsync(itemWithMissingData.ImdbId);
                         if (details != null)
                         {
-                            await HydrateMissingMetadataAsync(itemWithMissingData, details);
+                            var changed = await HydrateMissingMetadataAsync(itemWithMissingData, details);
+                            if (changed)
+                            {
+                                _ = ShowToastAsync($"Synced: {itemWithMissingData.Title}", 2500);
+                                // Remove from cache so the full detail view re-fetches fresh data next time
+                                _movieCache.Remove(itemWithMissingData.ImdbId);
+                            }
                         }
                     }
                 }
@@ -855,7 +871,44 @@ public class WatchlistService
         }
     }
 
-    private async Task HydrateMissingMetadataAsync(WatchlistItem listItem, TmdbMovie details)
+    // Lightweight fetch for background sync: only calls find + credits (no images/videos)
+    private async Task<TmdbMovie?> GetTmdbEssentialsAsync(string imdbId)
+    {
+        var apiKey = _config["TmdbApiKey"];
+        var url = $"https://api.themoviedb.org/3/find/{imdbId}?api_key={apiKey}&external_source=imdb_id";
+        try
+        {
+            var response = await _http.GetFromJsonAsync<TmdbFindResult>(url);
+            TmdbMovie? movie = null;
+
+            if (response?.MovieResults?.Any() == true)
+            {
+                movie = response.MovieResults.First();
+                var creditsUrl = $"https://api.themoviedb.org/3/movie/{movie.Id}/credits?api_key={apiKey}";
+                var credits = await _http.GetFromJsonAsync<TmdbCredits>(creditsUrl);
+                if (credits != null)
+                    movie.Directors = credits.Crew.Where(c => c.Job == "Director").Select(c => c.Name).Distinct().ToList();
+            }
+            else if (response?.TvResults?.Any() == true)
+            {
+                var tv = response.TvResults.First();
+                movie = new TmdbMovie
+                {
+                    Id = tv.Id, Title = tv.Name, OriginalTitle = tv.OriginalName,
+                    Overview = tv.Overview, PosterPath = tv.PosterPath, GenreList = tv.GenreList
+                };
+                var creditsUrl = $"https://api.themoviedb.org/3/tv/{tv.Id}/credits?api_key={apiKey}";
+                var credits = await _http.GetFromJsonAsync<TmdbCredits>(creditsUrl);
+                if (credits != null)
+                    movie.Directors = credits.Crew.Where(c => c.Job == "Director" || c.Job == "Series Director").Select(c => c.Name).Distinct().ToList();
+            }
+
+            return movie;
+        }
+        catch { return null; }
+    }
+
+    private async Task<bool> HydrateMissingMetadataAsync(WatchlistItem listItem, TmdbMovie details)
     {
         bool changed = false;
         
@@ -869,6 +922,8 @@ public class WatchlistService
             await UpdateListAsync(Items);
             NotifyStateChanged(fullRefresh: false);
         }
+        
+        return changed;
     }
 
     public async Task ShowDetailsAsync(TmdbSearchResultItem searchItem)
