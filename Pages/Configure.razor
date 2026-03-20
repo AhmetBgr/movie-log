@@ -15,8 +15,8 @@
 
     <div class="row g-4 mb-5">
         <!-- Movie Data Fetch Preference -->
-        <div class="col-md-12">
-            <div class="card shadow-sm border-0 rounded-3">
+        <div class="col-md-8">
+            <div class="card shadow-sm border-0 rounded-3 h-100">
                 <div class="card-body p-4">
                     <div class="d-flex align-items-center mb-4">
                         <div class="bg-info bg-opacity-10 text-info p-2 rounded-3 me-3">
@@ -56,6 +56,35 @@
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search History Setting -->
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 rounded-3 h-100">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-4">
+                        <div class="bg-warning bg-opacity-10 text-warning p-2 rounded-3 me-3">
+                            <i class="bi bi-clock-history fs-4"></i>
+                        </div>
+                        <h5 class="card-title mb-0 fw-bold text-dark">Search Discovery</h5>
+                    </div>
+
+                    <div class="form-check form-switch mb-3 p-3 rounded-3 bg-light border">
+                        <input class="form-check-input ms-0 me-3 mt-1" type="checkbox" id="enableSearchHistory" 
+                               checked="@WatchlistSvc.EnableSearchHistory" 
+                               @onchange="(e) => WatchlistSvc.EnableSearchHistory = (bool)e.Value!">
+                        <label class="form-check-label fw-bold text-dark" for="enableSearchHistory">Remember Search History</label>
+                        <p class="text-secondary x-small mb-0 mt-2">When enabled, the app stores your last 10 searches locally for quick access while typing.</p>
+                    </div>
+
+                    @if (WatchlistSvc.SearchHistory.Any())
+                    {
+                        <button class="btn btn-outline-danger btn-sm w-100 rounded-pill py-2 mt-2 fw-medium border-2" @onclick="WatchlistSvc.ClearSearchHistory">
+                            <i class="bi bi-trash3 me-2"></i> Clear History Now
+                        </button>
+                    }
                 </div>
             </div>
         </div>

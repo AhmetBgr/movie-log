@@ -11,13 +11,41 @@
     </div>
 
     <main>
-        <div class="top-row px-3 px-md-4 d-flex justify-content-between align-items-center bg-white shadow-sm gap-3" style="height: 4rem;">
-            <form class="input-group shadow-sm rounded-pill overflow-hidden flex-grow-1" style="max-width: 600px;" @onsubmit="PerformSearch" @onsubmit:preventDefault="true">
-                <span class="input-group-text bg-light border-0 text-secondary px-3 px-md-4"><i class="bi bi-search"></i></span>
-                <input type="text" class="form-control border-0 bg-light py-2 px-0 shadow-none" placeholder="Search globally" 
-                       @bind="SearchText" />
-                <button type="submit" class="btn btn-dark px-3 px-md-4 fw-medium text-uppercase tracking-wide">Search</button>
-            </form>
+        <div class="top-row px-3 px-md-4 d-flex justify-content-between align-items-center bg-white shadow-sm gap-3 sticky-top" style="height: 4rem; z-index: 1100;">
+            <div class="position-relative flex-grow-1" style="max-width: 600px;">
+                <form class="input-group shadow-sm rounded-pill overflow-hidden" @onsubmit="PerformSearch" @onsubmit:preventDefault="true">
+                    <span class="input-group-text bg-light border-0 text-secondary px-3 px-md-4"><i class="bi bi-search"></i></span>
+                    <input type="text" class="form-control border-0 bg-light py-2 px-0 shadow-none" placeholder="Search globally" 
+                           @bind="SearchText" @bind:event="oninput" @onfocus="() => isSearchFocused = true" @onblur="HandleBlur" />
+                    <button type="submit" class="btn btn-dark px-3 px-md-4 fw-medium text-uppercase tracking-wide">Search</button>
+                </form>
+
+                @if (isSearchFocused && WatchlistSvc.EnableSearchHistory && WatchlistSvc.SearchHistory.Any(s => string.IsNullOrEmpty(SearchText) || s.Contains(SearchText, StringComparison.OrdinalIgnoreCase)))
+                {
+                    <div class="position-absolute top-100 start-0 end-0 mt-2 bg-white shadow-lg border rounded-3 overflow-hidden" style="z-index: 2000;">
+                        <div class="px-3 py-2 border-bottom bg-light d-flex justify-content-between align-items-center">
+                            <span style="font-size: 0.7rem;" class="fw-bold text-secondary text-uppercase tracking-widest">Recent Searches</span>
+                            <button class="btn btn-link text-danger text-decoration-none p-0 x-small" style="font-size: 0.7rem;" @onclick="WatchlistSvc.ClearSearchHistory">CLEAR ALL</button>
+                        </div>
+                        <div class="list-group list-group-flush">
+                            @foreach (var query in WatchlistSvc.SearchHistory.Where(s => string.IsNullOrEmpty(SearchText) || s.Contains(SearchText, StringComparison.OrdinalIgnoreCase)))
+                            {
+                                <div class="list-group-item list-group-item-action border-0 py-2.5 px-3 d-flex align-items-center justify-content-between pointer" 
+                                        @onclick="() => QuickSearch(query)">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <i class="bi bi-clock-history text-muted"></i>
+                                        <span class="text-dark">@query</span>
+                                    </div>
+                                    <button class="btn btn-link btn-sm text-secondary p-0 opacity-50 hover-opacity-100" 
+                                            @onclick:stopPropagation="true" @onclick="() => WatchlistSvc.RemoveFromSearchHistory(query)">
+                                        <i class="bi bi-x-lg" style="font-size: 0.8rem;"></i>
+                                    </button>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
         </div>
 
         @if (WatchlistSvc.IsInitializing)
@@ -51,6 +79,21 @@
 
 @code {
     private string SearchText = "";
+    private bool isSearchFocused = false;
+
+    private async Task HandleBlur()
+    {
+        // Small delay to allow click on history item to trigger first
+        await Task.Delay(200);
+        isSearchFocused = false;
+        StateHasChanged();
+    }
+
+    private void QuickSearch(string query)
+    {
+        SearchText = query;
+        PerformSearch();
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -105,6 +148,7 @@
     {
         if (!string.IsNullOrWhiteSpace(SearchText))
         {
+            WatchlistSvc.AddToSearchHistory(SearchText);
             NavManager.NavigateTo($"search/{Uri.EscapeDataString(SearchText)}");
         }
     }

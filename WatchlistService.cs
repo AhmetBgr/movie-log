@@ -127,6 +127,42 @@ public class WatchlistService
         set { _fetchPreference = value; _ = _storage.SaveAsync("fetch_preference", value); NotifyStateChanged(); } 
     }
 
+    private bool _enableSearchHistory = false;
+    public bool EnableSearchHistory 
+    { 
+        get => _enableSearchHistory; 
+        set { _enableSearchHistory = value; _ = _storage.SaveAsync("enable_search_history", value); if(!value) ClearSearchHistory(); NotifyStateChanged(); } 
+    }
+
+    public List<string> SearchHistory { get; set; } = new();
+
+    public void AddToSearchHistory(string query)
+    {
+        if (!EnableSearchHistory || string.IsNullOrWhiteSpace(query)) return;
+        
+        query = query.Trim();
+        SearchHistory.RemoveAll(s => s.Equals(query, StringComparison.OrdinalIgnoreCase));
+        SearchHistory.Insert(0, query);
+        
+        if (SearchHistory.Count > 10)
+            SearchHistory = SearchHistory.Take(10).ToList();
+            
+        _ = _storage.SaveAsync("search_history", SearchHistory);
+    }
+
+    public void RemoveFromSearchHistory(string query)
+    {
+        SearchHistory.RemoveAll(s => s.Equals(query, StringComparison.OrdinalIgnoreCase));
+        _ = _storage.SaveAsync("search_history", SearchHistory);
+        NotifyStateChanged();
+    }
+
+    public void ClearSearchHistory()
+    {
+        SearchHistory.Clear();
+        _ = _storage.SaveAsync("search_history", SearchHistory);
+    }
+
     public event Action? OnStateChanged;
     public void NotifyStateChanged(bool fullRefresh = true) 
     {
@@ -254,6 +290,8 @@ public class WatchlistService
             OnStateChanged?.Invoke();
             StartGenreMapLoadIfNeeded();
             _fetchPreference = await _storage.GetAsync<DataFetchPreference>("fetch_preference");
+            _enableSearchHistory = await _storage.GetAsync<bool?>("enable_search_history") ?? false;
+            SearchHistory = await _storage.GetAsync<List<string>>("search_history") ?? new();
             _ = Task.Run(BackgroundHydrationLoop);
         }
         catch (Exception ex)
