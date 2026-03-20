@@ -99,14 +99,14 @@ public class WatchlistService
         set { _filterMinRating20 = value; NotifyStateChanged(); } 
     }
 
-    private int _filterMaxRating20 = 20;
+    private int _filterMaxRating20 = 100;
     public int FilterMaxRating20 
     { 
         get => _filterMaxRating20; 
         set { _filterMaxRating20 = value; NotifyStateChanged(); } 
     }
 
-    private RatingSystem _ratingSystem = RatingSystem.TenPoint;
+    private RatingSystem _ratingSystem = RatingSystem.HundredPoint;
     public RatingSystem RatingSystem 
     { 
         get => _ratingSystem; 
@@ -636,14 +636,14 @@ public class WatchlistService
         NotifyStateChanged();
     }
 
-    public async Task UpdateRatingAsync(WatchlistItem item, int? rating20)
+    public async Task UpdateRatingAsync(WatchlistItem item, int? rating100)
     {
         var existing = Items.FirstOrDefault(i => i.ImdbId == item.ImdbId);
         if (existing != null)
         {
-            existing.Rating20 = rating20;
-            // Sync legacy field for backward compatibility
-            existing.UserRating = rating20.HasValue ? (int)Math.Round(rating20.Value / 2.0) : null;
+            existing.Rating20 = rating100;
+            // Sync legacy field for backward compatibility (0-10)
+            existing.UserRating = rating100.HasValue ? (int)Math.Round(rating100.Value / 10.0) : null;
             await UpdateListAsync(Items);
         }
     }

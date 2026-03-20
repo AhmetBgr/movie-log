@@ -4,9 +4,7 @@ namespace MyPrivateWatchlist.Models;
 
 public enum RatingSystem
 {
-    TenPoint,
-    HundredPoint,
-    FiveStar
+    HundredPoint
 }
 
 public enum WatchlistStatus

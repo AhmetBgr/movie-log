@@ -1,4 +1,4 @@
-@page "/setup"
+@page "/configure"
 @using System.Text.RegularExpressions
 @using MyPrivateWatchlist.Models
 @inject HttpClient Http
@@ -6,37 +6,15 @@
 @inject MyPrivateWatchlist.Services.WatchlistService WatchlistSvc
 @inject IJSRuntime JS
 
-<PageTitle>Setup & Data</PageTitle>
+<PageTitle>Configure & Data</PageTitle>
 
 <div class="container py-4">
     <h2 class="mb-4 fw-bold text-dark d-flex align-items-center">
-        <i class="bi bi-gear-fill me-3 text-secondary"></i> Setup & Data Management
+        <i class="bi bi-gear-fill me-3 text-secondary"></i> Configure & Data Management
     </h2>
 
     <div class="row g-4 mb-5">
-        <div class="col-md-6">
-            <div class="card shadow-sm border-0 rounded-2 h-100">
-                <div class="card-body p-4">
-                    <h5 class="fw-bold mb-3 d-flex align-items-center">
-                        <i class="bi bi-gear-wide-connected me-2 text-primary"></i> Preferences
-                    </h5>
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold text-secondary text-uppercase mb-2">Rating System</label>
-                        <select class="form-select border-0 bg-light shadow-none" 
-                                value="@WatchlistSvc.RatingSystem"
-                                @onchange="@(e => WatchlistSvc.RatingSystem = Enum.Parse<RatingSystem>(e.Value?.ToString() ?? "TenPoint"))">
-                            <option value="@RatingSystem.TenPoint">1-10 Scale</option>
-                            <option value="@RatingSystem.HundredPoint">1-100 Scale</option>
-                            <option value="@RatingSystem.FiveStar">5 Stars (with half-steps)</option>
-                        </select>
-                        <div class="form-text small opacity-75 mt-2">
-                            Choose how you want to rate your movies. All ratings are converted automatically.
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
+        <!-- Preferences or other settings could go here in future -->
     </div>
 
     <div class="row g-4">
@@ -287,11 +265,11 @@
                         if (double.TryParse(ratingDigits, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double pr)) {
                             // Detect scale
                             if (pr > 10) // Assume 1-100
-                                rating20 = (int)Math.Round(pr / 5.0);
+                                rating20 = (int)Math.Round(pr);
                             else // Assume 1-10
-                                rating20 = (int)Math.Round(pr * 2.0);
+                                rating20 = (int)Math.Round(pr * 10.0);
                             
-                            if (rating20 > 20) rating20 = 20;
+                            if (rating20 > 100) rating20 = 100;
                             if (rating20 < 1) rating20 = 1;
                         }
                     }
@@ -313,7 +291,7 @@
                         Status = importAsWatched ? WatchlistStatus.Watched : WatchlistStatus.Pending,
                         DateAdded = dateAdded,
                         Rating20 = rating20,
-                        UserRating = rating20.HasValue ? (int)Math.Max(1, Math.Min(10, Math.Round(rating20.Value / 2.0))) : null
+                        UserRating = rating20.HasValue ? (int)Math.Max(1, Math.Min(10, Math.Round(rating20.Value / 10.0))) : null
                     });
                     existingIds.Add(normalizedImdbId);
                     newItemsCount++;

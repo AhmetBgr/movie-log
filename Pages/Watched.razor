@@ -187,19 +187,7 @@
                                             @if (item.Rating20.HasValue)
                                             {
                                                 <div class="rating-badge shadow-none" style="@GetRatingColorStyle(item.Rating20)">
-                                                    @if (WatchlistSvc.RatingSystem == RatingSystem.FiveStar)
-                                                    {
-                                                        <i class="bi bi-star-fill"></i>
-                                                        <span>@((item.Rating20.Value / 2.0).ToString("0.0"))</span>
-                                                    }
-                                                    else if (WatchlistSvc.RatingSystem == RatingSystem.HundredPoint)
-                                                    {
-                                                        <span>@(item.Rating20.Value * 5)</span>
-                                                    }
-                                                    else
-                                                    {
-                                                        <span>@(item.Rating20.Value / 2.0)</span>
-                                                    }
+                                                    <span>@item.Rating20.Value</span>
                                                 </div>
                                             }
                                             else
@@ -210,38 +198,11 @@
                                             }
                                         </div>
                                         <div class="rating-input-container">
-                                            @if (WatchlistSvc.RatingSystem == RatingSystem.TenPoint)
-                                            {
-                                                <select class="form-select form-select-sm border-0 bg-light shadow-none fw-bold text-center rounded-pill" 
-                                                        style="width: 65px; height: 32px; -webkit-appearance: none; appearance: none; cursor: pointer;"
-                                                        value="@(item.Rating20 / 2)"
-                                                        @onchange="(e) => UpdateRating20(item, string.IsNullOrEmpty(e.Value?.ToString()) ? null : int.Parse(e.Value.ToString()!) * 2)">
-                                                    <option value="">-</option>
-                                                    @for (int i = 10; i >= 1; i--) { <option value="@i">@i</option> }
-                                                </select>
-                                            }
-                                            else if (WatchlistSvc.RatingSystem == RatingSystem.HundredPoint)
-                                            {
-                                                <input type="number" class="form-control form-control-sm border-0 bg-light shadow-none fw-bold text-center rounded-pill px-0" 
-                                                       style="width: 65px; height: 32px;"
-                                                       min="0" max="100" step="5"
-                                                       value="@(item.Rating20 * 5)"
-                                                       @onchange="(e) => UpdateRating20(item, string.IsNullOrEmpty(e.Value?.ToString()) ? null : (int)Math.Round(int.Parse(e.Value.ToString()!) / 5.0))" />
-                                            }
-                                            else if (WatchlistSvc.RatingSystem == RatingSystem.FiveStar)
-                                            {
-                                                <select class="form-select form-select-sm border-0 bg-light shadow-none fw-bold text-center rounded-pill" 
-                                                        style="width: 95px; height: 32px; -webkit-appearance: none; appearance: none; cursor: pointer;"
-                                                        value="@item.Rating20"
-                                                        @onchange="(e) => UpdateRating20(item, string.IsNullOrEmpty(e.Value?.ToString()) ? null : int.Parse(e.Value.ToString()!))">
-                                                    <option value="">-</option>
-                                                    @for (int i = 10; i >= 1; i--) {
-                                                        float starVal = i / 2.0f;
-                                                        int r20 = i * 2;
-                                                        <option value="@r20">@starVal.ToString("0.0") ⭐</option>
-                                                    }
-                                                </select>
-                                            }
+                                            <input type="number" class="form-control form-control-sm border-0 bg-light shadow-none fw-bold text-center rounded-pill px-0" 
+                                                   style="width: 65px; height: 32px;"
+                                                   min="0" max="100" step="1"
+                                                   value="@(item.Rating20 ?? 0)"
+                                                   @onchange="(e) => UpdateRating20(item, string.IsNullOrEmpty(e.Value?.ToString()) ? null : int.Parse(e.Value.ToString()!))" />
                                         </div>
                                     </div>
                                 </td>
@@ -340,26 +301,22 @@
         WatchlistSvc.StartYear = "";
         WatchlistSvc.EndYear = "";
         WatchlistSvc.FilterMinRating20 = 0;
-        WatchlistSvc.FilterMaxRating20 = 20;
+        WatchlistSvc.FilterMaxRating20 = 100;
     }
 
     private List<string> AvailableGenres => _availableGenres;
 
-    private string GetRatingLabel(int r20)
+    private string GetRatingLabel(int r100)
     {
-        if (WatchlistSvc.RatingSystem == RatingSystem.FiveStar)
-            return (r20 / 2.0).ToString("0.0");
-        if (WatchlistSvc.RatingSystem == RatingSystem.HundredPoint)
-            return (r20 * 5).ToString();
-        return (r20 / 2.0).ToString("0.#"); // 1-10 shows half steps if needed, but we usually map 1-10 to even r20s.
+        return r100.ToString();
     }
 
-    private string GetRatingColorStyle(int? r20)
+    private string GetRatingColorStyle(int? r100)
     {
-        if (!r20.HasValue) return "";
+        if (!r100.HasValue) return "";
         
         // Hue: 0 (Red) to 120 (Green)
-        double hue = (r20.Value / 20.0) * 120;
+        double hue = (r100.Value / 100.0) * 120;
         
         // More prominent colors: Darker, saturated background with white text
         // Hue ranges from 0 (Red) to 120 (Green)
