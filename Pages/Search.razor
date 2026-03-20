@@ -18,10 +18,21 @@
             </div>
         </div>
     }
-    else if (results != null && !results.Any())
+    else if (results == null || !results.Any())
     {
-        <div class="alert alert-secondary border-0 shadow-sm text-center py-5 fs-5 rounded-2 mt-4">
-            No results found on TMDB for "@Uri.UnescapeDataString(Query)".
+        <div class="alert alert-warning border-0 shadow-sm text-center py-5 fs-5 rounded-2 mt-4">
+            <h4 class="alert-heading">Search Service Unavailable</h4>
+            <p class="mb-0">The search service is temporarily unavailable. This could be due to:</p>
+            <ul class="text-start">
+                <li>API rate limiting from TMDB</li>
+                <li>Network connectivity issues</li>
+                <li>Missing API configuration</li>
+                <li>Service maintenance</li>
+            </ul>
+            <p class="mb-3">Please try again in a few moments, or check back later.</p>
+            <div class="text-center mt-3">
+                <button class="btn btn-outline-primary" @onclick="() => isLoading = false; StateHasChanged()">Retry Search</button>
+            </div>
         </div>
     }
     else if (results != null)
@@ -69,7 +80,7 @@
                                         </button>
                                     }
                                 </td>
-                                <td style="cursor: pointer;" class="px-3" @onclick="() => WatchlistSvc.ShowDetailsAsync(item)">
+                                <td style="cursor: pointer;" class="px-3" @onclick="() => ShowDetailsAsync(item)">
                                     <span class="fw-bold text-dark" style="transition: opacity 0.2s;" onmouseover="this.style.opacity='0.6'" onmouseout="this.style.opacity='1'">
                                         @item.DisplayTitle
                                         @if (!string.IsNullOrEmpty(item.DisplayOriginalTitle))

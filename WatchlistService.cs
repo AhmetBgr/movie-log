@@ -579,29 +579,10 @@ public class WatchlistService
         var url = $"https://api.themoviedb.org/3/search/multi?api_key={apiKey}&query={query}";
         if (year.HasValue) url += $"&year={year.Value}&first_air_date_year={year.Value}";
 
-        try
-        {
-            var searchResult = await _http.GetFromJsonAsync<TmdbSearchResult>(url);
-            var first = searchResult?.Results?.FirstOrDefault(r => r.MediaType == "movie" || r.MediaType == "tv");
-            
-            if (first != null)
-            {
-                var extUrl = $"https://api.themoviedb.org/3/{first.MediaType}/{first.Id}/external_ids?api_key={apiKey}";
-                var extIds = await _http.GetFromJsonAsync<TmdbExternalIds>(extUrl);
-                return extIds?.ImdbId;
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Resolve IMDb error for '{title}': {ex.Message}");
-        }
-        return null;
-    }
-
-    public async Task UpdateStatusAsync(WatchlistItem item, WatchlistStatus status)
+    try
     {
-        var existing = Items.FirstOrDefault(i => i.ImdbId == item.ImdbId);
-        if (existing != null)
+        var response = await _http.GetFromJsonAsync<TmdbSearchResponse>(url);
+        var first = response?.Results?.FirstOrDefault(r => r.MediaType == "movie" || r.MediaType == "tv");
         {
             existing.Status = status;
             if (status == WatchlistStatus.Watching && existing.TitleType.Contains("TV", StringComparison.OrdinalIgnoreCase))
