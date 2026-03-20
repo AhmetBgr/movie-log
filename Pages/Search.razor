@@ -262,7 +262,8 @@
                     Director = movie.Directors.Any() ? string.Join(", ", movie.Directors) : null,
                     Status = status,
                     CurrentSeason = (status == WatchlistStatus.Watching && item.MediaType == "tv") ? 1 : null,
-                    CurrentEpisode = (status == WatchlistStatus.Watching && item.MediaType == "tv") ? 1 : null
+                    CurrentEpisode = (status == WatchlistStatus.Watching && item.MediaType == "tv") ? 1 : null,
+                    PosterPath = movie.PosterPath
                 });
             }
         }

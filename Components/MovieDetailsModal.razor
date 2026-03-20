@@ -464,7 +464,8 @@
                 DateAdded = DateTime.Now,
                 Genres = string.Join(", ", selectedMovie.GenreList.Select(g => g.Name)),
                 Director = selectedMovie.Directors.Any() ? string.Join(", ", selectedMovie.Directors) : null,
-                Overview = selectedMovie.Overview
+                Overview = selectedMovie.Overview,
+                PosterPath = selectedMovie.PosterPath
             };
             await WatchlistSvc.AddItemAsync(newItem);
         }

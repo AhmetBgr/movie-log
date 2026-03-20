@@ -221,6 +221,7 @@
                 var type = ReadByAliases(csv, normalizedHeaderToActual, aliasSet.TypeAliases);
                 var directors = ReadByAliases(csv, normalizedHeaderToActual, aliasSet.DirectorAliases);
                 var genres = ReadByAliases(csv, normalizedHeaderToActual, aliasSet.GenreAliases);
+                string? posterPath = null;
 
                 if (string.IsNullOrEmpty(title)) {
                     importErrorCount++;
@@ -257,6 +258,10 @@
                         if (tmdbItem != null && tmdbItem.GenreList.Any())
                         {
                             genres = string.Join(", ", tmdbItem.GenreList.Select(g => g.Name));
+                        }
+                        if (tmdbItem != null && !string.IsNullOrEmpty(tmdbItem.PosterPath))
+                        {
+                            posterPath = tmdbItem.PosterPath;
                         }
                     }
                 }
@@ -299,6 +304,7 @@
                         Year = year?.Trim() ?? "",
                         Director = directors?.Trim() ?? "",
                         Genres = genres?.Trim() ?? "",
+                        PosterPath = posterPath,
                         ParsedYear = parsedYear ?? 0,
                         Status = importAsWatched ? WatchlistStatus.Watched : WatchlistStatus.Pending,
                         DateAdded = dateAdded,

@@ -30,8 +30,8 @@ public class WatchlistItem
     public DateTime DateAdded { get; set; } = DateTime.Now;
     public int? UserRating { get; set; }
     public int? Rating20 { get; set; }
-
     public string? Overview { get; set; }
+    public string? PosterPath { get; set; }
 
     public string? DisplayOriginalTitle 
     {
@@ -42,6 +42,10 @@ public class WatchlistItem
             return OriginalTitle.Trim();
         }
     }
+
+    public string FullPosterUrl => string.IsNullOrEmpty(PosterPath)
+        ? "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" 
+        : $"https://image.tmdb.org/t/p/w185{PosterPath}";
 }
 
 public class TmdbFindResult
