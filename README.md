@@ -124,3 +124,6 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ---
 
 **Made with ❤️ for movie lovers** 🍿
+=======
+
+>>>>>>> e2b929a3d19396ab1f1389ee9c1bfa73d5373d7a
