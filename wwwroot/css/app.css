@@ -11,6 +11,13 @@
     --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
     --text-main: #1e293b;
     --text-muted: #64748b;
+    /* Clickable text (links) — deeper blue */
+    --link-color: #2b7ec8;
+    --link-hover-color: #1f5f9a;
+    /* Align Bootstrap link utilities with app links */
+    --bs-link-color: var(--link-color);
+    --bs-link-hover-color: var(--link-hover-color);
+    --bs-link-color-rgb: 43, 126, 200;
 }
 
 html,
@@ -26,13 +33,48 @@ h1, h2, h3, h4, h5, h6, .card-title, .fw-bold, .nav-link {
 
 a,
 .btn-link {
-    color: var(--primary);
+    color: var(--link-color);
     text-decoration: none;
     transition: color 0.2s ease;
 }
 
-a:hover {
-    color: var(--primary-dark);
+a:hover,
+.btn-link:hover {
+    color: var(--link-hover-color);
+}
+
+/* Utility classes on <a> (e.g. text-dark) win in Bootstrap — force link tint for clickable text */
+main a.text-dark,
+main a.text-secondary,
+main a.text-body,
+.modal a.text-dark,
+.modal a.text-secondary,
+.modal a.text-body,
+#blazor-error-ui a {
+    color: var(--link-color) !important;
+}
+
+main a.text-dark:hover,
+main a.text-secondary:hover,
+main a.text-body:hover,
+.modal a.text-dark:hover,
+.modal a.text-secondary:hover,
+.modal a.text-body:hover,
+#blazor-error-ui a:hover {
+    color: var(--link-hover-color) !important;
+}
+
+/* Keep semantic link colors when explicitly set */
+a.text-danger,
+.btn-link.text-danger,
+main a.text-danger,
+.modal a.text-danger {
+    color: var(--bs-danger) !important;
+}
+
+a.text-danger:hover,
+.btn-link.text-danger:hover {
+    filter: brightness(0.92);
 }
 
 .btn-primary {
