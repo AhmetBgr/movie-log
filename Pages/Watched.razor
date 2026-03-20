@@ -6,16 +6,14 @@
 <PageTitle>Watched History</PageTitle>
 
 <div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
-        <h2 class="fw-bold text-dark d-flex align-items-center mb-0">
-            <i class="bi bi-check2-all me-3 text-success"></i> Watched History
-            <span class="badge bg-success bg-opacity-10 text-success ms-3 rounded-pill fs-6 fw-normal border border-success border-opacity-25">
-                @WatchlistSvc.WatchedItems.Count() Completed
-            </span>
-        </h2>
+    <div class="d-flex justify-content-start align-items-center mb-4 border-bottom pb-3 gap-2">
         <button class="btn btn-sm @(showFilters ? "btn-dark shadow" : "btn-outline-secondary") rounded-pill px-4 py-2 transition-all fw-medium" @onclick="ToggleFilters">
             <i class="bi @(showFilters ? "bi-chevron-left" : "bi-funnel") me-2"></i> 
             @(showFilters ? "Hide Filters" : "Show Filters")
+        </button>
+        <button class="btn btn-sm @(isEditing ? "btn-primary shadow" : "btn-outline-primary") rounded-pill px-4 py-2 transition-all fw-medium" @onclick="ToggleEdit">
+            <i class="bi @(isEditing ? "bi-check-lg" : "bi-pencil") me-2"></i> 
+            @(isEditing ? "Done Editing" : "Edit List")
         </button>
     </div>
 
@@ -29,14 +27,99 @@
     else
     {
     <div class="row g-4 h-100">
+        @if (showFilters)
+        {
+            <div class="col-md-3 position-sticky top-0 h-100" style="max-height: 85vh; overflow-y: auto;">
+                <div class="card shadow-sm border-0 rounded-2 bg-white sticky-top">
+                    <div class="card-body p-4">
+                        <h5 class="fw-bold text-dark mb-4 border-bottom pb-2">Refine History</h5>
+                        
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-secondary text-uppercase tracking-wider">Search History</label>
+                            <div class="input-group shadow-none border rounded-2 overflow-hidden">
+                                <span class="input-group-text bg-light border-0"><i class="bi bi-search"></i></span>
+                                <input type="text" class="form-control border-0 bg-light shadow-none" placeholder="Search title or director..." 
+                                       @bind="WatchlistSvc.SearchQuery" @bind:event="oninput" />
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-secondary text-uppercase tracking-wider">Rating Range</label>
+                            <div class="d-flex gap-2 align-items-center">
+                                <select class="form-select form-select-sm border rounded-2 bg-light shadow-none py-1" 
+                                        value="@WatchlistSvc.FilterMinRating20"
+                                        @onchange="@(e => WatchlistSvc.FilterMinRating20 = int.Parse(e.Value?.ToString() ?? "0"))">
+                                    <option value="0">Min</option>
+                                    @for (int i = 1; i <= 20; i++) {
+                                        <option value="@i">@GetRatingLabel(i)</option>
+                                    }
+                                </select>
+                                <span class="text-secondary x-small">to</span>
+                                <select class="form-select form-select-sm border rounded-2 bg-light shadow-none py-1" 
+                                        value="@WatchlistSvc.FilterMaxRating20"
+                                        @onchange="@(e => WatchlistSvc.FilterMaxRating20 = int.Parse(e.Value?.ToString() ?? "20"))">
+                                    <option value="20">Max</option>
+                                    @for (int i = 1; i <= 20; i++) {
+                                        <option value="@i">@GetRatingLabel(i)</option>
+                                    }
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-secondary text-uppercase tracking-wider">Genre</label>
+                            <select class="form-select border rounded-2 bg-light shadow-none" @bind="WatchlistSvc.SelectedGenre">
+                                <option value="All">All Genres</option>
+                                @foreach (var genre in AvailableGenres)
+                                {
+                                    <option value="@genre">@genre</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-secondary text-uppercase tracking-wider">Type</label>
+                            <select class="form-select border rounded-2 bg-light shadow-none" @bind="WatchlistSvc.SelectedType">
+                                <option value="All">All Types</option>
+                                <option value="Movie">Movies</option>
+                                <option value="TV Series">TV Series</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-secondary text-uppercase tracking-wider">Year Range</label>
+                            <div class="d-flex gap-2">
+                                <input type="number" class="form-control border rounded-2 bg-light shadow-none px-2" placeholder="From" 
+                                       @bind="WatchlistSvc.StartYear" />
+                                <input type="number" class="form-control border rounded-2 bg-light shadow-none px-2" placeholder="To" 
+                                       @bind="WatchlistSvc.EndYear" />
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 pt-2">
+                            <button class="btn btn-dark rounded-pill py-2 shadow-sm border-0 fw-semibold" @onclick="WatchlistSvc.ShowRandomMovieAsync">
+                                <i class="bi bi-dice-5 me-2"></i> Pick Random Movie
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm border-0 py-2" @onclick="ClearFilters">
+                                <i class="bi bi-eraser me-2"></i> Clear All Filters
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
         <div class="@(showFilters ? "col-md-9" : "col-12")">
             <div class="card shadow-sm border-0 overflow-hidden rounded-2">
                 <div class="card-body p-0 bg-white" style="height: 85vh; overflow-y: auto;">
                     <table class="table table-hover align-middle mb-0">
                         <thead class="bg-light text-secondary fw-semibold" style="position: sticky; top: 0; z-index: 1;">
                             <tr>
-                                <th scope="col" style="width: 10%; text-align: center;" class="py-3 px-3">Actions</th>
-                                <th scope="col" style="width: 38%; cursor: pointer;" class="py-3 px-3" @onclick='() => WatchlistSvc.ToggleWatchedSort("Title")'>
+                                @if (isEditing)
+                                {
+                                    <th scope="col" style="width: 10%; text-align: center;" class="py-3 px-3"></th>
+                                }
+                                <th scope="col" style="width: @(isEditing ? "38%" : "48%"); cursor: pointer;" class="py-3 px-3" @onclick='() => WatchlistSvc.ToggleWatchedSort("Title")'>
                                     Title
                                     @if (WatchlistSvc.WatchedSortColumn == "Title") { <i class="bi @(WatchlistSvc.WatchedSortDescending ? "bi-sort-alpha-up-alt" : "bi-sort-alpha-down") ms-1"></i> }
                                 </th>
@@ -61,25 +144,34 @@
                     <tbody class="border-top-0">
                         <Virtualize Items="_watchedItems" Context="item" ItemSize="70" OverscanCount="5">
                             <tr @key="item.ImdbId">
-                                <td class="text-center px-3">
-                                    <div class="d-flex align-items-center justify-content-center gap-1">
-                                        <button class="btn btn-sm btn-outline-primary border-0 rounded-circle shadow-none p-1 d-inline-flex align-items-center justify-content-center show-on-row-hover" 
-                                                style="width: 32px; height: 32px;"
-                                                @onclick="() => RestartWatching(item)" title="Watch Again">
-                                            <i class="bi bi-arrow-counterclockwise fs-5"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-dark border-0 rounded-circle shadow-none p-1 d-inline-flex align-items-center justify-content-center show-on-row-hover" 
-                                                style="width: 32px; height: 32px;"
-                                                @onclick="() => MoveToWatchlist(item)" title="Add back to Watchlist">
-                                            <i class="bi bi-plus-lg fs-5"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-link text-danger p-0 shadow-none d-inline-flex align-items-center justify-content-center show-on-row-hover" 
-                                                style="width: 32px; height: 32px;"
-                                                @onclick="() => RemoveFromLibrary(item)" title="Remove from Library">
-                                            <i class="bi bi-trash3 fs-5"></i>
-                                        </button>
-                                    </div>
-                                </td>
+                                @if (isEditing)
+                                {
+                                    <td class="text-center px-2" style="width: 10%;">
+                                        <div class="d-flex align-items-center justify-content-center gap-1">
+                                            <button class="btn btn-sm btn-light border-0 text-success bg-success bg-opacity-10 rounded-3 shadow-none p-1 d-inline-flex align-items-center justify-content-center" 
+                                                    style="width: 32px; height: 32px; transition: all 0.2s;"
+                                                    onmouseover="this.classList.replace('bg-opacity-10','bg-opacity-25')"
+                                                    onmouseout="this.classList.replace('bg-opacity-25','bg-opacity-10')"
+                                                    @onclick="() => RestartWatching(item)" @onclick:stopPropagation="true" title="Watch Again">
+                                                <i class="bi bi-play-fill fs-5"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-light border-0 text-secondary bg-secondary bg-opacity-10 rounded-3 shadow-none p-1 d-inline-flex align-items-center justify-content-center" 
+                                                    style="width: 32px; height: 32px; transition: all 0.2s;"
+                                                    onmouseover="this.classList.replace('bg-opacity-10','bg-opacity-25')"
+                                                    onmouseout="this.classList.replace('bg-opacity-25','bg-opacity-10')"
+                                                    @onclick="() => MoveToWatchlist(item)" @onclick:stopPropagation="true" title="Move back to Watchlist">
+                                                <i class="bi bi-list-nested fs-6"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-light border-0 text-danger bg-danger bg-opacity-10 rounded-3 shadow-none p-1 d-inline-flex align-items-center justify-content-center" 
+                                                    style="width: 32px; height: 32px; transition: all 0.2s;"
+                                                    onmouseover="this.classList.replace('bg-opacity-10','bg-opacity-25')"
+                                                    onmouseout="this.classList.replace('bg-opacity-25','bg-opacity-10')"
+                                                    @onclick="() => RemoveFromLibrary(item)" @onclick:stopPropagation="true" title="Remove from Library">
+                                                <i class="bi bi-trash3-fill fs-6"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                }
                                 <td style="cursor: pointer;" class="px-3" @onclick="() => WatchlistSvc.ShowDetailsAsync(item)">
                                     <span class="fw-bold text-dark" style="transition: opacity 0.2s;" onmouseover="this.style.opacity='0.6'" onmouseout="this.style.opacity='1'">
                                         @item.Title
@@ -172,93 +264,15 @@
             </div>
         </div>
 
-        @if (showFilters)
-        {
-            <div class="col-md-3 position-sticky top-0 h-100" style="max-height: 85vh; overflow-y: auto;">
-                <div class="card shadow-sm border-0 rounded-2 bg-white sticky-top">
-                    <div class="card-body p-4">
-                        <h5 class="fw-bold text-dark mb-4 border-bottom pb-2">Refine History</h5>
-                        
-                        <div class="mb-4">
-                            <label class="form-label small fw-bold text-secondary text-uppercase tracking-wider">Search History</label>
-                            <div class="input-group shadow-none border rounded-2 overflow-hidden">
-                                <span class="input-group-text bg-light border-0"><i class="bi bi-search"></i></span>
-                                <input type="text" class="form-control border-0 bg-light shadow-none" placeholder="Search title or director..." 
-                                       @bind="WatchlistSvc.SearchQuery" @bind:event="oninput" />
-                            </div>
-                        </div>
 
-                        <div class="mb-4">
-                            <label class="form-label small fw-bold text-secondary text-uppercase tracking-wider">Rating Range</label>
-                            <div class="d-flex gap-2 align-items-center">
-                                <select class="form-select form-select-sm border rounded-2 bg-light shadow-none py-1" 
-                                        value="@WatchlistSvc.FilterMinRating20"
-                                        @onchange="@(e => WatchlistSvc.FilterMinRating20 = int.Parse(e.Value?.ToString() ?? "0"))">
-                                    <option value="0">Min</option>
-                                    @for (int i = 1; i <= 20; i++) {
-                                        <option value="@i">@GetRatingLabel(i)</option>
-                                    }
-                                </select>
-                                <span class="text-secondary x-small">to</span>
-                                <select class="form-select form-select-sm border rounded-2 bg-light shadow-none py-1" 
-                                        value="@WatchlistSvc.FilterMaxRating20"
-                                        @onchange="@(e => WatchlistSvc.FilterMaxRating20 = int.Parse(e.Value?.ToString() ?? "20"))">
-                                    <option value="20">Max</option>
-                                    @for (int i = 1; i <= 20; i++) {
-                                        <option value="@i">@GetRatingLabel(i)</option>
-                                    }
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="mb-4">
-                            <label class="form-label small fw-bold text-secondary text-uppercase tracking-wider">Genre</label>
-                            <select class="form-select border rounded-2 bg-light shadow-none" @bind="WatchlistSvc.SelectedGenre">
-                                <option value="All">All Genres</option>
-                                @foreach (var genre in AvailableGenres)
-                                {
-                                    <option value="@genre">@genre</option>
-                                }
-                            </select>
-                        </div>
-
-                        <div class="mb-4">
-                            <label class="form-label small fw-bold text-secondary text-uppercase tracking-wider">Type</label>
-                            <select class="form-select border rounded-2 bg-light shadow-none" @bind="WatchlistSvc.SelectedType">
-                                <option value="All">All Types</option>
-                                <option value="Movie">Movies</option>
-                                <option value="TV Series">TV Series</option>
-                            </select>
-                        </div>
-
-                        <div class="mb-4">
-                            <label class="form-label small fw-bold text-secondary text-uppercase tracking-wider">Year Range</label>
-                            <div class="d-flex gap-2">
-                                <input type="number" class="form-control border rounded-2 bg-light shadow-none px-2" placeholder="From" 
-                                       @bind="WatchlistSvc.StartYear" />
-                                <input type="number" class="form-control border rounded-2 bg-light shadow-none px-2" placeholder="To" 
-                                       @bind="WatchlistSvc.EndYear" />
-                            </div>
-                        </div>
-
-                        <div class="d-grid gap-2 pt-2">
-                            <button class="btn btn-dark rounded-pill py-2 shadow-sm border-0 fw-semibold" @onclick="WatchlistSvc.ShowRandomMovieAsync">
-                                <i class="bi bi-dice-5 me-2"></i> Pick Random Movie
-                            </button>
-                            <button class="btn btn-outline-secondary btn-sm border-0 py-2" @onclick="ClearFilters">
-                                <i class="bi bi-eraser me-2"></i> Clear All Filters
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        }
     </div>
     }
 </div>
 
 @code {
     private bool showFilters = false;
+    private bool isEditing = false;
+    private void ToggleEdit() => isEditing = !isEditing;
     private List<WatchlistItem> _watchedItems = new();
     private List<string> _availableGenres = new();
 

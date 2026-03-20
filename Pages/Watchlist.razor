@@ -13,106 +13,18 @@
     }
     else
     {
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2 class="mb-0 fw-bolder text-dark d-flex align-items-center">
-                <i class="bi bi-list-nested me-3 text-secondary"></i> Watchlist
-                <span class="badge bg-light text-secondary ms-3 rounded-pill fs-6 fw-normal border shadow-sm">@WatchlistSvc.FilteredItems.Count() Items</span>
-            </h2>
+        <div class="d-flex justify-content-start align-items-center mb-4 gap-2">
             <button class="btn btn-sm @(showFilters ? "btn-dark shadow" : "btn-outline-secondary") rounded-pill px-4 py-2 transition-all fw-medium" @onclick="ToggleFilters">
                 <i class="bi @(showFilters ? "bi-chevron-left" : "bi-funnel") me-2"></i> 
                 @(showFilters ? "Hide Filters" : "Show Filters")
             </button>
+            <button class="btn btn-sm @(isEditing ? "btn-primary shadow" : "btn-outline-primary") rounded-pill px-4 py-2 transition-all fw-medium" @onclick="ToggleEdit">
+                <i class="bi @(isEditing ? "bi-check-lg" : "bi-pencil") me-2"></i> 
+                @(isEditing ? "Done Editing" : "Edit List")
+            </button>
         </div>
 
         <div class="row g-4 h-100">
-            <div class="@(showFilters ? "col-md-9" : "col-12")">
-                <div class="card shadow border-0 overflow-hidden rounded-2">
-                    <div class="card-body p-0 bg-white" style="height: 88vh; min-height: 80vh; overflow-y: auto;">
-                        <table class="table table-hover align-middle mb-0 border-light">
-                    <thead class="bg-light text-secondary fw-semibold" style="position: sticky; top: 0; z-index: 1;">
-                        <tr>
-                            <th scope="col" style="width: 5%;" class="border-bottom py-2.5 px-3 text-center"></th>
-                            <th scope="col" style="width: 40%; cursor: pointer;" class="border-bottom py-2.5 px-3" @onclick='() => WatchlistSvc.ToggleSort("Title")'>
-                                Title 
-                                @if (WatchlistSvc.SortColumn == "Title") { <i class="bi @(WatchlistSvc.SortDescending ? "bi-sort-alpha-up-alt" : "bi-sort-alpha-down") ms-1"></i> }
-                                <span class="badge bg-secondary text-white shadow-sm fw-normal ms-2 rounded-2 px-2 py-1">@WatchlistSvc.FilteredItems.Count() Items</span>
-                            </th>
-                            <th scope="col" style="width: 25%;" class="border-bottom py-2.5 px-3">Director</th>
-                             <th scope="col" style="width: 12%; cursor: pointer;" class="border-bottom py-2.5" @onclick='() => WatchlistSvc.ToggleSort("Year")'>
-                                Year
-                                @if (WatchlistSvc.SortColumn == "Year") { <i class="bi @(WatchlistSvc.SortDescending ? "bi-sort-numeric-up-alt" : "bi-sort-numeric-down") ms-1"></i> }
-                            </th>
-                            <th scope="col" style="width: 10%; cursor: pointer;" class="border-bottom py-2.5" @onclick='() => WatchlistSvc.ToggleSort("DateAdded")'>
-                                Added
-                                @if (WatchlistSvc.SortColumn == "DateAdded") { <i class="bi @(WatchlistSvc.SortDescending ? "bi-sort-numeric-up-alt" : "bi-sort-numeric-down") ms-1"></i> }
-                            </th>
-                            <th scope="col" style="width: 13%; cursor: pointer;" class="border-bottom py-2.5" @onclick='() => WatchlistSvc.ToggleSort("Type")'>
-                                Type
-                                @if (WatchlistSvc.SortColumn == "Type") { <i class="bi @(WatchlistSvc.SortDescending ? "bi-sort-alpha-up-alt" : "bi-sort-alpha-down") ms-1"></i> }
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody class="border-top-0">
-                        <Virtualize Items="_filteredItems" Context="item" ItemSize="250" OverscanCount="20">
-                            <tr @key="item">
-                                <td class="text-center px-3">
-                                    <div class="d-flex align-items-center justify-content-center gap-1">
-                                        <button class="btn btn-sm btn-outline-success border-0 rounded-circle shadow-none p-1 d-inline-flex align-items-center justify-content-center show-on-row-hover" 
-                                                style="width: 30px; height: 30px;"
-                                                @onclick="() => StartWatching(item)" @onclick:stopPropagation="true" title="Start Watching">
-                                            <i class="bi bi-play-fill fs-5"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-link text-danger p-0 shadow-none d-inline-flex align-items-center justify-content-center show-on-row-hover" 
-                                                style="width: 30px; height: 30px;"
-                                                @onclick="() => RemoveFromWatchlist(item)" @onclick:stopPropagation="true" title="Remove from Watchlist">
-                                            <i class="bi bi-x-lg fs-4"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                                <td style="cursor: pointer;" class="px-3 py-3" @onclick="() => WatchlistSvc.ShowDetailsAsync(item)">
-                                    <div class="d-flex flex-column gap-1">
-                                        <span class="fw-bold text-dark" style="transition: opacity 0.2s;" onmouseover="this.style.opacity='0.6'" onmouseout="this.style.opacity='1'">
-                                            @item.Title
-                                        </span>
-                                        @if (item.DisplayOriginalTitle != null || !string.IsNullOrEmpty(item.Overview))
-                                        {
-                                            <div class="plot-meta d-flex flex-column">
-                                                @if (item.DisplayOriginalTitle != null)
-                                                {
-                                                    <div class="plot-original-title">(@item.DisplayOriginalTitle)</div>
-                                                }
-                                                @if (!string.IsNullOrEmpty(item.Overview))
-                                                {
-                                                    <div class="plot-text">
-                                                        @item.Overview
-                                                    </div>
-                                                }
-                                            </div>
-                                        }
-                                    </div>
-                                </td>
-                                <td class="text-secondary small px-3">
-                                    @item.Director
-                                </td>
-                                <td class="text-secondary fw-medium">
-                                    @item.Year
-                                </td>
-                                <td class="text-secondary small">
-                                    @item.DateAdded.ToString("MMM dd")
-                                </td>
-                                <td>
-                                    <span class="badge rounded-pill @(item.TitleType.Equals("Movie", StringComparison.OrdinalIgnoreCase) ? "bg-secondary text-white" : "bg-light text-dark border")">
-                                        @item.TitleType
-                                    </span>
-                                </td>
-                            </tr>
-                        </Virtualize>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
             @if (showFilters)
             {
                 <div class="col-md-3 position-sticky top-0 h-100" style="max-height: 88vh; overflow-y: auto;">
@@ -171,6 +83,113 @@
                     </div>
                 </div>
             }
+
+            <div class="@(showFilters ? "col-md-9" : "col-12")">
+                <div class="card shadow border-0 overflow-hidden rounded-2">
+                    <div class="card-body p-0 bg-white" style="height: 88vh; min-height: 80vh; overflow-y: auto;">
+                        <table class="table table-hover align-middle mb-0 border-light">
+                    <thead class="bg-light text-secondary fw-semibold" style="position: sticky; top: 0; z-index: 1;">
+                        <tr>
+                            @if (isEditing)
+                            {
+                                <th scope="col" style="width: 10%;" class="border-bottom py-2.5 px-3 text-center"></th>
+                            }
+                            <th scope="col" style="width: @(isEditing ? "32%" : "40%"); cursor: pointer;" class="border-bottom py-2.5 px-3" @onclick='() => WatchlistSvc.ToggleSort("Title")'>
+                                Title 
+                                @if (WatchlistSvc.SortColumn == "Title") { <i class="bi @(WatchlistSvc.SortDescending ? "bi-sort-alpha-up-alt" : "bi-sort-alpha-down") ms-1"></i> }
+                                <span class="badge bg-secondary text-white shadow-sm fw-normal ms-2 rounded-2 px-2 py-1">@WatchlistSvc.FilteredItems.Count() Items</span>
+                            </th>
+                            <th scope="col" style="width: 25%;" class="border-bottom py-2.5 px-3">Director</th>
+                             <th scope="col" style="width: 12%; cursor: pointer;" class="border-bottom py-2.5" @onclick='() => WatchlistSvc.ToggleSort("Year")'>
+                                Year
+                                @if (WatchlistSvc.SortColumn == "Year") { <i class="bi @(WatchlistSvc.SortDescending ? "bi-sort-numeric-up-alt" : "bi-sort-numeric-down") ms-1"></i> }
+                            </th>
+                            <th scope="col" style="width: 10%; cursor: pointer;" class="border-bottom py-2.5" @onclick='() => WatchlistSvc.ToggleSort("DateAdded")'>
+                                Added
+                                @if (WatchlistSvc.SortColumn == "DateAdded") { <i class="bi @(WatchlistSvc.SortDescending ? "bi-sort-numeric-up-alt" : "bi-sort-numeric-down") ms-1"></i> }
+                            </th>
+                            <th scope="col" style="width: 13%; cursor: pointer;" class="border-bottom py-2.5" @onclick='() => WatchlistSvc.ToggleSort("Type")'>
+                                Type
+                                @if (WatchlistSvc.SortColumn == "Type") { <i class="bi @(WatchlistSvc.SortDescending ? "bi-sort-alpha-up-alt" : "bi-sort-alpha-down") ms-1"></i> }
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="border-top-0">
+                        <Virtualize Items="_filteredItems" Context="item" ItemSize="250" OverscanCount="20">
+                            <tr @key="item">
+                                @if (isEditing)
+                                {
+                                    <td class="text-center px-2" style="width: 10%;">
+                                        <div class="d-flex align-items-center justify-content-center gap-1">
+                                            <button class="btn btn-sm btn-light border-0 text-success bg-success bg-opacity-10 rounded-3 shadow-none p-1 d-inline-flex align-items-center justify-content-center" 
+                                                    style="width: 32px; height: 32px; transition: all 0.2s;"
+                                                    onmouseover="this.classList.replace('bg-opacity-10','bg-opacity-25')"
+                                                    onmouseout="this.classList.replace('bg-opacity-25','bg-opacity-10')"
+                                                    @onclick="() => StartWatching(item)" @onclick:stopPropagation="true" title="Start Watching">
+                                                <i class="bi bi-play-fill fs-5"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-light border-0 text-primary bg-primary bg-opacity-10 rounded-3 shadow-none p-1 d-inline-flex align-items-center justify-content-center" 
+                                                    style="width: 32px; height: 32px; transition: all 0.2s;"
+                                                    onmouseover="this.classList.replace('bg-opacity-10','bg-opacity-25')"
+                                                    onmouseout="this.classList.replace('bg-opacity-25','bg-opacity-10')"
+                                                    @onclick="() => MarkAsWatched(item)" @onclick:stopPropagation="true" title="Mark as Watched">
+                                                <i class="bi bi-check-lg fs-5"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-light border-0 text-danger bg-danger bg-opacity-10 rounded-3 shadow-none p-1 d-inline-flex align-items-center justify-content-center" 
+                                                    style="width: 32px; height: 32px; transition: all 0.2s;"
+                                                    onmouseover="this.classList.replace('bg-opacity-10','bg-opacity-25')"
+                                                    onmouseout="this.classList.replace('bg-opacity-25','bg-opacity-10')"
+                                                    @onclick="() => RemoveFromWatchlist(item)" @onclick:stopPropagation="true" title="Remove from Watchlist">
+                                                <i class="bi bi-trash3-fill fs-6"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                }
+                                <td style="cursor: pointer;" class="px-3 py-3" @onclick="() => WatchlistSvc.ShowDetailsAsync(item)">
+                                    <div class="d-flex flex-column gap-1">
+                                        <span class="fw-bold text-dark" style="transition: opacity 0.2s;" onmouseover="this.style.opacity='0.6'" onmouseout="this.style.opacity='1'">
+                                            @item.Title
+                                        </span>
+                                        @if (item.DisplayOriginalTitle != null || !string.IsNullOrEmpty(item.Overview))
+                                        {
+                                            <div class="plot-meta d-flex flex-column">
+                                                @if (item.DisplayOriginalTitle != null)
+                                                {
+                                                    <div class="plot-original-title">(@item.DisplayOriginalTitle)</div>
+                                                }
+                                                @if (!string.IsNullOrEmpty(item.Overview))
+                                                {
+                                                    <div class="plot-text">
+                                                        @item.Overview
+                                                    </div>
+                                                }
+                                            </div>
+                                        }
+                                    </div>
+                                </td>
+                                <td class="text-secondary small px-3">
+                                    @item.Director
+                                </td>
+                                <td class="text-secondary fw-medium">
+                                    @item.Year
+                                </td>
+                                <td class="text-secondary small">
+                                    @item.DateAdded.ToString("MMM dd")
+                                </td>
+                                <td>
+                                    <span class="badge rounded-pill @(item.TitleType.Equals("Movie", StringComparison.OrdinalIgnoreCase) ? "bg-secondary text-white" : "bg-light text-dark border")">
+                                        @item.TitleType
+                                    </span>
+                                </td>
+                            </tr>
+                        </Virtualize>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+
         </div>
     }
 </div>
@@ -203,6 +222,8 @@
 
 @code {
     private bool showFilters = false;
+    private bool isEditing = false;
+    private void ToggleEdit() => isEditing = !isEditing;
     private List<WatchlistItem> _filteredItems = new();
     private List<string> _availableGenres = new();
 
@@ -260,5 +281,10 @@
     private async Task RemoveFromWatchlist(WatchlistItem item)
     {
         await WatchlistSvc.RemoveFromWatchlistAsync(item);
+    }
+
+    private async Task MarkAsWatched(WatchlistItem item)
+    {
+        await WatchlistSvc.UpdateStatusAsync(item, WatchlistStatus.Watched);
     }
 }

@@ -6,10 +6,12 @@
 <PageTitle>Watching</PageTitle>
 
 <div class="container-fluid">
-    <h2 class="mb-4 fw-bold text-dark border-bottom pb-3 d-flex align-items-center">
-        <i class="bi bi-play-circle-fill me-3 text-success"></i> Currently Watching
-        <span class="badge bg-success text-white ms-3 rounded-pill fs-6 fw-normal">@WatchlistSvc.WatchingItems.Count() Items</span>
-    </h2>
+    <div class="d-flex justify-content-start align-items-center mb-4 gap-2 border-bottom pb-3">
+        <button class="btn btn-sm @(isEditing ? "btn-primary shadow" : "btn-outline-primary") rounded-pill px-4 py-2 transition-all fw-medium" @onclick="ToggleEdit">
+            <i class="bi @(isEditing ? "bi-check-lg" : "bi-pencil") me-2"></i> 
+            @(isEditing ? "Done Editing" : "Edit List")
+        </button>
+    </div>
 
     @if (!WatchlistSvc.WatchingItems.Any())
     {
@@ -26,7 +28,10 @@
                 <table class="table table-hover align-middle mb-0 border-light">
                     <thead class="bg-light text-secondary fw-semibold">
                         <tr>
-                            <th scope="col" style="width: 5%;" class="border-bottom py-3 px-3 text-center"></th>
+                            @if (isEditing)
+                            {
+                                <th scope="col" style="width: 10%;" class="border-bottom py-3 px-3 text-center"></th>
+                            }
                             <th scope="col" style="width: 40%;" class="border-bottom py-3 px-3">Title</th>
                             <th scope="col" style="width: 20%;" class="border-bottom py-3 px-3 text-center">Tracking</th>
                             <th scope="col" style="width: 10%;" class="border-bottom py-3">Year</th>
@@ -38,20 +43,34 @@
                         @foreach (var item in WatchlistSvc.WatchingItems)
                         {
                             <tr class="position-relative">
-                                <td class="text-center px-3" style="width: 80px;">
-                                    <div class="d-flex align-items-center justify-content-center gap-1">
-                                        <button class="btn btn-sm btn-outline-success border-0 rounded-circle shadow-none p-1 d-inline-flex align-items-center justify-content-center show-on-row-hover" 
-                                                style="width: 32px; height: 32px;"
-                                                @onclick="() => MarkAsWatched(item)" title="Mark as Completed">
-                                            <i class="bi bi-check-lg fs-5"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-link text-secondary p-0 shadow-none d-inline-flex align-items-center justify-content-center show-on-row-hover opacity-50" 
-                                                style="width: 32px; height: 32px;"
-                                                @onclick="() => MoveBack(item)" title="Move back to Watchlist">
-                                            <i class="bi bi-arrow-left fs-5"></i>
-                                        </button>
-                                    </div>
-                                </td>
+                                @if (isEditing)
+                                {
+                                    <td class="text-center px-2" style="width: 10%;">
+                                        <div class="d-flex align-items-center justify-content-center gap-1">
+                                            <button class="btn btn-sm btn-light border-0 text-primary bg-primary bg-opacity-10 rounded-3 shadow-none p-1 d-inline-flex align-items-center justify-content-center" 
+                                                    style="width: 32px; height: 32px; transition: all 0.2s;"
+                                                    onmouseover="this.classList.replace('bg-opacity-10','bg-opacity-25')"
+                                                    onmouseout="this.classList.replace('bg-opacity-25','bg-opacity-10')"
+                                                    @onclick="() => MarkAsWatched(item)" @onclick:stopPropagation="true" title="Mark as Completed">
+                                                <i class="bi bi-check-lg fs-5"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-light border-0 text-secondary bg-secondary bg-opacity-10 rounded-3 shadow-none p-1 d-inline-flex align-items-center justify-content-center" 
+                                                    style="width: 32px; height: 32px; transition: all 0.2s;"
+                                                    onmouseover="this.classList.replace('bg-opacity-10','bg-opacity-25')"
+                                                    onmouseout="this.classList.replace('bg-opacity-25','bg-opacity-10')"
+                                                    @onclick="() => MoveBack(item)" @onclick:stopPropagation="true" title="Move back to Watchlist">
+                                                <i class="bi bi-list-nested fs-6"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-light border-0 text-danger bg-danger bg-opacity-10 rounded-3 shadow-none p-1 d-inline-flex align-items-center justify-content-center" 
+                                                    style="width: 32px; height: 32px; transition: all 0.2s;"
+                                                    onmouseover="this.classList.replace('bg-opacity-10','bg-opacity-25')"
+                                                    onmouseout="this.classList.replace('bg-opacity-25','bg-opacity-10')"
+                                                    @onclick="() => RemoveFromLibrary(item)" @onclick:stopPropagation="true" title="Remove from Library">
+                                                <i class="bi bi-trash3-fill fs-6"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                }
                                 <td style="cursor: pointer;" class="px-3" @onclick="() => WatchlistSvc.ShowDetailsAsync(item)">
                                     <span class="fw-bold text-dark" style="transition: opacity 0.2s;" onmouseover="this.style.opacity='0.6'" onmouseout="this.style.opacity='1'">
                                         @item.Title
@@ -124,6 +143,9 @@
 </div>
 
 @code {
+        private bool isEditing = false;
+        private void ToggleEdit() => isEditing = !isEditing;
+
         protected override void OnInitialized()
         {
             WatchlistSvc.OnStateChanged += StateHasChanged;
@@ -142,6 +164,11 @@
         private async Task MarkAsWatched(WatchlistItem item)
         {
             await WatchlistSvc.UpdateStatusAsync(item, WatchlistStatus.Watched);
+        }
+
+        private async Task RemoveFromLibrary(WatchlistItem item)
+        {
+            await WatchlistSvc.RemoveFromWatchlistAsync(item);
         }
 
         private async Task ChangeSeason(WatchlistItem item, int delta)
