@@ -198,9 +198,20 @@
                                     </td>
                                 }
                                 <td style="cursor: pointer;" class="px-3" @onclick="() => WatchlistSvc.ShowDetailsAsync(item)">
-                                    <span class="fw-bold text-dark" style="transition: opacity 0.2s;" onmouseover="this.style.opacity='0.6'" onmouseout="this.style.opacity='1'">
-                                        @item.Title
-                                    </span>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="fw-bold text-dark" style="transition: opacity 0.2s;" onmouseover="this.style.opacity='0.6'" onmouseout="this.style.opacity='1'">
+                                            @item.Title
+                                        </span>
+                                        <a class="btn btn-sm btn-light border-0 text-secondary p-0 d-inline-flex align-items-center justify-content-center"
+                                           style="width: 24px; height: 24px;"
+                                           href="@Get1337xSearchUrl(item)"
+                                           target="_blank"
+                                           rel="noopener noreferrer"
+                                           title="Search on 1337x"
+                                           @onclick:stopPropagation="true">
+                                            <i class="bi bi-box-arrow-up-right"></i>
+                                        </a>
+                                    </div>
                                     @if (!string.IsNullOrEmpty(item.Director))
                                     {
                                         <span class="text-secondary x-small opacity-75 d-block">@item.Director</span>
@@ -357,6 +368,15 @@
         // 0 to 100 -> Hue 0 to 120
         double hue = (val / 100.0) * 120;
         return $"hsl({hue}, 70%, 45%)";
+    }
+
+    private static string Get1337xSearchUrl(WatchlistItem item)
+    {
+        var query = string.IsNullOrWhiteSpace(item.Year)
+            ? (item.Title ?? "").Trim()
+            : $"{item.Title?.Trim()} {item.Year?.Trim()}".Trim();
+        var encoded = System.Net.WebUtility.UrlEncode(query) ?? "";
+        return $"https://1337x.to/search/{encoded}/1/";
     }
 }
 

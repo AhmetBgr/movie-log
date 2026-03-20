@@ -202,6 +202,15 @@
                                             <span class="fw-bold text-dark fs-6" style="transition: opacity 0.2s;" onmouseover="this.style.opacity='0.6'" onmouseout="this.style.opacity='1'">
                                                 @item.Title
                                             </span>
+                                            <a class="btn btn-sm btn-light border-0 text-secondary p-0 d-inline-flex align-items-center justify-content-center"
+                                               style="width: 24px; height: 24px;"
+                                               href="@Get1337xSearchUrl(item)"
+                                               target="_blank"
+                                               rel="noopener noreferrer"
+                                               title="Search on 1337x"
+                                               @onclick:stopPropagation="true">
+                                                <i class="bi bi-box-arrow-up-right"></i>
+                                            </a>
                                             @if (!string.IsNullOrEmpty(item.Director))
                                             {
                                                 <span class="text-secondary opacity-75 small fw-medium">by @item.Director</span>
@@ -343,5 +352,14 @@
     private async Task MarkAsWatched(WatchlistItem item)
     {
         await WatchlistSvc.UpdateStatusAsync(item, WatchlistStatus.Watched);
+    }
+
+    private static string Get1337xSearchUrl(WatchlistItem item)
+    {
+        var query = string.IsNullOrWhiteSpace(item.Year)
+            ? (item.Title ?? "").Trim()
+            : $"{item.Title?.Trim()} {item.Year?.Trim()}".Trim();
+        var encoded = System.Net.WebUtility.UrlEncode(query) ?? "";
+        return $"https://1337x.to/search/{encoded}/1/";
     }
 }
