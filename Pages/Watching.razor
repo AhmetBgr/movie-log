@@ -7,7 +7,7 @@
 
 <div class="container-fluid">
     <div class="d-flex justify-content-start align-items-center mb-4 gap-2 border-bottom pb-3">
-        <button class="btn btn-sm @(isEditing ? "btn-primary shadow" : "btn-outline-primary") rounded-pill px-4 py-2 transition-all fw-medium" @onclick="ToggleEdit">
+        <button class="btn btn-sm @(isEditing ? "btn-primary shadow" : "btn-outline-primary") rounded-2 px-4 py-2 transition-all fw-medium" @onclick="ToggleEdit">
             <i class="bi @(isEditing ? "bi-check-lg" : "bi-pencil") me-2"></i> 
             @(isEditing ? "Done Editing" : "Edit List")
         </button>

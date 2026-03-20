@@ -7,11 +7,23 @@
 
 <div class="container-fluid">
     <div class="d-flex justify-content-start align-items-center mb-4 border-bottom pb-3 gap-2">
-        <button class="btn btn-sm @(showFilters ? "btn-dark shadow" : "btn-outline-secondary") rounded-pill px-4 py-2 transition-all fw-medium" @onclick="ToggleFilters">
-            <i class="bi @(showFilters ? "bi-chevron-left" : "bi-funnel") me-2"></i> 
-            @(showFilters ? "Hide Filters" : "Show Filters")
+        <button class="btn btn-sm @(showFilters ? "btn-dark shadow" : "btn-outline-secondary") rounded-2 px-3 py-2 transition-all fw-medium position-relative" @onclick="ToggleFilters">
+            <i class="bi @(showFilters ? "bi-x-lg" : "bi-funnel") me-1"></i>
+            Filters
+            @{
+                int activeFilterCount = (WatchlistSvc.FilterMinRating20 > 0 ? 1 : 0)
+                    + (WatchlistSvc.FilterMaxRating20 < 100 ? 1 : 0)
+                    + (!string.IsNullOrEmpty(WatchlistSvc.StartYear) ? 1 : 0)
+                    + (!string.IsNullOrEmpty(WatchlistSvc.EndYear) ? 1 : 0)
+                    + (WatchlistSvc.SelectedType != "All" ? 1 : 0)
+                    + (WatchlistSvc.SelectedGenre != "All" ? 1 : 0);
+            }
+            @if (activeFilterCount > 0 && !showFilters)
+            {
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">@activeFilterCount</span>
+            }
         </button>
-        <button class="btn btn-sm @(isEditing ? "btn-primary shadow" : "btn-outline-primary") rounded-pill px-4 py-2 transition-all fw-medium" @onclick="ToggleEdit">
+        <button class="btn btn-sm @(isEditing ? "btn-primary shadow" : "btn-outline-primary") rounded-2 px-4 py-2 transition-all fw-medium" @onclick="ToggleEdit">
             <i class="bi @(isEditing ? "bi-check-lg" : "bi-pencil") me-2"></i> 
             @(isEditing ? "Done Editing" : "Edit List")
         </button>
