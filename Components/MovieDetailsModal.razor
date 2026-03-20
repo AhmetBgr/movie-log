@@ -191,11 +191,12 @@
 
                                         @if (!string.IsNullOrEmpty(movie.TrailerKey))
                                         {
-                                            <button class="btn btn-outline-dark px-4 py-2.5 rounded-3 shadow-none fw-bold d-flex align-items-center justify-content-center border-0 bg-light text-uppercase tracking-wider transition-all" 
-                                                    style="height: 52px; min-width: 120px;" @onclick="OpenTrailer" title="Watch Trailer">
+                                            <a href="https://www.youtube.com/watch?v=@movie.TrailerKey" target="_blank" rel="noopener noreferrer" 
+                                               class="btn btn-outline-dark px-4 py-2.5 rounded-3 shadow-none fw-bold d-flex align-items-center justify-content-center text-uppercase tracking-wider transition-all" 
+                                               style="height: 52px; min-width: 120px; text-decoration: none; --bs-btn-hover-bg: #212529; --bs-btn-hover-color: #fff;" title="Watch Trailer on YouTube">
                                                 <i class="bi bi-play-circle-fill me-2 fs-5 text-danger"></i>
                                                 <span style="font-size: 0.85rem;">Trailer</span>
-                                            </button>
+                                            </a>
                                         }
                                     </div>
                                 </div>

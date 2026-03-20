@@ -1,0 +1,97 @@
+@using Microsoft.AspNetCore.Components
+@implements IDisposable
+
+@if (IsOpen && !string.IsNullOrEmpty(VideoKey))
+{
+    <div class="lightbox-overlay" @onclick="Close" @key="VideoKey">
+        <div class="lightbox-content trailer-content shadow-lg" @onclick:stopPropagation="true">
+            <div class="ratio ratio-16x9" style="min-width: 80vw; max-width: 1200px;">
+                <iframe src="https://www.youtube.com/embed/@VideoKey?autoplay=1" 
+                        title="YouTube video player" frameborder="0" 
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                        allowfullscreen></iframe>
+            </div>
+            <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-4 shadow-lg p-2 rounded-circle bg-dark" 
+                    aria-label="Close" @onclick="Close" style="z-index: 2005; margin-top: -50px !important; margin-right: -20px !important;"></button>
+        </div>
+    </div>
+}
+
+<style>
+    .lightbox-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0,0,0,0.92);
+        backdrop-filter: blur(10px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        padding: 60px;
+    }
+    
+    .lightbox-content {
+        position: relative;
+        max-width: 100%;
+        max-height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .trailer-content {
+        background: #000;
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 8px;
+        overflow: visible;
+    }
+</style>
+
+@code {
+    [Parameter]
+    public string? VideoKey { get; set; }
+    
+    [Parameter]
+    public bool IsOpen { get; set; }
+    
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+    
+    private string? _renderedKey;
+    private bool _skipRender = false;
+    
+    protected override void OnParametersSet()
+    {
+        // Only mark for render if the video key actually changed
+        if (_renderedKey != VideoKey || !_skipRender)
+        {
+            _renderedKey = VideoKey;
+            _skipRender = true;
+        }
+    }
+    
+    protected override bool ShouldRender()
+    {
+        // Never re-render once open with same video
+        if (IsOpen && _renderedKey == VideoKey)
+        {
+            return false;
+        }
+        return true;
+    }
+    
+    private async Task Close()
+    {
+        _skipRender = false;
+        _renderedKey = null;
+        await OnClose.InvokeAsync();
+    }
+    
+    public void Dispose()
+    {
+        _skipRender = false;
+    }
+}
