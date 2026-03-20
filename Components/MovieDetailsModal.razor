@@ -55,9 +55,20 @@
                             <div class="card-body p-3 p-md-5 d-flex flex-column h-100">
                                 <div class="d-flex align-items-start justify-content-between gap-3 mb-1">
                                     <div class="flex-grow-1">
-                                        <h2 class="card-title fw-black text-dark mb-1">
-                                            <a href="https://www.imdb.com/title/@item.ImdbId/" target="_blank" class="text-decoration-none text-dark hover-opacity">@movie.Title</a>
-                                        </h2>
+                                        <div class="title-with-1337x-hover d-flex align-items-center gap-2 flex-wrap mb-1">
+                                            <h2 class="card-title fw-black text-dark mb-0">
+                                                <a href="https://www.imdb.com/title/@item.ImdbId/" target="_blank" class="text-decoration-none text-dark hover-opacity">@movie.Title</a>
+                                            </h2>
+                                            <a class="btn btn-sm btn-light border-0 text-secondary p-0 d-inline-flex align-items-center justify-content-center link-1337x-hover"
+                                               style="width: 28px; height: 28px;"
+                                               href="@Get1337xSearchUrl(movie, item)"
+                                               target="_blank"
+                                               rel="noopener noreferrer"
+                                               title="Search on 1337x"
+                                               @onclick:stopPropagation="true">
+                                                <i class="bi bi-box-arrow-up-right"></i>
+                                            </a>
+                                        </div>
                                         @if (!string.IsNullOrEmpty(movie.ReleaseDate))
                                         {
                                             <p class="text-secondary fw-semibold small mb-2 text-uppercase tracking-wide">Released: @movie.ReleaseDate</p>
@@ -511,6 +522,25 @@
                 await WatchlistSvc.UpdateStatusAsync(libItem, status);
             }
         }
+    }
+
+    private static string Get1337xSearchUrl(TmdbMovie movie, WatchlistItem item)
+    {
+        var title = (movie.Title ?? item.Title)?.Trim() ?? "";
+        var year = "";
+        if (!string.IsNullOrEmpty(movie.ReleaseDate) && movie.ReleaseDate.Length >= 4)
+            year = movie.ReleaseDate[..4];
+        else if (!string.IsNullOrEmpty(item.Year))
+        {
+            var digits = new string(item.Year.TakeWhile(char.IsDigit).ToArray());
+            year = digits.Length >= 4 ? digits[..4] : (item.ParsedYear > 0 ? item.ParsedYear.ToString() : "");
+        }
+        else if (item.ParsedYear > 0)
+            year = item.ParsedYear.ToString();
+
+        var query = string.IsNullOrWhiteSpace(year) ? title : $"{title} {year}".Trim();
+        var encoded = System.Net.WebUtility.UrlEncode(query) ?? "";
+        return $"https://1337x.to/search/{encoded}/1/";
     }
 
     private WatchlistItem CreateItem(WatchlistStatus status)
