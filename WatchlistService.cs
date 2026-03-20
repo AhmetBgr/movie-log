@@ -801,6 +801,7 @@ public class TmdbFindResult
     [JsonPropertyName("tv_results")]
     public List<TmdbTvResult> TvResults { get; set; } = new();
 }
+}
 
 public class TmdbSearchResult
 {
