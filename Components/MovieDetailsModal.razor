@@ -13,7 +13,7 @@
                 <div class="card bg-white text-dark shadow-lg border-0 rounded-2 overflow-hidden position-relative">
                     <div class="row g-0">
                         <!-- Media Section (Poster or Gallery) -->
-                        <div class="col-md-5 text-center p-0 bg-black d-flex flex-column" style="height: 680px;">
+                        <div class="col-md-5 text-center p-0 bg-black d-flex flex-column" style="min-height: 400px; max-height: 70vh; height: auto;">
                             @if (showScreenshots && movie.BackdropPaths.Any())
                             {
                                 <div class="screenshot-gallery flex-grow-1 overflow-auto p-2 d-flex flex-column gap-2 custom-scrollbar">
@@ -51,7 +51,7 @@
                         <div class="col-md-7 position-relative">
                             <button type="button" class="btn-close position-absolute top-0 end-0 m-4 shadow-none" aria-label="Close" @onclick="WatchlistSvc.CloseModal"></button>
                             
-                            <div class="card-body p-5 d-flex flex-column h-100">
+                            <div class="card-body p-3 p-md-5 d-flex flex-column h-100">
                                 <h2 class="card-title fw-bolder text-dark mb-1 pe-4">
                                     <a href="https://www.imdb.com/title/@item.ImdbId/" target="_blank" class="text-decoration-none text-dark hover-opacity">@movie.Title</a>
                                 </h2>
@@ -61,7 +61,7 @@
                                     <p class="text-secondary fw-semibold small mb-4 text-uppercase tracking-wide">Released: @movie.ReleaseDate</p>
                                 }
 
-                                <div class="mb-4 d-flex align-items-center gap-3">
+                                <div class="mb-4 d-flex flex-wrap align-items-center gap-2 gap-md-3">
                                     <span class="badge bg-dark text-white fs-6 px-3 py-2 rounded-pill shadow-sm">
                                         <i class="bi bi-star-fill text-warning me-1"></i> @movie.VoteAverage.ToString("0.0") / 10
                                     </span>
@@ -116,7 +116,7 @@
                                 </div>
                                 
                                 <div class="mt-auto pt-4 border-top">
-                                    <div class="d-flex gap-3 align-items-center">
+                                    <div class="d-flex flex-column flex-sm-row gap-3 align-items-stretch align-items-sm-center">
                                         @{
                                             var libItem = GetLibraryItem();
                                             var status = libItem?.Status;
@@ -125,37 +125,37 @@
                                         <!-- Status Tabs -->
                                         <div class="btn-group bg-light rounded-3 p-1 shadow-sm flex-grow-1">
                                             <!-- Watchlist -->
-                                            <button class="btn btn-lg @(status == WatchlistStatus.Pending ? "btn-secondary shadow-none" : "btn-light border-0 text-secondary bg-transparent") flex-grow-1 py-2.5 rounded-3 d-flex align-items-center justify-content-center transition-all" 
+                                            <button class="btn btn-lg @(status == WatchlistStatus.Pending ? "btn-secondary shadow-none" : "btn-light border-0 text-secondary bg-transparent") flex-grow-1 py-2.5 rounded-3 d-flex align-items-center justify-content-center transition-all px-1 px-md-3" 
                                                     onmouseover="if(!this.classList.contains('btn-secondary')) this.classList.add('bg-white')"
                                                     onmouseout="if(!this.classList.contains('btn-secondary')) this.classList.remove('bg-white')"
                                                     @onclick="() => (status == WatchlistStatus.Pending ? RemoveItem() : HandleStatusTabClick(WatchlistStatus.Pending))">
-                                                <i class="bi bi-list-nested me-2 fs-5"></i> 
-                                                <span class="small fw-bold">Watchlist</span>
+                                                <i class="bi bi-list-nested me-1 me-md-2 fs-5"></i> 
+                                                <span class="small-mobile-text fw-bold">Watchlist</span>
                                             </button>
                                             
                                             <!-- Watching -->
-                                            <button class="btn btn-lg @(status == WatchlistStatus.Watching ? "btn-success shadow-none" : "btn-light border-0 text-success bg-transparent") flex-grow-1 py-2.5 rounded-3 d-flex align-items-center justify-content-center transition-all" 
+                                            <button class="btn btn-lg @(status == WatchlistStatus.Watching ? "btn-success shadow-none" : "btn-light border-0 text-success bg-transparent") flex-grow-1 py-2.5 rounded-3 d-flex align-items-center justify-content-center transition-all px-1 px-md-3" 
                                                     onmouseover="if(!this.classList.contains('btn-success')) this.classList.add('bg-white')"
                                                     onmouseout="if(!this.classList.contains('btn-success')) this.classList.remove('bg-white')"
                                                     @onclick="() => (status == WatchlistStatus.Watching ? RemoveItem() : HandleStatusTabClick(WatchlistStatus.Watching))">
                                                 <i class="bi bi-play-fill me-1 fs-4"></i> 
-                                                <span class="small fw-bold">Watching</span>
+                                                <span class="small-mobile-text fw-bold">Watching</span>
                                             </button>
                                             
                                             <!-- Watched -->
-                                            <button class="btn btn-lg @(status == WatchlistStatus.Watched ? "btn-primary shadow-none" : "btn-light border-0 text-primary bg-transparent") flex-grow-1 py-2.5 rounded-3 d-flex align-items-center justify-content-center transition-all" 
+                                            <button class="btn btn-lg @(status == WatchlistStatus.Watched ? "btn-primary shadow-none" : "btn-light border-0 text-primary bg-transparent") flex-grow-1 py-2.5 rounded-3 d-flex align-items-center justify-content-center transition-all px-1 px-md-3" 
                                                     onmouseover="if(!this.classList.contains('btn-primary')) this.classList.add('bg-white')"
                                                     onmouseout="if(!this.classList.contains('btn-primary')) this.classList.remove('btn-white')"
                                                     @onclick="() => (status == WatchlistStatus.Watched ? RemoveItem() : HandleStatusTabClick(WatchlistStatus.Watched))">
-                                                <i class="bi bi-check-lg me-2 fs-5"></i> 
-                                                <span class="small fw-bold">Watched</span>
+                                                <i class="bi bi-check-lg me-1 me-md-2 fs-5"></i> 
+                                                <span class="small-mobile-text fw-bold">Watched</span>
                                             </button>
                                         </div>
 
                                         @if (!string.IsNullOrEmpty(movie.TrailerKey))
                                         {
                                             <button class="btn btn-outline-dark px-4 py-2.5 rounded-3 shadow-none fw-bold d-flex align-items-center justify-content-center border-0 bg-light text-uppercase tracking-wider transition-all" 
-                                                    style="height: 52px;" @onclick="OpenTrailer" title="Watch Trailer">
+                                                    style="height: 52px; min-width: 120px;" @onclick="OpenTrailer" title="Watch Trailer">
                                                 <i class="bi bi-play-circle-fill me-2 fs-5 text-danger"></i>
                                                 <span style="font-size: 0.85rem;">Trailer</span>
                                             </button>
@@ -270,6 +270,22 @@
         border: 1px solid rgba(255,255,255,0.1);
         border-radius: 8px;
         overflow: visible;
+    }
+
+    .small-mobile-text {
+        font-size: 0.85rem;
+    }
+
+    @@media (max-width: 576px) {
+        .small-mobile-text {
+            font-size: 0.75rem;
+        }
+        .modal-dialog {
+            margin: 0.5rem;
+        }
+        .info-content {
+            max-height: none !important;
+        }
     }
 </style>
 
