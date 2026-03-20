@@ -9,9 +9,9 @@
 
 <div class="container-fluid">
     <div class="d-flex align-items-center gap-3 mb-4 border-bottom pb-3">
-        <button class="btn btn-sm @(isEditing ? "btn-primary shadow" : "btn-outline-primary") rounded-2 px-4 py-2 transition-all fw-medium" @onclick="ToggleEdit">
-            <i class="bi @(isEditing ? "bi-check-lg" : "bi-pencil") me-2"></i> 
-            @(isEditing ? "Done Editing" : "Quick Add")
+        <button class="btn btn-sm @(isEditing ? "btn-dark shadow" : "btn-outline-secondary") rounded-2 px-3 py-2 transition-all fw-medium" @onclick="ToggleEdit">
+            <i class="bi @(isEditing ? "bi-check-lg" : "bi-pencil") me-1"></i> 
+            @(isEditing ? "Done" : "Edit")
         </button>
         <h2 class="fw-bold text-dark mb-0">Search Results for "@Uri.UnescapeDataString(Query)"</h2>
     </div>
