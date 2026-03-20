@@ -86,32 +86,44 @@
                                         <div class="d-inline-flex align-items-center bg-light rounded-pill p-1 border shadow-sm mx-auto tracking-pill">
                                             <!-- Season Control -->
                                             <div class="d-flex align-items-center px-1">
-                                                <button class="btn btn-xs btn-white border shadow-sm rounded-circle p-0 d-flex align-items-center justify-content-center show-on-pill-hover" 
-                                                        style="width: 22px; height: 22px;" @onclick="() => ChangeSeason(item, -1)">
-                                                    <i class="bi bi-dash fs-6"></i>
-                                                </button>
+                                                @if (isEditing)
+                                                {
+                                                    <button class="btn btn-xs btn-white border shadow-sm rounded-circle p-0 d-flex align-items-center justify-content-center me-1" 
+                                                            style="width: 22px; height: 22px;" @onclick="() => ChangeSeason(item, -1)">
+                                                        <i class="bi bi-dash fs-6"></i>
+                                                    </button>
+                                                }
                                                 <span class="text-secondary small fw-bold mx-1">S</span>
                                                 <span class="fw-bolder text-dark" style="min-width: 20px;">@item.CurrentSeason</span>
-                                                <button class="btn btn-xs btn-white border shadow-sm rounded-circle p-0 d-flex align-items-center justify-content-center show-on-pill-hover" 
-                                                        style="width: 22px; height: 22px;" @onclick="() => ChangeSeason(item, 1)">
-                                                    <i class="bi bi-plus fs-6"></i>
-                                                </button>
+                                                @if (isEditing)
+                                                {
+                                                    <button class="btn btn-xs btn-white border shadow-sm rounded-circle p-0 d-flex align-items-center justify-content-center ms-1" 
+                                                            style="width: 22px; height: 22px;" @onclick="() => ChangeSeason(item, 1)">
+                                                        <i class="bi bi-plus fs-6"></i>
+                                                    </button>
+                                                }
                                             </div>
                                             
                                             <div class="vr mx-1 my-1 opacity-10" style="height: 18px;"></div>
                                             
                                             <!-- Episode Control -->
                                             <div class="d-flex align-items-center px-1">
-                                                <button class="btn btn-xs btn-white border shadow-sm rounded-circle p-0 d-flex align-items-center justify-content-center show-on-pill-hover" 
-                                                        style="width: 22px; height: 22px;" @onclick="() => ChangeEpisode(item, -1)">
-                                                    <i class="bi bi-dash fs-6"></i>
-                                                </button>
+                                                @if (isEditing)
+                                                {
+                                                    <button class="btn btn-xs btn-white border shadow-sm rounded-circle p-0 d-flex align-items-center justify-content-center me-1" 
+                                                            style="width: 22px; height: 22px;" @onclick="() => ChangeEpisode(item, -1)">
+                                                        <i class="bi bi-dash fs-6"></i>
+                                                    </button>
+                                                }
                                                 <span class="text-secondary small fw-bold mx-1">E</span>
                                                 <span class="fw-bolder text-dark" style="min-width: 20px;">@item.CurrentEpisode</span>
-                                                <button class="btn btn-xs btn-white border shadow-sm rounded-circle p-0 d-flex align-items-center justify-content-center show-on-pill-hover" 
-                                                        style="width: 22px; height: 22px;" @onclick="() => ChangeEpisode(item, 1)">
-                                                    <i class="bi bi-plus fs-6"></i>
-                                                </button>
+                                                @if (isEditing)
+                                                {
+                                                    <button class="btn btn-xs btn-white border shadow-sm rounded-circle p-0 d-flex align-items-center justify-content-center ms-1" 
+                                                            style="width: 22px; height: 22px;" @onclick="() => ChangeEpisode(item, 1)">
+                                                        <i class="bi bi-plus fs-6"></i>
+                                                    </button>
+                                                }
                                             </div>
                                         </div>
                                     }
