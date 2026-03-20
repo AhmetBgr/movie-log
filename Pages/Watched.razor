@@ -117,7 +117,7 @@
                             <tr>
                                 @if (isEditing)
                                 {
-                                    <th scope="col" style="width: 10%; text-align: center;" class="py-3 px-3"></th>
+                                    <th scope="col" style="width: 1%; white-space: nowrap; text-align: center;" class="py-3 px-3"></th>
                                 }
                                 <th scope="col" style="width: @(isEditing ? "38%" : "48%"); cursor: pointer;" class="py-3 px-3" @onclick='() => WatchlistSvc.ToggleWatchedSort("Title")'>
                                     Title
@@ -146,8 +146,15 @@
                             <tr @key="item.ImdbId">
                                 @if (isEditing)
                                 {
-                                    <td class="text-center px-2" style="width: 10%;">
+                                    <td class="text-center px-1" style="width: 1%; white-space: nowrap;">
                                         <div class="d-flex align-items-center justify-content-center gap-1">
+                                            <button class="btn btn-sm btn-light border-0 text-secondary bg-secondary bg-opacity-10 rounded-3 shadow-none p-1 d-inline-flex align-items-center justify-content-center" 
+                                                    style="width: 32px; height: 32px; transition: all 0.2s;"
+                                                    onmouseover="this.classList.replace('bg-opacity-10','bg-opacity-25')"
+                                                    onmouseout="this.classList.replace('bg-opacity-25','bg-opacity-10')"
+                                                    @onclick="() => MoveToWatchlist(item)" @onclick:stopPropagation="true" title="To Watchlist">
+                                                <i class="bi bi-list-nested fs-6"></i>
+                                            </button>
                                             <button class="btn btn-sm btn-light border-0 text-success bg-success bg-opacity-10 rounded-3 shadow-none p-1 d-inline-flex align-items-center justify-content-center" 
                                                     style="width: 32px; height: 32px; transition: all 0.2s;"
                                                     onmouseover="this.classList.replace('bg-opacity-10','bg-opacity-25')"
@@ -155,18 +162,11 @@
                                                     @onclick="() => RestartWatching(item)" @onclick:stopPropagation="true" title="Watch Again">
                                                 <i class="bi bi-play-fill fs-5"></i>
                                             </button>
-                                            <button class="btn btn-sm btn-light border-0 text-secondary bg-secondary bg-opacity-10 rounded-3 shadow-none p-1 d-inline-flex align-items-center justify-content-center" 
+                                            <button class="btn btn-sm btn-light border-0 text-danger bg-danger bg-opacity-10 rounded-3 shadow-none p-1 d-inline-flex align-items-center justify-content-center ms-1" 
                                                     style="width: 32px; height: 32px; transition: all 0.2s;"
                                                     onmouseover="this.classList.replace('bg-opacity-10','bg-opacity-25')"
                                                     onmouseout="this.classList.replace('bg-opacity-25','bg-opacity-10')"
-                                                    @onclick="() => MoveToWatchlist(item)" @onclick:stopPropagation="true" title="Move back to Watchlist">
-                                                <i class="bi bi-list-nested fs-6"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-light border-0 text-danger bg-danger bg-opacity-10 rounded-3 shadow-none p-1 d-inline-flex align-items-center justify-content-center" 
-                                                    style="width: 32px; height: 32px; transition: all 0.2s;"
-                                                    onmouseover="this.classList.replace('bg-opacity-10','bg-opacity-25')"
-                                                    onmouseout="this.classList.replace('bg-opacity-25','bg-opacity-10')"
-                                                    @onclick="() => RemoveFromLibrary(item)" @onclick:stopPropagation="true" title="Remove from Library">
+                                                    @onclick="() => WatchlistSvc.RemoveFromWatchlistAsync(item)" @onclick:stopPropagation="true" title="Remove from Library">
                                                 <i class="bi bi-trash3-fill fs-6"></i>
                                             </button>
                                         </div>

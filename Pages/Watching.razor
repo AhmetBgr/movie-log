@@ -30,7 +30,7 @@
                         <tr>
                             @if (isEditing)
                             {
-                                <th scope="col" style="width: 10%;" class="border-bottom py-3 px-3 text-center"></th>
+                                <th scope="col" style="width: 1%; white-space: nowrap;" class="border-bottom py-3 px-3 text-center"></th>
                             }
                             <th scope="col" style="width: 40%;" class="border-bottom py-3 px-3">Title</th>
                             <th scope="col" style="width: 20%;" class="border-bottom py-3 px-3 text-center">Tracking</th>
@@ -45,30 +45,30 @@
                             <tr class="position-relative">
                                 @if (isEditing)
                                 {
-                                    <td class="text-center px-2" style="width: 10%;">
-                                        <div class="d-flex align-items-center justify-content-center gap-1">
-                                            <button class="btn btn-sm btn-light border-0 text-primary bg-primary bg-opacity-10 rounded-3 shadow-none p-1 d-inline-flex align-items-center justify-content-center" 
-                                                    style="width: 32px; height: 32px; transition: all 0.2s;"
-                                                    onmouseover="this.classList.replace('bg-opacity-10','bg-opacity-25')"
-                                                    onmouseout="this.classList.replace('bg-opacity-25','bg-opacity-10')"
-                                                    @onclick="() => MarkAsWatched(item)" @onclick:stopPropagation="true" title="Mark as Completed">
-                                                <i class="bi bi-check-lg fs-5"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-light border-0 text-secondary bg-secondary bg-opacity-10 rounded-3 shadow-none p-1 d-inline-flex align-items-center justify-content-center" 
-                                                    style="width: 32px; height: 32px; transition: all 0.2s;"
-                                                    onmouseover="this.classList.replace('bg-opacity-10','bg-opacity-25')"
-                                                    onmouseout="this.classList.replace('bg-opacity-25','bg-opacity-10')"
-                                                    @onclick="() => MoveBack(item)" @onclick:stopPropagation="true" title="Move back to Watchlist">
-                                                <i class="bi bi-list-nested fs-6"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-light border-0 text-danger bg-danger bg-opacity-10 rounded-3 shadow-none p-1 d-inline-flex align-items-center justify-content-center" 
-                                                    style="width: 32px; height: 32px; transition: all 0.2s;"
-                                                    onmouseover="this.classList.replace('bg-opacity-10','bg-opacity-25')"
-                                                    onmouseout="this.classList.replace('bg-opacity-25','bg-opacity-10')"
-                                                    @onclick="() => RemoveFromLibrary(item)" @onclick:stopPropagation="true" title="Remove from Library">
-                                                <i class="bi bi-trash3-fill fs-6"></i>
-                                            </button>
-                                        </div>
+                                    <td class="text-center px-1" style="width: 1%; white-space: nowrap;">
+                                            <div class="d-flex align-items-center justify-content-center gap-1">
+                                                <button class="btn btn-sm btn-light border-0 text-secondary bg-secondary bg-opacity-10 rounded-3 shadow-none p-1 d-inline-flex align-items-center justify-content-center" 
+                                                        style="width: 32px; height: 32px; transition: all 0.2s;"
+                                                        onmouseover="this.classList.replace('bg-opacity-10','bg-opacity-25')"
+                                                        onmouseout="this.classList.replace('bg-opacity-25','bg-opacity-10')"
+                                                        @onclick="() => MoveToWatchlist(item)" @onclick:stopPropagation="true" title="To Watchlist">
+                                                    <i class="bi bi-list-nested fs-6"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-light border-0 text-primary bg-primary bg-opacity-10 rounded-3 shadow-none p-1 d-inline-flex align-items-center justify-content-center" 
+                                                        style="width: 32px; height: 32px; transition: all 0.2s;"
+                                                        onmouseover="this.classList.replace('bg-opacity-10','bg-opacity-25')"
+                                                        onmouseout="this.classList.replace('bg-opacity-25','bg-opacity-10')"
+                                                        @onclick="() => MarkAsWatched(item)" @onclick:stopPropagation="true" title="Mark as Watched">
+                                                    <i class="bi bi-check-lg fs-5"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-light border-0 text-danger bg-danger bg-opacity-10 rounded-3 shadow-none p-1 d-inline-flex align-items-center justify-content-center ms-1" 
+                                                        style="width: 32px; height: 32px; transition: all 0.2s;"
+                                                        onmouseover="this.classList.replace('bg-opacity-10','bg-opacity-25')"
+                                                        onmouseout="this.classList.replace('bg-opacity-25','bg-opacity-10')"
+                                                        @onclick="() => WatchlistSvc.RemoveFromWatchlistAsync(item)" @onclick:stopPropagation="true" title="Remove from Library">
+                                                    <i class="bi bi-trash3-fill fs-6"></i>
+                                                </button>
+                                            </div>
                                     </td>
                                 }
                                 <td style="cursor: pointer;" class="px-3" @onclick="() => WatchlistSvc.ShowDetailsAsync(item)">
@@ -156,7 +156,7 @@
             WatchlistSvc.OnStateChanged -= StateHasChanged;
         }
 
-        private async Task MoveBack(WatchlistItem item)
+        private async Task MoveToWatchlist(WatchlistItem item)
         {
             await WatchlistSvc.UpdateStatusAsync(item, WatchlistStatus.Pending);
         }

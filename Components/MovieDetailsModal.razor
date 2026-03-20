@@ -116,20 +116,48 @@
                                 </div>
                                 
                                 <div class="mt-auto pt-4 border-top">
-                                    <div class="d-flex gap-2">
-                                        <a href="https://www.imdb.com/title/@item.ImdbId/" target="_blank" class="btn btn-dark btn-lg px-4 rounded-pill shadow-sm flex-grow-1 fw-semibold d-flex align-items-center justify-content-center">
-                                            <i class="bi bi-link-45deg me-1 fs-4"></i> IMDb
-                                        </a>
+                                    <div class="d-flex gap-3 align-items-center">
+                                        @{
+                                            var libItem = GetLibraryItem();
+                                            var status = libItem?.Status;
+                                        }
+
+                                        <!-- Status Tabs -->
+                                        <div class="btn-group bg-light rounded-3 p-1 shadow-sm flex-grow-1">
+                                            <!-- Watchlist -->
+                                            <button class="btn btn-lg @(status == WatchlistStatus.Pending ? "btn-secondary shadow-none" : "btn-light border-0 text-secondary bg-transparent") flex-grow-1 py-2.5 rounded-3 d-flex align-items-center justify-content-center transition-all" 
+                                                    onmouseover="if(!this.classList.contains('btn-secondary')) this.classList.add('bg-white')"
+                                                    onmouseout="if(!this.classList.contains('btn-secondary')) this.classList.remove('bg-white')"
+                                                    @onclick="() => (status == WatchlistStatus.Pending ? RemoveItem() : HandleStatusTabClick(WatchlistStatus.Pending))">
+                                                <i class="bi bi-list-nested me-2 fs-5"></i> 
+                                                <span class="small fw-bold">Watchlist</span>
+                                            </button>
+                                            
+                                            <!-- Watching -->
+                                            <button class="btn btn-lg @(status == WatchlistStatus.Watching ? "btn-success shadow-none" : "btn-light border-0 text-success bg-transparent") flex-grow-1 py-2.5 rounded-3 d-flex align-items-center justify-content-center transition-all" 
+                                                    onmouseover="if(!this.classList.contains('btn-success')) this.classList.add('bg-white')"
+                                                    onmouseout="if(!this.classList.contains('btn-success')) this.classList.remove('bg-white')"
+                                                    @onclick="() => (status == WatchlistStatus.Watching ? RemoveItem() : HandleStatusTabClick(WatchlistStatus.Watching))">
+                                                <i class="bi bi-play-fill me-1 fs-4"></i> 
+                                                <span class="small fw-bold">Watching</span>
+                                            </button>
+                                            
+                                            <!-- Watched -->
+                                            <button class="btn btn-lg @(status == WatchlistStatus.Watched ? "btn-primary shadow-none" : "btn-light border-0 text-primary bg-transparent") flex-grow-1 py-2.5 rounded-3 d-flex align-items-center justify-content-center transition-all" 
+                                                    onmouseover="if(!this.classList.contains('btn-primary')) this.classList.add('bg-white')"
+                                                    onmouseout="if(!this.classList.contains('btn-primary')) this.classList.remove('btn-white')"
+                                                    @onclick="() => (status == WatchlistStatus.Watched ? RemoveItem() : HandleStatusTabClick(WatchlistStatus.Watched))">
+                                                <i class="bi bi-check-lg me-2 fs-5"></i> 
+                                                <span class="small fw-bold">Watched</span>
+                                            </button>
+                                        </div>
+
                                         @if (!string.IsNullOrEmpty(movie.TrailerKey))
                                         {
-                                            <button class="btn btn-outline-dark btn-lg px-4 rounded-pill shadow-sm flex-grow-1 fw-semibold d-flex align-items-center justify-content-center" @onclick="OpenTrailer">
-                                                <i class="bi bi-play-circle me-2 fs-4 text-danger"></i> Watch Trailer
-                                            </button>
-                                        }
-                                        @if (item.Status != WatchlistStatus.Watched)
-                                        {
-                                            <button class="btn btn-outline-danger btn-lg px-4 rounded-pill shadow-sm fw-semibold" @onclick="RemoveItem">
-                                                Remove
+                                            <button class="btn btn-outline-dark px-4 py-2.5 rounded-3 shadow-none fw-bold d-flex align-items-center justify-content-center border-0 bg-light text-uppercase tracking-wider transition-all" 
+                                                    style="height: 52px;" @onclick="OpenTrailer" title="Watch Trailer">
+                                                <i class="bi bi-play-circle-fill me-2 fs-5 text-danger"></i>
+                                                <span style="font-size: 0.85rem;">Trailer</span>
                                             </button>
                                         }
                                     </div>
@@ -284,8 +312,55 @@
     {
         if (WatchlistSvc.SelectedItem != null)
         {
-            await WatchlistSvc.RemoveFromWatchlistAsync(WatchlistSvc.SelectedItem);
-            WatchlistSvc.CloseModal();
+            var libItem = GetLibraryItem();
+            if (libItem != null)
+            {
+                await WatchlistSvc.RemoveFromWatchlistAsync(libItem);
+            }
         }
+    }
+
+    private bool IsInLibrary => WatchlistSvc.Items.Any(i => i.ImdbId == WatchlistSvc.SelectedItem?.ImdbId && !string.IsNullOrEmpty(i.ImdbId));
+    
+    private WatchlistItem? GetLibraryItem()
+    {
+        return WatchlistSvc.Items.FirstOrDefault(i => i.ImdbId == WatchlistSvc.SelectedItem?.ImdbId && !string.IsNullOrEmpty(i.ImdbId));
+    }
+
+    private async Task HandleStatusTabClick(WatchlistStatus status)
+    {
+        if (WatchlistSvc.SelectedItem != null && WatchlistSvc.SelectedMovie != null)
+        {
+            var libItem = GetLibraryItem();
+            if (libItem == null)
+            {
+                var newItem = CreateItem(status);
+                await WatchlistSvc.AddToWatchlistAsync(newItem);
+            }
+            else
+            {
+                await WatchlistSvc.UpdateStatusAsync(libItem, status);
+            }
+        }
+    }
+
+    private WatchlistItem CreateItem(WatchlistStatus status)
+    {
+        var item = WatchlistSvc.SelectedItem!;
+        var movie = WatchlistSvc.SelectedMovie!;
+        return new WatchlistItem
+        {
+            ImdbId = movie.ImdbId ?? "",
+            Title = movie.Title,
+            OriginalTitle = movie.OriginalTitle != movie.Title ? movie.OriginalTitle : null,
+            TitleType = item.TitleType,
+            Year = movie.ReleaseDate ?? "",
+            ParsedYear = int.TryParse(movie.ReleaseDate?.Split('-')[0], out var y) ? y : 0,
+            Genres = "",
+            Director = movie.Directors.Any() ? string.Join(", ", movie.Directors) : null,
+            Status = status,
+            CurrentSeason = (status == WatchlistStatus.Watching && item.TitleType.Contains("TV", StringComparison.OrdinalIgnoreCase)) ? 1 : null,
+            CurrentEpisode = (status == WatchlistStatus.Watching && item.TitleType.Contains("TV", StringComparison.OrdinalIgnoreCase)) ? 1 : null
+        };
     }
 }

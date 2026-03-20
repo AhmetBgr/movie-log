@@ -297,7 +297,7 @@ public class WatchlistService
     public async Task UpdateListAsync(List<WatchlistItem> newList)
     {
         Items = newList;
-        await SaveNowAsync();
+        ScheduleSave();
         NotifyStateChanged();
     }
 

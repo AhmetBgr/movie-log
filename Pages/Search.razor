@@ -8,7 +8,13 @@
 <PageTitle>Search Results</PageTitle>
 
 <div class="container-fluid">
-    <h2 class="mb-4 fw-bold text-dark border-bottom pb-3">Search Results for "@Uri.UnescapeDataString(Query)"</h2>
+    <div class="d-flex align-items-center gap-3 mb-4 border-bottom pb-3">
+        <button class="btn btn-sm @(isEditing ? "btn-primary shadow" : "btn-outline-primary") rounded-pill px-4 py-2 transition-all fw-medium" @onclick="ToggleEdit">
+            <i class="bi @(isEditing ? "bi-check-lg" : "bi-pencil") me-2"></i> 
+            @(isEditing ? "Done Editing" : "Quick Add")
+        </button>
+        <h2 class="fw-bold text-dark mb-0">Search Results for "@Uri.UnescapeDataString(Query)"</h2>
+    </div>
 
     @if (isLoading)
     {
@@ -31,8 +37,11 @@
                 <table class="table table-hover align-middle mb-0 border-light">
                     <thead class="bg-light text-secondary fw-semibold" style="position: sticky; top: 0; z-index: 1;">
                         <tr>
-                            <th scope="col" style="width: 5%; text-align: center;" class="border-bottom py-2.5 px-3"></th>
-                            <th scope="col" style="width: 40%;" class="border-bottom py-2.5 px-3">
+                            @if (isEditing)
+                            {
+                                <th scope="col" style="width: 1%; white-space: nowrap; text-align: center;" class="border-bottom py-2.5 px-3"></th>
+                            }
+                            <th scope="col" style="width: @(isEditing ? "35%" : "45%");" class="border-bottom py-2.5 px-3">
                                 Title <span class="badge bg-secondary text-white shadow-sm fw-normal ms-2 rounded-2 px-2 py-1">@results.Count(r => r.MediaType == "movie" || r.MediaType == "tv") Total Items</span>
                             </th>
                             <th scope="col" style="width: 25%;" class="border-bottom py-2.5 px-3">Director</th>
@@ -44,31 +53,44 @@
                         @foreach (var item in results.Where(r => r.MediaType == "movie" || r.MediaType == "tv"))
                         {
                             <tr>
-                                <td class="text-center px-3">
-                                    @if (!IsAlreadyInWatchlist(item))
-                                    {
+                                @if (isEditing)
+                                {
+                                    <td class="text-center px-1" style="width: 1%; white-space: nowrap;">
+                                        @{
+                                            var libItem = WatchlistSvc.Items.FirstOrDefault(i => i.Title.Equals(item.DisplayTitle, StringComparison.OrdinalIgnoreCase) && 
+                                                                                        (item.DisplayDate.Length >= 4 && i.Year.Contains(item.DisplayDate.Substring(0,4))));
+                                        }
                                         <div class="d-flex align-items-center justify-content-center gap-1">
-                                            <button class="btn btn-sm btn-outline-success border-0 rounded-circle shadow-none p-1 d-inline-flex align-items-center justify-content-center show-on-row-hover" 
-                                                    style="width: 30px; height: 30px;"
-                                                    @onclick="() => HandleStartWatchingClick(item)" @onclick:stopPropagation="true" title="Start Watching">
-                                                <i class="bi bi-play-fill fs-5"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-outline-dark border-0 rounded-circle shadow-none p-1 d-inline-flex align-items-center justify-content-center show-on-row-hover" 
-                                                    style="width: 30px; height: 30px;"
-                                                    @onclick="() => HandleAddClick(item)" @onclick:stopPropagation="true" title="Add to Watchlist">
-                                                <i class="bi bi-plus-lg"></i>
-                                            </button>
-                                        </div>
+                                                @if (libItem == null)
+                                                {
+                                                    <button class="btn btn-sm btn-light border-0 text-success bg-success bg-opacity-10 rounded-3 shadow-none p-1 d-inline-flex align-items-center justify-content-center" 
+                                                            style="width: 32px; height: 32px; transition: all 0.2s;"
+                                                            onmouseover="this.classList.replace('bg-opacity-10','bg-opacity-25')"
+                                                            onmouseout="this.classList.replace('bg-opacity-25','bg-opacity-10')"
+                                                            @onclick="() => HandleStatusClick(item, WatchlistStatus.Watching)" @onclick:stopPropagation="true" title="Start Watching">
+                                                        <i class="bi bi-play-fill fs-5"></i>
+                                                    </button>
+                                                    <button class="btn btn-sm btn-light border-0 text-primary bg-primary bg-opacity-10 rounded-3 shadow-none p-1 d-inline-flex align-items-center justify-content-center" 
+                                                            style="width: 32px; height: 32px; transition: all 0.2s;"
+                                                            onmouseover="this.classList.replace('bg-opacity-10','bg-opacity-25')"
+                                                            onmouseout="this.classList.replace('bg-opacity-25','bg-opacity-10')"
+                                                            @onclick="() => HandleStatusClick(item, WatchlistStatus.Pending)" @onclick:stopPropagation="true" title="Add to Watchlist">
+                                                        <i class="bi bi-plus-lg fs-6"></i>
+                                                    </button>
+                                                }
+                                                else
+                                                {
+                                                    <button class="btn btn-sm btn-light border-0 text-danger bg-danger bg-opacity-10 rounded-3 shadow-none p-1 d-inline-flex align-items-center justify-content-center" 
+                                                            style="width: 32px; height: 32px; transition: all 0.2s;"
+                                                            onmouseover="this.classList.replace('bg-opacity-10','bg-opacity-25')"
+                                                            onmouseout="this.classList.replace('bg-opacity-25','bg-opacity-10')"
+                                                            @onclick="() => HandleRemoveClick(item)" @onclick:stopPropagation="true" title="Remove from Watchlist">
+                                                        <i class="bi bi-trash3-fill fs-6"></i>
+                                                    </button>
+                                                }
+                                            </div>
+                                        </td>
                                     }
-                                    else
-                                    {
-                                        <button class="btn btn-sm btn-link text-danger p-0 shadow-none d-inline-flex align-items-center justify-content-center show-on-row-hover" 
-                                                style="width: 30px; height: 30px;"
-                                                @onclick="() => HandleRemoveClick(item)" @onclick:stopPropagation="true" title="Remove from Watchlist">
-                                            <i class="bi bi-x-lg fs-4"></i>
-                                        </button>
-                                    }
-                                </td>
                                 <td style="cursor: pointer;" class="px-3" @onclick="() => WatchlistSvc.ShowDetailsAsync(item)">
                                     <span class="fw-bold text-dark" style="transition: opacity 0.2s;" onmouseover="this.style.opacity='0.6'" onmouseout="this.style.opacity='1'">
                                         @item.DisplayTitle
@@ -110,6 +132,9 @@
 @code {
     [Parameter]
     public string Query { get; set; } = "";
+
+    private bool isEditing = false;
+    private void ToggleEdit() => isEditing = !isEditing;
 
     private bool isLoading = false;
     private List<TmdbSearchResultItem>? results;
@@ -208,48 +233,36 @@
             item.DisplayDate.Length >= 4 ? item.DisplayDate.Substring(0, 4) : null);
     }
 
-    private async Task HandleAddClick(TmdbSearchResultItem item)
+    private async Task HandleStatusClick(TmdbSearchResultItem item, WatchlistStatus status)
     {
-        var movie = await WatchlistSvc.GetTmdbDetailsByIdAsync(item.Id, item.MediaType);
-        if (movie != null && !string.IsNullOrEmpty(movie.ImdbId))
+        var libItem = WatchlistSvc.Items.FirstOrDefault(i => i.Title.Equals(item.DisplayTitle, StringComparison.OrdinalIgnoreCase) && 
+                                                         (item.DisplayDate.Length >= 4 && i.Year.Contains(item.DisplayDate.Substring(0,4))));
+        
+        if (libItem == null)
         {
-            await WatchlistSvc.AddToWatchlistAsync(new WatchlistItem
+            var movie = await WatchlistSvc.GetTmdbDetailsByIdAsync(item.Id, item.MediaType);
+            if (movie != null && !string.IsNullOrEmpty(movie.ImdbId))
             {
-                ImdbId = movie.ImdbId,
-                Title = movie.Title,
-                OriginalTitle = movie.OriginalTitle != movie.Title ? movie.OriginalTitle : null,
-                TitleType = item.MediaType == "movie" ? "Movie" : "TV Series",
-                Year = movie.ReleaseDate ?? "",
-                ParsedYear = int.TryParse(movie.ReleaseDate?.Split('-')[0], out var y) ? y : 0,
-                Genres = "",
-                Director = movie.Directors.Any() ? string.Join(", ", movie.Directors) : null,
-                Status = WatchlistStatus.Pending
-            });
+                await WatchlistSvc.AddToWatchlistAsync(new WatchlistItem
+                {
+                    ImdbId = movie.ImdbId,
+                    Title = movie.Title,
+                    OriginalTitle = movie.OriginalTitle != movie.Title ? movie.OriginalTitle : null,
+                    TitleType = item.MediaType == "movie" ? "Movie" : "TV Series",
+                    Year = movie.ReleaseDate ?? "",
+                    ParsedYear = int.TryParse(movie.ReleaseDate?.Split('-')[0], out var y) ? y : 0,
+                    Genres = "",
+                    Director = movie.Directors.Any() ? string.Join(", ", movie.Directors) : null,
+                    Status = status,
+                    CurrentSeason = (status == WatchlistStatus.Watching && item.MediaType == "tv") ? 1 : null,
+                    CurrentEpisode = (status == WatchlistStatus.Watching && item.MediaType == "tv") ? 1 : null
+                });
+            }
         }
-        StateHasChanged();
-    }
-
-    private async Task HandleStartWatchingClick(TmdbSearchResultItem item)
-    {
-        var movie = await WatchlistSvc.GetTmdbDetailsByIdAsync(item.Id, item.MediaType);
-        if (movie != null && !string.IsNullOrEmpty(movie.ImdbId))
+        else
         {
-            await WatchlistSvc.AddToWatchlistAsync(new WatchlistItem
-            {
-                ImdbId = movie.ImdbId,
-                Title = movie.Title,
-                OriginalTitle = movie.OriginalTitle != movie.Title ? movie.OriginalTitle : null,
-                TitleType = item.MediaType == "movie" ? "Movie" : "TV Series",
-                Year = movie.ReleaseDate ?? "",
-                ParsedYear = int.TryParse(movie.ReleaseDate?.Split('-')[0], out var y) ? y : 0,
-                Genres = "",
-                Director = movie.Directors.Any() ? string.Join(", ", movie.Directors) : null,
-                Status = WatchlistStatus.Watching,
-                CurrentSeason = item.MediaType == "tv" ? 1 : null,
-                CurrentEpisode = item.MediaType == "tv" ? 1 : null
-            });
+            await WatchlistSvc.UpdateStatusAsync(libItem, status);
         }
-        StateHasChanged();
     }
 
     private async Task HandleRemoveClick(TmdbSearchResultItem item)
