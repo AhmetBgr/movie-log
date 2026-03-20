@@ -8,7 +8,9 @@
     <script>
         var isGithubPages = window.location.hostname.includes("github.io");
         var basePath = isGithubPages ? "/movie-log/" : "/";
-        document.write('<base href="' + basePath + '" />');
+        var baseElement = document.createElement('base');
+        baseElement.href = basePath;
+        document.head.appendChild(baseElement);
     </script>
     <link rel="preload" id="webassembly" />
     <link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
