@@ -14,7 +14,51 @@
     </h2>
 
     <div class="row g-4 mb-5">
-        <!-- Preferences or other settings could go here in future -->
+        <!-- Movie Data Fetch Preference -->
+        <div class="col-md-12">
+            <div class="card shadow-sm border-0 rounded-3">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-4">
+                        <div class="bg-info bg-opacity-10 text-info p-2 rounded-3 me-3">
+                            <i class="bi bi-cloud-download fs-4"></i>
+                        </div>
+                        <h5 class="card-title mb-0 fw-bold text-dark">Movie Data Fetch Preference</h5>
+                    </div>
+                    
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="p-3 rounded-3 border @(WatchlistSvc.FetchPreference == DataFetchPreference.OnDemand ? "border-primary bg-primary bg-opacity-10" : "border-light bg-light") h-100 transition-all pointer" 
+                                 @onclick="() => WatchlistSvc.FetchPreference = DataFetchPreference.OnDemand">
+                                <div class="form-check mb-0">
+                                    <input class="form-check-input" type="radio" name="fetchPref" id="prefOnDemand" 
+                                           checked="@(WatchlistSvc.FetchPreference == DataFetchPreference.OnDemand)" 
+                                           @onchange="() => WatchlistSvc.FetchPreference = DataFetchPreference.OnDemand">
+                                    <label class="form-check-label fw-bold text-dark fs-6" for="prefOnDemand">
+                                        On-Demand (Passive)
+                                    </label>
+                                </div>
+                                <p class="text-secondary small mb-0 mt-2 ms-4">Enrich movie details only when explicitly requested through the info box. (Default)</p>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="p-3 rounded-3 border @(WatchlistSvc.FetchPreference == DataFetchPreference.Background ? "border-primary bg-primary bg-opacity-10" : "border-light bg-light") h-100 transition-all pointer" 
+                                 @onclick="() => WatchlistSvc.FetchPreference = DataFetchPreference.Background">
+                                <div class="form-check mb-0">
+                                    <input class="form-check-input" type="radio" name="fetchPref" id="prefBackground" 
+                                           checked="@(WatchlistSvc.FetchPreference == DataFetchPreference.Background)" 
+                                           @onchange="() => WatchlistSvc.FetchPreference = DataFetchPreference.Background">
+                                    <label class="form-check-label fw-bold text-dark fs-6" for="prefBackground">
+                                        Sustained Sync (Active)
+                                    </label>
+                                </div>
+                                <p class="text-secondary small mb-0 mt-2 ms-4">Continuously scan for missing plots, posters, and genres, completing your library automatically in the background.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="row g-4">
@@ -444,4 +488,10 @@
         };
     }
 }
+
+<style>
+    .pointer { cursor: pointer; }
+    .transition-all { transition: all 0.2s ease-in-out; }
+    .x-small { font-size: 0.75rem; }
+</style>
 

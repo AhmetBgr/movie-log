@@ -120,6 +120,13 @@ public class WatchlistService
         set { _ratingSystem = value; _ = _storage.SaveAsync("rating_system", value); NotifyStateChanged(); } 
     }
 
+    private DataFetchPreference _fetchPreference = DataFetchPreference.OnDemand;
+    public DataFetchPreference FetchPreference 
+    { 
+        get => _fetchPreference; 
+        set { _fetchPreference = value; _ = _storage.SaveAsync("fetch_preference", value); NotifyStateChanged(); } 
+    }
+
     public event Action? OnStateChanged;
     public void NotifyStateChanged(bool fullRefresh = true) 
     {
@@ -246,6 +253,8 @@ public class WatchlistService
             RefreshCalculatedLists();
             OnStateChanged?.Invoke();
             StartGenreMapLoadIfNeeded();
+            _fetchPreference = await _storage.GetAsync<DataFetchPreference>("fetch_preference");
+            _ = Task.Run(BackgroundHydrationLoop);
         }
         catch (Exception ex)
         {
@@ -771,23 +780,55 @@ public class WatchlistService
             SelectedMovie = details;
             
             // Persist missing metadata if this is a real item in our collection
-            if (Items.Any(i => i.ImdbId == item.ImdbId))
-            {
-                var listItem = Items.First(i => i.ImdbId == item.ImdbId);
-                bool changed = false;
-                
-                if (string.IsNullOrEmpty(listItem.Overview) && !string.IsNullOrEmpty(details.Overview)) { listItem.Overview = details.Overview; changed = true; }
-                if (string.IsNullOrEmpty(listItem.Genres) && details.GenreList.Any()) { listItem.Genres = string.Join(", ", details.GenreList.Select(g => g.Name)); changed = true; }
-                if (string.IsNullOrEmpty(listItem.Director) && details.Directors.Any()) { listItem.Director = string.Join(", ", details.Directors); changed = true; }
-                if (string.IsNullOrEmpty(listItem.PosterPath) && !string.IsNullOrEmpty(details.PosterPath)) { listItem.PosterPath = details.PosterPath; changed = true; }
-                
-                if (changed)
-                {
-                    await UpdateListAsync(Items);
-                }
-            }
+            await HydrateMissingMetadataAsync(item, details);
             
             IsLoadingDetails = false;
+            NotifyStateChanged(fullRefresh: false);
+        }
+    }
+
+    private async Task BackgroundHydrationLoop()
+    {
+        while (true)
+        {
+            try
+            {
+                if (FetchPreference == DataFetchPreference.Background)
+                {
+                    var itemWithMissingData = Items.FirstOrDefault(i => 
+                        !string.IsNullOrEmpty(i.ImdbId) && (
+                        string.IsNullOrEmpty(i.Overview) || 
+                        string.IsNullOrEmpty(i.Genres) || 
+                        string.IsNullOrEmpty(i.Director) || 
+                        string.IsNullOrEmpty(i.PosterPath)));
+
+                    if (itemWithMissingData != null)
+                    {
+                        var details = await GetTmdbDetailsAsync(itemWithMissingData.ImdbId);
+                        if (details != null)
+                        {
+                            await HydrateMissingMetadataAsync(itemWithMissingData, details);
+                        }
+                    }
+                }
+            }
+            catch { /* Ignore background errors */ }
+            await Task.Delay(10000);
+        }
+    }
+
+    private async Task HydrateMissingMetadataAsync(WatchlistItem listItem, TmdbMovie details)
+    {
+        bool changed = false;
+        
+        if (string.IsNullOrEmpty(listItem.Overview) && !string.IsNullOrEmpty(details.Overview)) { listItem.Overview = details.Overview; changed = true; }
+        if (string.IsNullOrEmpty(listItem.Genres) && details.GenreList.Any()) { listItem.Genres = string.Join(", ", details.GenreList.Select(g => g.Name)); changed = true; }
+        if (string.IsNullOrEmpty(listItem.Director) && details.Directors.Any()) { listItem.Director = string.Join(", ", details.Directors); changed = true; }
+        if (string.IsNullOrEmpty(listItem.PosterPath) && !string.IsNullOrEmpty(details.PosterPath)) { listItem.PosterPath = details.PosterPath; changed = true; }
+        
+        if (changed)
+        {
+            await UpdateListAsync(Items);
             NotifyStateChanged(fullRefresh: false);
         }
     }

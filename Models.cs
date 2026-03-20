@@ -2,6 +2,12 @@ using System.Text.Json.Serialization;
 
 namespace MyPrivateWatchlist.Models;
 
+public enum DataFetchPreference
+{
+    OnDemand,
+    Background
+}
+
 public enum RatingSystem
 {
     HundredPoint
