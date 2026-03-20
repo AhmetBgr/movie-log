@@ -95,7 +95,7 @@
 
                                         @if (libItem?.Rating20 != null)
                                         {
-                                            <button class="btn btn-link btn-sm p-0 text-dark opacity-75 hover-opacity-100 mt-1" 
+                                            <button class="btn btn-link btn-sm p-0 text-secondary opacity-50 hover-opacity-100 mt-1" 
                                                     style="text-decoration: none;"
                                                     @onclick="() => HandleRatingEdit(new ChangeEventArgs { Value = null })"
                                                     title="Remove Rating">
@@ -417,7 +417,12 @@
     {
         var inputVal = e.Value?.ToString();
         int? val = null;
-        if (int.TryParse(inputVal, out var parsed)) val = parsed;
+        if (int.TryParse(inputVal, out var parsed)) 
+        {
+            val = parsed;
+            if (val > 100) val = 100;
+            if (val < 0) val = 0;
+        }
         
         await UpdateRating(val);
         

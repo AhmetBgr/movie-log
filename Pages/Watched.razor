@@ -17,7 +17,7 @@
         </button>
     </div>
 
-    @if (!WatchlistSvc.WatchedItems.Any())
+    @if (!WatchlistSvc.Items.Any(i => i.Status == WatchlistStatus.Watched))
     {
         <div class="alert alert-light border shadow-sm text-center py-5 fs-5 rounded-2 mt-4">
             <i class="bi bi-journal-check fs-1 d-block mb-3 text-secondary opacity-50"></i>
@@ -49,18 +49,16 @@
                                 <select class="form-select form-select-sm border rounded-2 bg-light shadow-none py-1" 
                                         value="@WatchlistSvc.FilterMinRating20"
                                         @onchange="@(e => WatchlistSvc.FilterMinRating20 = int.Parse(e.Value?.ToString() ?? "0"))">
-                                    <option value="0">Min</option>
-                                    @for (int i = 1; i <= 20; i++) {
-                                        <option value="@i">@GetRatingLabel(i)</option>
+                                    @for (int i = 0; i <= 100; i += 5) {
+                                        <option value="@i">@(i == 0 ? "Min (0)" : i.ToString())</option>
                                     }
                                 </select>
                                 <span class="text-secondary x-small">to</span>
                                 <select class="form-select form-select-sm border rounded-2 bg-light shadow-none py-1" 
                                         value="@WatchlistSvc.FilterMaxRating20"
-                                        @onchange="@(e => WatchlistSvc.FilterMaxRating20 = int.Parse(e.Value?.ToString() ?? "20"))">
-                                    <option value="20">Max</option>
-                                    @for (int i = 1; i <= 20; i++) {
-                                        <option value="@i">@GetRatingLabel(i)</option>
+                                        @onchange="@(e => WatchlistSvc.FilterMaxRating20 = int.Parse(e.Value?.ToString() ?? "100"))">
+                                    @for (int i = 0; i <= 100; i += 5) {
+                                        <option value="@i">@(i == 100 ? "Max (100)" : i.ToString())</option>
                                     }
                                 </select>
                             </div>
@@ -123,13 +121,20 @@
                                     Title
                                     @if (WatchlistSvc.WatchedSortColumn == "Title") { <i class="bi @(WatchlistSvc.WatchedSortDescending ? "bi-sort-alpha-up-alt" : "bi-sort-alpha-down") ms-1"></i> }
                                 </th>
-                                <th scope="col" style="width: 15%; text-align: center; cursor: pointer;" class="py-3 px-3" @onclick='() => WatchlistSvc.ToggleWatchedSort("Rating")'>
-                                    Rating
-                                    @if (WatchlistSvc.WatchedSortColumn == "Rating") { <i class="bi @(WatchlistSvc.WatchedSortDescending ? "bi-sort-numeric-up-alt" : "bi-sort-numeric-down") ms-1"></i> }
-                                </th>
                                 <th scope="col" style="width: 12%; cursor: pointer;" class="py-3 px-3" @onclick='() => WatchlistSvc.ToggleWatchedSort("Year")'>
                                     Year
                                     @if (WatchlistSvc.WatchedSortColumn == "Year") { <i class="bi @(WatchlistSvc.WatchedSortDescending ? "bi-sort-numeric-up-alt" : "bi-sort-numeric-down") ms-1"></i> }
+                                </th>
+                                <th scope="col" style="width: 15%; text-align: center; cursor: pointer; position: relative;" class="py-3 px-3" @onclick='() => WatchlistSvc.ToggleWatchedSort("Rating")'>
+                                    Rating
+                                    @if (WatchlistSvc.WatchedSortColumn == "Rating") { <i class="bi @(WatchlistSvc.WatchedSortDescending ? "bi-sort-numeric-up-alt" : "bi-sort-numeric-down") ms-1"></i> }
+                                    
+                                    @if (showSavedIndicator)
+                                    {
+                                        <div class="position-absolute top-100 start-50 translate-middle-x z-3" style="margin-top: -10px;">
+                                            <span class="badge bg-success shadow-sm rounded-pill py-1 px-3 fw-bold border border-white animate-fade-out" style="font-size: 0.65rem;">SAVED</span>
+                                        </div>
+                                    }
                                 </th>
                                 <th scope="col" style="width: 12%; cursor: pointer;" class="py-3 px-3" @onclick='() => WatchlistSvc.ToggleWatchedSort("DateAdded")'>
                                     Added
@@ -142,6 +147,14 @@
                             </tr>
                         </thead>
                     <tbody class="border-top-0">
+                        @if (!WatchlistSvc.WatchedItems.Any())
+                        {
+                            <tr>
+                                <td colspan="5" class="py-5 text-center text-secondary opacity-50 fst-italic">
+                                    No movies found matching your current filters.
+                                </td>
+                            </tr>
+                        }
                         <Virtualize Items="_watchedItems" Context="item" ItemSize="70" OverscanCount="5">
                             <tr @key="item.ImdbId">
                                 @if (isEditing)
@@ -181,33 +194,33 @@
                                         <span class="text-secondary x-small opacity-75 d-block">@item.Director</span>
                                     }
                                 </td>
-                                <td class="text-center rating-cell">
-                                    <div class="d-flex align-items-center justify-content-center">
-                                        <div class="rating-static-container">
-                                            @if (item.Rating20.HasValue)
-                                            {
-                                                <div class="rating-badge shadow-none" style="@GetRatingColorStyle(item.Rating20)">
-                                                    <span>@item.Rating20.Value</span>
-                                                </div>
-                                            }
-                                            else
-                                            {
-                                                <div class="rating-badge rating-gray opacity-50">
-                                                    <span>-</span>
-                                                </div>
-                                            }
-                                        </div>
-                                        <div class="rating-input-container">
-                                            <input type="number" class="form-control form-control-sm border-0 bg-light shadow-none fw-bold text-center rounded-pill px-0" 
-                                                   style="width: 65px; height: 32px;"
-                                                   min="0" max="100" step="1"
-                                                   value="@(item.Rating20 ?? 0)"
+                                <td class="text-secondary fw-medium px-3 text-center">
+                                    @item.Year
+                                </td>
+                                <td class="text-center">
+                                    <div class="d-flex align-items-center justify-content-center py-2 gap-2">
+                                        <div class="rounded-3 d-flex flex-column align-items-center justify-content-center shadow-sm transition-all rating-box-indicator" 
+                                             style="width: 58px; height: 58px; background-color: @(item.Rating20 == null ? "#f8f9fa" : GetRatingColor(item.Rating20.Value)); 
+                                                    color: @(item.Rating20 == null ? "#adb5bd" : "#fff"); 
+                                                    border: @(item.Rating20 == null ? "2px dashed #dee2e6" : "none")">
+                                            <input type="number" class="form-control form-control-sm text-center fw-black p-0 border-0 bg-transparent fs-4 no-spinner shadow-none @(item.Rating20 == null ? "text-dark" : "text-white")" 
+                                                   style="width: 58px; height: 58px; cursor: pointer; caret-color: @(item.Rating20 == null ? "#212529" : "#fff");"
+                                                   min="0" max="100" 
+                                                   placeholder="-"
+                                                   value="@(item.Rating20)" 
                                                    @onchange="(e) => UpdateRating20(item, string.IsNullOrEmpty(e.Value?.ToString()) ? null : int.Parse(e.Value.ToString()!))" />
                                         </div>
+
+                                        @if (isEditing && item.Rating20 != null)
+                                        {
+                                            <button class="btn btn-link btn-sm p-0 text-secondary opacity-50 hover-opacity-100" 
+                                                    style="text-decoration: none;"
+                                                    @onclick="() => UpdateRating20(item, null)"
+                                                    title="Remove Rating">
+                                                <i class="bi bi-trash3-fill fs-5"></i>
+                                            </button>
+                                        }
                                     </div>
-                                </td>
-                                <td class="text-secondary fw-medium px-3">
-                                    @item.Year
                                 </td>
                                 <td class="text-secondary small px-3">
                                     @item.DateAdded.ToString("MMM dd, yyyy")
@@ -233,6 +246,7 @@
 @code {
     private bool showFilters = false;
     private bool isEditing = false;
+    private bool showSavedIndicator = false;
     private void ToggleEdit() => isEditing = !isEditing;
     private List<WatchlistItem> _watchedItems = new();
     private List<string> _availableGenres = new();
@@ -290,7 +304,22 @@
 
     private async Task UpdateRating20(WatchlistItem item, int? rating20)
     {
+        if (rating20.HasValue)
+        {
+            if (rating20 > 100) rating20 = 100;
+            if (rating20 < 0) rating20 = 0;
+        }
+
         await WatchlistSvc.UpdateRatingAsync(item, rating20);
+        
+        if (rating20.HasValue)
+        {
+            showSavedIndicator = true;
+            StateHasChanged();
+            await Task.Delay(1500);
+            showSavedIndicator = false;
+            StateHasChanged();
+        }
     }
 
     private void ClearFilters()
@@ -311,36 +340,34 @@
         return r100.ToString();
     }
 
-    private string GetRatingColorStyle(int? r100)
+    private string GetRatingColor(int val)
     {
-        if (!r100.HasValue) return "";
-        
-        // Hue: 0 (Red) to 120 (Green)
-        double hue = (r100.Value / 100.0) * 120;
-        
-        // More prominent colors: Darker, saturated background with white text
-        // Hue ranges from 0 (Red) to 120 (Green)
-        // Saturation: 70%, Lightness: 40% (Dark enough for white text)
-        return $"background-color: hsl({hue}, 70%, 40%); color: white; border: none; box-shadow: 0 2px 4px rgba(0,0,0,0.1);";
+        // 0 to 100 -> Hue 0 to 120
+        double hue = (val / 100.0) * 120;
+        return $"hsl({hue}, 70%, 45%)";
     }
 }
 
 <style>
     .x-small { font-size: 0.75rem; }
-    .rating-badge {
-        padding: 4px 10px;
-        border-radius: 50px;
-        font-weight: 700;
-        font-size: 0.85rem;
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        transition: all 0.2s;
+    
+    .rating-box-indicator:focus-within {
+        border-color: #0d6efd !important;
+        border-style: solid !important;
+        transform: scale(1.05);
+        box-shadow: 0 4px 12px rgba(13, 110, 253, 0.2) !important;
     }
-    
-    .rating-gray { background-color: #f8f9fa; color: #868e96; border: 1px solid #dee2e6; }
-    
-    .rating-input-container { display: none; }
-    .rating-cell:hover .rating-input-container { display: block; }
-    .rating-cell:hover .rating-static-container { display: none; }
+
+    .fw-black { font-weight: 900; }
+
+    @@keyframes fadeOutUp {
+        0% { opacity: 0; transform: translate(-50%, 0); }
+        20% { opacity: 1; transform: translate(-50%, -4px); }
+        80% { opacity: 1; transform: translate(-50%, -4px); }
+        100% { opacity: 0; transform: translate(-50%, -10px); }
+    }
+
+    .animate-fade-out {
+        animation: fadeOutUp 1.5s ease-out forwards;
+    }
 </style>
