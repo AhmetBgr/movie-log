@@ -36,11 +36,9 @@
             imdbId = urlMatch[1];
         }
 
-        // Extract title
-        const titleElement = document.querySelector('[data-testid="hero__primary-text"] h1') || 
-                           document.querySelector('h1[data-testid="hero__pageTitle"]') ||
-                           document.querySelector('h1');
-        const title = titleElement?.textContent?.trim() || '';
+        // Extract movie details
+        try {
+            movieData = {
 
         // Extract year
         const yearElement = document.querySelector('[data-testid="title-details-certificate"]') ||

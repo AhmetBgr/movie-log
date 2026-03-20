@@ -38,6 +38,7 @@ public class WatchlistItem
     public int? Rating20 { get; set; }
     public string? Overview { get; set; }
     public string? PosterPath { get; set; }
+    public double? VoteAverage { get; set; }
 
     public string? DisplayOriginalTitle 
     {

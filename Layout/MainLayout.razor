@@ -11,7 +11,7 @@
     </div>
 
     <main>
-        <div class="top-row px-3 px-md-4 d-flex justify-content-between align-items-center bg-white shadow-sm gap-3 sticky-top" style="height: 4rem; z-index: 1100;">
+        <div class="top-row px-3 px-md-4 d-flex justify-content-between align-items-center bg-white shadow-sm gap-3 sticky-top" style="height: 4rem; z-index: 100;">
             <div class="position-relative flex-grow-1" style="max-width: 600px;">
                 <form class="input-group shadow-sm rounded-pill overflow-hidden" @onsubmit="PerformSearch" @onsubmit:preventDefault="true">
                     <span class="input-group-text bg-light border-0 text-secondary px-3 px-md-4"><i class="bi bi-search"></i></span>
@@ -22,7 +22,7 @@
 
                 @if (isSearchFocused && WatchlistSvc.EnableSearchHistory && WatchlistSvc.SearchHistory.Any(s => string.IsNullOrEmpty(SearchText) || s.Contains(SearchText, StringComparison.OrdinalIgnoreCase)))
                 {
-                    <div class="position-absolute top-100 start-0 end-0 mt-2 bg-white shadow-lg border rounded-3 overflow-hidden" style="z-index: 2000;">
+                    <div class="position-absolute top-100 start-0 end-0 mt-2 bg-white shadow-lg border rounded-3 overflow-hidden" style="z-index: 101;">
                         <div class="px-3 py-2 border-bottom bg-light d-flex justify-content-between align-items-center">
                             <span style="font-size: 0.7rem;" class="fw-bold text-secondary text-uppercase tracking-widest">Recent Searches</span>
                             <button class="btn btn-link text-danger text-decoration-none p-0 x-small" style="font-size: 0.7rem;" @onclick="WatchlistSvc.ClearSearchHistory">CLEAR ALL</button>

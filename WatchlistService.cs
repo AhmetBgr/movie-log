@@ -113,6 +113,20 @@ public class WatchlistService
         set { _filterMaxRating20 = value; NotifyStateChanged(); } 
     }
 
+    private double _filterMinVote = 0;
+    public double FilterMinVote 
+    { 
+        get => _filterMinVote; 
+        set { _filterMinVote = value; NotifyStateChanged(); } 
+    }
+
+    private double _filterMaxVote = 10;
+    public double FilterMaxVote 
+    { 
+        get => _filterMaxVote; 
+        set { _filterMaxVote = value; NotifyStateChanged(); } 
+    }
+
     private RatingSystem _ratingSystem = RatingSystem.HundredPoint;
     public RatingSystem RatingSystem 
     { 
@@ -210,6 +224,12 @@ public class WatchlistService
 
             if (item.Status == WatchlistStatus.Pending)
             {
+                // Apply TMDB vote filter if set
+                if (FilterMinVote > 0 || FilterMaxVote < 10)
+                {
+                    if (!item.VoteAverage.HasValue) continue; // exclude items with no rating data when filter is active
+                    if (item.VoteAverage.Value < FilterMinVote || item.VoteAverage.Value > FilterMaxVote) continue;
+                }
                 pendingFiltered.Add(item);
             }
             else if (item.Status == WatchlistStatus.Watched)
@@ -916,6 +936,7 @@ public class WatchlistService
         if (string.IsNullOrEmpty(listItem.Genres) && details.GenreList.Any()) { listItem.Genres = string.Join(", ", details.GenreList.Select(g => g.Name)); changed = true; }
         if (string.IsNullOrEmpty(listItem.Director) && details.Directors.Any()) { listItem.Director = string.Join(", ", details.Directors); changed = true; }
         if (string.IsNullOrEmpty(listItem.PosterPath) && !string.IsNullOrEmpty(details.PosterPath)) { listItem.PosterPath = details.PosterPath; changed = true; }
+        if (!listItem.VoteAverage.HasValue && details.VoteAverage > 0) { listItem.VoteAverage = details.VoteAverage; changed = true; }
         
         if (changed)
         {

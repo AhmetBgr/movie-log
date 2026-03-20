@@ -23,7 +23,9 @@
                         + (!string.IsNullOrEmpty(WatchlistSvc.EndYear) ? 1 : 0)
                         + (WatchlistSvc.SelectedType != "All" ? 1 : 0)
                         + (WatchlistSvc.SelectedGenre != "All" ? 1 : 0)
-                        + (!string.IsNullOrEmpty(WatchlistSvc.SearchQuery) ? 1 : 0);
+                        + (!string.IsNullOrEmpty(WatchlistSvc.SearchQuery) ? 1 : 0)
+                        + (WatchlistSvc.FilterMinVote > 0 ? 1 : 0)
+                        + (WatchlistSvc.FilterMaxVote < 10 ? 1 : 0);
                 }
                 @if (activeFilterCount > 0 && !showFilters)
                 {
@@ -90,6 +92,27 @@
                                            @bind="WatchlistSvc.StartYear" />
                                     <input type="number" class="form-control border rounded-2 bg-light shadow-none px-2" placeholder="To" 
                                            @bind="WatchlistSvc.EndYear" />
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label small fw-bold text-secondary text-uppercase tracking-wider">TMDB Rating</label>
+                                <div class="d-flex gap-2 align-items-center">
+                                    <select class="form-select form-select-sm border rounded-2 bg-light shadow-none py-1"
+                                            value="@WatchlistSvc.FilterMinVote"
+                                            @onchange="@(e => WatchlistSvc.FilterMinVote = double.Parse(e.Value?.ToString() ?? "0", System.Globalization.CultureInfo.InvariantCulture))">
+                                        @for (double i = 0; i <= 10; i += 0.5) {
+                                            <option value="@i.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)">@(i == 0 ? "Min" : i.ToString("F1"))</option>
+                                        }
+                                    </select>
+                                    <span class="text-secondary x-small">to</span>
+                                    <select class="form-select form-select-sm border rounded-2 bg-light shadow-none py-1"
+                                            value="@WatchlistSvc.FilterMaxVote"
+                                            @onchange="@(e => WatchlistSvc.FilterMaxVote = double.Parse(e.Value?.ToString() ?? "10", System.Globalization.CultureInfo.InvariantCulture))">
+                                        @for (double i = 0; i <= 10; i += 0.5) {
+                                            <option value="@i.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)">@(i == 10 ? "Max" : i.ToString("F1"))</option>
+                                        }
+                                    </select>
                                 </div>
                             </div>
 
