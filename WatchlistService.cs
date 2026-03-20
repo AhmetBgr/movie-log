@@ -147,7 +147,7 @@ public class WatchlistService
 
             if (checkType && !item.TitleType.Equals(SelectedType, StringComparison.OrdinalIgnoreCase))
                 continue;
-            if (checkGenre && !item.Genres.Contains(SelectedGenre, StringComparison.OrdinalIgnoreCase))
+            if (checkGenre && (item.Genres == null || !item.Genres.Contains(SelectedGenre, StringComparison.OrdinalIgnoreCase)))
                 continue;
             if (hasStart && item.ParsedYear < sYear)
                 continue;
@@ -434,7 +434,8 @@ public class WatchlistService
                     Overview = tv.Overview,
                     PosterPath = tv.PosterPath,
                     VoteAverage = tv.VoteAverage,
-                    ReleaseDate = tv.FirstAirDate
+                    ReleaseDate = tv.FirstAirDate,
+                    GenreList = tv.GenreList
                 };
 
                 try 
@@ -541,7 +542,8 @@ public class WatchlistService
                         Overview = tv.Overview,
                         PosterPath = tv.PosterPath,
                         VoteAverage = tv.VoteAverage,
-                        ReleaseDate = tv.FirstAirDate
+                        ReleaseDate = tv.FirstAirDate,
+                        GenreList = tv.GenreList
                     };
 
                     try
@@ -761,13 +763,18 @@ public class WatchlistService
         {
             SelectedMovie = details;
             
-            // Persist the overview if this is a real item in our collection
-            if (!string.IsNullOrEmpty(details.Overview) && Items.Any(i => i.ImdbId == item.ImdbId))
+            // Persist missing metadata if this is a real item in our collection
+            if (Items.Any(i => i.ImdbId == item.ImdbId))
             {
                 var listItem = Items.First(i => i.ImdbId == item.ImdbId);
-                if (listItem.Overview != details.Overview)
+                bool changed = false;
+                
+                if (string.IsNullOrEmpty(listItem.Overview) && !string.IsNullOrEmpty(details.Overview)) { listItem.Overview = details.Overview; changed = true; }
+                if (string.IsNullOrEmpty(listItem.Genres) && details.GenreList.Any()) { listItem.Genres = string.Join(", ", details.GenreList.Select(g => g.Name)); changed = true; }
+                if (string.IsNullOrEmpty(listItem.Director) && details.Directors.Any()) { listItem.Director = string.Join(", ", details.Directors); changed = true; }
+                
+                if (changed)
                 {
-                    listItem.Overview = details.Overview;
                     await UpdateListAsync(Items);
                 }
             }

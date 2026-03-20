@@ -461,7 +461,10 @@
                 Status = WatchlistStatus.Watched, // Assume watched if rated
                 Rating20 = ratingValue,
                 UserRating = (int)Math.Round(ratingValue.Value / 10.0),
-                DateAdded = DateTime.Now
+                DateAdded = DateTime.Now,
+                Genres = string.Join(", ", selectedMovie.GenreList.Select(g => g.Name)),
+                Director = selectedMovie.Directors.Any() ? string.Join(", ", selectedMovie.Directors) : null,
+                Overview = selectedMovie.Overview
             };
             await WatchlistSvc.AddItemAsync(newItem);
         }

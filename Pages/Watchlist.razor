@@ -242,7 +242,7 @@
     private void HandleStateChanged()
     {
         UpdateLocalList();
-        StateHasChanged();
+        InvokeAsync(StateHasChanged);
     }
 
     private void UpdateLocalList()

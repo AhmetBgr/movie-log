@@ -258,7 +258,7 @@
                     TitleType = item.MediaType == "movie" ? "Movie" : "TV Series",
                     Year = movie.ReleaseDate ?? "",
                     ParsedYear = int.TryParse(movie.ReleaseDate?.Split('-')[0], out var y) ? y : 0,
-                    Genres = "",
+                    Genres = string.Join(", ", movie.GenreList.Select(g => g.Name)),
                     Director = movie.Directors.Any() ? string.Join(", ", movie.Directors) : null,
                     Status = status,
                     CurrentSeason = (status == WatchlistStatus.Watching && item.MediaType == "tv") ? 1 : null,

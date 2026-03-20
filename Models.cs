@@ -81,6 +81,9 @@ public class TmdbMovie
     public List<string> BackdropPaths { get; set; } = new();
     public string? TrailerKey { get; set; }
 
+    [JsonPropertyName("genres")]
+    public List<TmdbGenre> GenreList { get; set; } = new();
+
     public string FullPosterUrl => string.IsNullOrEmpty(PosterPath)
         ? "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" 
         : $"https://image.tmdb.org/t/p/w500{PosterPath}";
@@ -108,6 +111,9 @@ public class TmdbTvResult
 
     [JsonPropertyName("vote_average")]
     public double VoteAverage { get; set; }
+
+    [JsonPropertyName("genres")]
+    public List<TmdbGenre> GenreList { get; set; } = new();
 }
 
 // --- NEW TMDB CREDITS CLASSES ---

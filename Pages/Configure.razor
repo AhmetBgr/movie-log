@@ -220,6 +220,7 @@
                 var rating = ReadByAliases(csv, normalizedHeaderToActual, aliasSet.RatingAliases);
                 var type = ReadByAliases(csv, normalizedHeaderToActual, aliasSet.TypeAliases);
                 var directors = ReadByAliases(csv, normalizedHeaderToActual, aliasSet.DirectorAliases);
+                var genres = ReadByAliases(csv, normalizedHeaderToActual, aliasSet.GenreAliases);
 
                 if (string.IsNullOrEmpty(title)) {
                     importErrorCount++;
@@ -247,6 +248,16 @@
                     if (string.IsNullOrEmpty(finalImdbId))
                     {
                         finalImdbId = await WatchlistSvc.ResolveImdbIdAsync(title, parsedYear);
+                    }
+
+                    // If we hydrated from TMDB, we might have better genres
+                    if (string.IsNullOrEmpty(genres) && !string.IsNullOrEmpty(finalImdbId))
+                    {
+                        var tmdbItem = await WatchlistSvc.GetTmdbDetailsAsync(finalImdbId);
+                        if (tmdbItem != null && tmdbItem.GenreList.Any())
+                        {
+                            genres = string.Join(", ", tmdbItem.GenreList.Select(g => g.Name));
+                        }
                     }
                 }
 
@@ -287,6 +298,7 @@
                         TitleType = type?.Trim() ?? "Movie",
                         Year = year?.Trim() ?? "",
                         Director = directors?.Trim() ?? "",
+                        Genres = genres?.Trim() ?? "",
                         ParsedYear = parsedYear ?? 0,
                         Status = importAsWatched ? WatchlistStatus.Watched : WatchlistStatus.Pending,
                         DateAdded = dateAdded,
@@ -363,6 +375,7 @@
         public string[] RatingAliases { get; init; } = Array.Empty<string>();
         public string[] TypeAliases { get; init; } = Array.Empty<string>();
         public string[] DirectorAliases { get; init; } = Array.Empty<string>();
+        public string[] GenreAliases { get; init; } = Array.Empty<string>();
     }
 
     private static ImportAliasSet GetAliasSet(string source)
@@ -375,7 +388,8 @@
             YearAliases = new[] { "year", "releasedate", "releaseyear", "release", "filmyear" },
             RatingAliases = new[] { "yourrating", "rating", "score", "userrating", "star", "filmrating" },
             TypeAliases = new[] { "titletype", "type", "mediatype" },
-            DirectorAliases = new[] { "directors", "director" }
+            DirectorAliases = new[] { "directors", "director" },
+            GenreAliases = new[] { "genres", "genre" }
         };
 
         var letterboxd = new ImportAliasSet
@@ -386,7 +400,8 @@
             YearAliases = new[] { "year", "releasedate" },
             RatingAliases = new[] { "rating", "yourrating", "score" },
             TypeAliases = new[] { "type", "mediatype", "titletype" },
-            DirectorAliases = new[] { "director", "directors" }
+            DirectorAliases = new[] { "director", "directors" },
+            GenreAliases = new[] { "genres", "genre", "genreids" }
         };
 
         var trakt = new ImportAliasSet
@@ -397,7 +412,8 @@
             YearAliases = new[] { "year", "released", "releasedate", "firstaired" },
             RatingAliases = new[] { "rating", "score", "userrating" },
             TypeAliases = new[] { "type", "mediatype", "titletype" },
-            DirectorAliases = new[] { "director", "directors" }
+            DirectorAliases = new[] { "director", "directors" },
+            GenreAliases = new[] { "genres", "genre", "tags" }
         };
 
         var generic = new ImportAliasSet
@@ -408,7 +424,8 @@
             YearAliases = new[] { "year", "releasedate", "yearpublished", "release", "releaseyear", "filmyear", "firstaired" },
             RatingAliases = new[] { "yourrating", "rating", "score", "userrating", "star", "filmrating" },
             TypeAliases = new[] { "titletype", "type", "mediatype" },
-            DirectorAliases = new[] { "directors", "director" }
+            DirectorAliases = new[] { "directors", "director" },
+            GenreAliases = new[] { "genres", "genre", "category", "tags" }
         };
 
         return source switch
