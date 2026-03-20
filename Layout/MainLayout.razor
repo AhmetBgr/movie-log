@@ -58,7 +58,7 @@
     {
         if (!string.IsNullOrWhiteSpace(SearchText))
         {
-            NavManager.NavigateTo($"/search/{Uri.EscapeDataString(SearchText)}");
+            NavManager.NavigateTo($"search/{Uri.EscapeDataString(SearchText)}");
         }
     }
 }
