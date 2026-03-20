@@ -12,7 +12,4 @@ builder.Services.AddScoped<LocalStorageService>();
 builder.Services.AddScoped<WatchlistService>();
 var host = builder.Build();
 
-var watchlistSvc = host.Services.GetRequiredService<WatchlistService>();
-_ = watchlistSvc.InitializeAsync();
-
 await host.RunAsync();
