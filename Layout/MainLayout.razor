@@ -39,9 +39,11 @@
 @code {
     private string SearchText = "";
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         WatchlistSvc.OnStateChanged += HandleWatchlistStateChanged;
+        // Fire and forget initialization to ensure it happens on app start without blocking render
+        _ = WatchlistSvc.InitializeAsync();
     }
 
     private void HandleWatchlistStateChanged()
