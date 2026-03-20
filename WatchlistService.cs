@@ -1,6 +1,7 @@
 using MyPrivateWatchlist.Models;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using System.Linq;
 
 namespace MyPrivateWatchlist.Services;
 
@@ -452,10 +453,10 @@ public class WatchlistService
             }
         }
         catch (Exception ex)
-        { 
+        {
             Console.WriteLine($"API Error fetching {imdbId}: {ex.Message}");
+            return null;
         }
-        return null;
     }
 
     public async Task<TmdbMovie?> GetTmdbDetailsByIdAsync(int tmdbId, string mediaType)
@@ -575,23 +576,38 @@ public class WatchlistService
     public async Task<string?> ResolveImdbIdAsync(string title, int? year)
     {
         var apiKey = _config["TmdbApiKey"];
+        if (string.IsNullOrEmpty(apiKey))
+        {
+            Console.WriteLine("TMDB API key not configured");
+            return null;
+        }
+
         var query = System.Uri.EscapeDataString(title);
         var url = $"https://api.themoviedb.org/3/search/multi?api_key={apiKey}&query={query}";
         if (year.HasValue) url += $"&year={year.Value}&first_air_date_year={year.Value}";
 
-    try
-    {
-        var response = await _http.GetFromJsonAsync<TmdbSearchResponse>(url);
-        var first = response?.Results?.FirstOrDefault(r => r.MediaType == "movie" || r.MediaType == "tv");
+        try
         {
-            existing.Status = status;
-            if (status == WatchlistStatus.Watching && existing.TitleType.Contains("TV", StringComparison.OrdinalIgnoreCase))
+            var response = await _http.GetFromJsonAsync<TmdbSearchResponse>(url);
+            var first = response?.Results?.FirstOrDefault(r => r.MediaType == "movie" || r.MediaType == "tv");
+            if (first != null)
             {
-                existing.CurrentSeason ??= 1;
-                existing.CurrentEpisode ??= 1;
+                if (first.MediaType == "movie")
+                {
+                    return first.Id.ToString();
+                }
+                else if (first.MediaType == "tv")
+                {
+                    return first.Id.ToString();
+                }
             }
-            await UpdateListAsync(Items);
         }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Search API Error: {ex.Message}");
+            return null;
+        }
+        return null;
     }
 
     public async Task ClearAllDataAsync()
@@ -800,6 +816,7 @@ public class TmdbFindResult
     public List<TmdbMovie> MovieResults { get; set; } = new();
     [JsonPropertyName("tv_results")]
     public List<TmdbTvResult> TvResults { get; set; } = new();
+}
 }
 }
 
