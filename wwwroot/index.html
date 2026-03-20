@@ -32,6 +32,11 @@
             return localStorage.getItem(key);
         }
     };
+    window.uiHelpers = {
+        isDesktop: function () {
+            return window.innerWidth >= 992;
+        }
+    };
 </script>
 
 <body>

@@ -86,6 +86,13 @@ public class WatchlistService
         }
     }
 
+    private bool _showDetailedView;
+    public bool ShowDetailedView 
+    { 
+        get => _showDetailedView; 
+        set { _showDetailedView = value; NotifyStateChanged(fullRefresh: false); } 
+    }
+
     public string SortColumn { get; set; } = "DateAdded";
     public bool SortDescending { get; set; } = true;
 

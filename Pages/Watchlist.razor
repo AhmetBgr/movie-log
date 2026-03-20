@@ -1,6 +1,7 @@
 @page "/watchlist"
 @implements IDisposable
 @inject WatchlistService WatchlistSvc
+@inject IJSRuntime JS
 
 <PageTitle>Watchlist Table</PageTitle>
 
@@ -17,6 +18,11 @@
             <button class="btn btn-sm @(showFilters ? "btn-dark shadow" : "btn-outline-secondary") rounded-pill px-4 py-2 transition-all fw-medium" @onclick="ToggleFilters">
                 <i class="bi @(showFilters ? "bi-chevron-left" : "bi-funnel") me-2"></i> 
                 @(showFilters ? "Hide Filters" : "Show Filters")
+            </button>
+            <button class="btn btn-sm @(WatchlistSvc.ShowDetailedView ? "btn-secondary shadow" : "btn-outline-secondary") rounded-pill px-4 py-2 transition-all fw-medium" 
+                    @onclick="() => WatchlistSvc.ShowDetailedView = !WatchlistSvc.ShowDetailedView">
+                <i class="bi @(WatchlistSvc.ShowDetailedView ? "bi-eye-fill" : "bi-eye") me-2"></i> 
+                @(WatchlistSvc.ShowDetailedView ? "Simple View" : "Detailed View")
             </button>
             <button class="btn btn-sm @(isEditing ? "btn-primary shadow" : "btn-outline-primary") rounded-pill px-4 py-2 transition-all fw-medium" @onclick="ToggleEdit">
                 <i class="bi @(isEditing ? "bi-check-lg" : "bi-pencil") me-2"></i> 
@@ -94,12 +100,11 @@
                             {
                                 <th scope="col" style="width: 1%; white-space: nowrap;" class="border-bottom py-2.5 px-3 text-center"></th>
                             }
-                            <th scope="col" style="width: @(isEditing ? "32%" : "40%"); cursor: pointer;" class="border-bottom py-2.5 px-3" @onclick='() => WatchlistSvc.ToggleSort("Title")'>
+                            <th scope="col" style="width: @(isEditing ? "57%" : "65%"); cursor: pointer;" class="border-bottom py-2.5 px-3" @onclick='() => WatchlistSvc.ToggleSort("Title")'>
                                 Title 
                                 @if (WatchlistSvc.SortColumn == "Title") { <i class="bi @(WatchlistSvc.SortDescending ? "bi-sort-alpha-up-alt" : "bi-sort-alpha-down") ms-1"></i> }
                                 <span class="badge bg-secondary text-white shadow-sm fw-normal ms-2 rounded-2 px-2 py-1">@WatchlistSvc.FilteredItems.Count() Items</span>
                             </th>
-                            <th scope="col" style="width: 25%;" class="border-bottom py-2.5 px-3">Director</th>
                              <th scope="col" style="width: 12%; cursor: pointer;" class="border-bottom py-2.5" @onclick='() => WatchlistSvc.ToggleSort("Year")'>
                                 Year
                                 @if (WatchlistSvc.SortColumn == "Year") { <i class="bi @(WatchlistSvc.SortDescending ? "bi-sort-numeric-up-alt" : "bi-sort-numeric-down") ms-1"></i> }
@@ -147,33 +152,43 @@
                                 }
                                 <td style="cursor: pointer;" class="px-3 py-3" @onclick="() => WatchlistSvc.ShowDetailsAsync(item)">
                                     <div class="d-flex flex-column gap-1">
-                                        <span class="fw-bold text-dark" style="transition: opacity 0.2s;" onmouseover="this.style.opacity='0.6'" onmouseout="this.style.opacity='1'">
-                                            @item.Title
-                                        </span>
-                                        @if (item.DisplayOriginalTitle != null || !string.IsNullOrEmpty(item.Overview))
+                                        <div class="d-flex align-items-baseline gap-2 flex-wrap pb-1">
+                                            <span class="fw-bold text-dark fs-6" style="transition: opacity 0.2s;" onmouseover="this.style.opacity='0.6'" onmouseout="this.style.opacity='1'">
+                                                @item.Title
+                                            </span>
+                                            @if (!string.IsNullOrEmpty(item.Director))
+                                            {
+                                                <span class="text-secondary opacity-75 small fw-medium">by @item.Director</span>
+                                            }
+                                        </div>
+                                        @if (!string.IsNullOrEmpty(item.OriginalTitle) && !string.Equals(item.OriginalTitle, item.Title, StringComparison.OrdinalIgnoreCase))
                                         {
-                                            <div class="plot-meta d-flex flex-column">
-                                                @if (item.DisplayOriginalTitle != null)
-                                                {
-                                                    <div class="plot-original-title">(@item.DisplayOriginalTitle)</div>
-                                                }
-                                                @if (!string.IsNullOrEmpty(item.Overview))
-                                                {
-                                                    <div class="plot-text">
-                                                        @item.Overview
-                                                    </div>
-                                                }
-                                            </div>
+                                            <span class="text-secondary small fw-normal pb-1">(@item.OriginalTitle)</span>
+                                        }
+                                        @if (WatchlistSvc.ShowDetailedView)
+                                        {
+                                            @if (!string.IsNullOrEmpty(item.Overview))
+                                            {
+                                                <div class="overview-text mt-1" style="max-width: 700px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.6;">
+                                                    @item.Overview
+                                                </div>
+                                            }
+                                            @if (!string.IsNullOrEmpty(item.Genres))
+                                            {
+                                                <div class="d-flex flex-wrap gap-1 mt-1">
+                                                    @foreach (var g in item.Genres.Split(',').Take(4))
+                                                    {
+                                                        <span class="badge rounded-pill bg-light text-dark border-0 shadow-sm x-small fw-normal">@g.Trim()</span>
+                                                    }
+                                                </div>
+                                            }
                                         }
                                     </div>
                                 </td>
-                                <td class="text-secondary small px-3">
-                                    @item.Director
-                                </td>
-                                <td class="text-secondary fw-medium">
+                                <td class="text-secondary fw-medium px-2">
                                     @item.Year
                                 </td>
-                                <td class="text-secondary small">
+                                <td class="text-secondary small px-2">
                                     @item.DateAdded.ToString("MMM dd")
                                 </td>
                                 <td>
@@ -195,29 +210,13 @@
 </div>
 
 <style>
-    .plot-meta {
-        color: #505a66;
-        font-size: 0.9rem;
-        line-height: 1.6;
-        margin-top: 0.1rem;
+    .overview-text {
+        font-size: 0.875rem;
+        color: #4a5568; /* Slate gray for soft but readable text */
+        letter-spacing: 0.01em;
     }
-
-    .plot-original-title {
-        color: #6b7280;
-        font-size: 0.84rem;
-        font-style: italic;
-        margin-bottom: 0.25rem;
-    }
-
-    .plot-text {
-        max-width: 650px;
-        white-space: normal;
-        color: #3f4a58;
-        font-size: 0.92rem;
-        line-height: 1.65;
-        letter-spacing: 0.005em;
-        text-wrap: pretty;
-    }
+    .x-small { font-size: 0.65rem; }
+    .sticky-top { top: 1rem; }
 </style>
 
 @code {
@@ -233,10 +232,21 @@
         StateHasChanged();
     }
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         WatchlistSvc.OnStateChanged += HandleStateChanged;
         UpdateLocalList();
+
+        try
+        {
+            var isDesktop = await JS.InvokeAsync<bool>("uiHelpers.isDesktop");
+            if (isDesktop)
+            {
+                showFilters = true;
+                WatchlistSvc.ShowDetailedView = true;
+            }
+        }
+        catch { /* Fallback */ }
     }
 
     private void HandleStateChanged()
