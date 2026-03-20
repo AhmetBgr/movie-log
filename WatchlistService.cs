@@ -1,6 +1,7 @@
 using MyPrivateWatchlist.Models;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using Microsoft.JSInterop;
 
 namespace MyPrivateWatchlist.Services;
 
@@ -9,6 +10,7 @@ public class WatchlistService
     private readonly HttpClient _http;
     private readonly LocalStorageService _storage;
     private readonly IConfiguration _config;
+    private readonly IJSRuntime _js;
     private readonly Dictionary<string, TmdbMovie> _movieCache = new();
     private readonly Dictionary<string, TmdbMovie> _movieDetailsByIdCache = new();
     private Dictionary<int, string> _genreMap = new();
@@ -18,6 +20,19 @@ public class WatchlistService
     private Task? _initializeTask;
     private bool _genreMapLoadStarted;
     public bool IsInitializing { get; private set; } = true;
+    public string? ToastMessage { get; private set; }
+
+    public async Task ShowToastAsync(string message, int durationMs = 3000)
+    {
+        ToastMessage = message;
+        NotifyStateChanged();
+        await Task.Delay(durationMs);
+        if (ToastMessage == message)
+        {
+            ToastMessage = null;
+            NotifyStateChanged();
+        }
+    }
 
     public List<WatchlistItem> Items { get; set; } = new();
     
@@ -175,11 +190,12 @@ public class WatchlistService
         }).ToList();
     }
 
-    public WatchlistService(HttpClient http, LocalStorageService storage, IConfiguration config)
+    public WatchlistService(HttpClient http, LocalStorageService storage, IConfiguration config, IJSRuntime js)
     {
         _http = http;
         _storage = storage;
         _config = config;
+        _js = js;
     }
 
     public async Task InitializeAsync()
@@ -801,6 +817,10 @@ public class WatchlistService
         {
             var random = pool[Random.Shared.Next(pool.Count)];
             await ShowDetailsAsync(random);
+        }
+        else
+        {
+            _ = ShowToastAsync("Your library is currently empty! Please add some movies to your watchlist first.", 3500);
         }
     }
 

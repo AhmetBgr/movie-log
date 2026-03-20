@@ -10,14 +10,13 @@
     </div>
 
     <main>
-        <div class="top-row px-4 d-flex justify-content-between align-items-center bg-white shadow-sm" style="height: 4rem;">
-            <form class="input-group w-50 shadow-sm rounded-pill overflow-hidden" @onsubmit="PerformSearch" @onsubmit:preventDefault="true">
-                <span class="input-group-text bg-light border-0 text-secondary px-4"><i class="bi bi-search"></i></span>
-                <input type="text" class="form-control border-0 bg-light py-2 px-0 shadow-none" placeholder="Search globally on TMDB..." 
+        <div class="top-row px-3 px-md-4 d-flex justify-content-between align-items-center bg-white shadow-sm gap-3" style="height: 4rem;">
+            <form class="input-group shadow-sm rounded-pill overflow-hidden flex-grow-1" style="max-width: 600px;" @onsubmit="PerformSearch" @onsubmit:preventDefault="true">
+                <span class="input-group-text bg-light border-0 text-secondary px-3 px-md-4"><i class="bi bi-search"></i></span>
+                <input type="text" class="form-control border-0 bg-light py-2 px-0 shadow-none" placeholder="Search globally" 
                        @bind="SearchText" />
-                <button type="submit" class="btn btn-dark px-4 fw-medium text-uppercase tracking-wide">Search TMDB</button>
+                <button type="submit" class="btn btn-dark px-3 px-md-4 fw-medium text-uppercase tracking-wide">Search</button>
             </form>
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank" class="text-decoration-none text-secondary small fw-medium text-uppercase tracking-wide">About</a>
         </div>
 
         @if (WatchlistSvc.IsInitializing)
@@ -33,6 +32,19 @@
         </article>
 
         <MovieDetailsModal />
+        
+        @if (!string.IsNullOrEmpty(WatchlistSvc.ToastMessage))
+        {
+            <div class="position-fixed bottom-0 start-50 translate-middle-x p-4" style="z-index: 1080;">
+                <div class="toast show align-items-center text-white bg-dark border-0 shadow-lg rounded-pill" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="d-flex">
+                        <div class="toast-body px-4 py-3 fw-medium">
+                            <i class="bi bi-info-circle-fill me-2 text-warning"></i> @WatchlistSvc.ToastMessage
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
     </main>
 </div>
 
