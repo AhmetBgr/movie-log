@@ -13,38 +13,43 @@
     </div>
 
     <main class="pb-sm-0" style="padding-bottom: 64px;">
-        <div class="top-row px-3 px-md-4 d-flex justify-content-between align-items-center bg-white shadow-sm gap-3 sticky-top" style="height: 4rem; z-index: 100;">
-            <div class="position-relative flex-grow-1" style="max-width: 600px;">
-                <form class="input-group shadow-sm rounded-pill overflow-hidden" @onsubmit="PerformSearch" @onsubmit:preventDefault="true">
-                    <span class="input-group-text bg-light border-0 text-secondary px-3 px-md-4"><i class="bi bi-search"></i></span>
-                    <input type="text" class="form-control border-0 bg-light py-2 px-0 shadow-none" placeholder="Search globally" 
-                           @bind="SearchText" @bind:event="oninput" @onfocus="() => isSearchFocused = true" @onblur="HandleBlur" />
-                    <button type="submit" class="btn btn-dark px-3 px-md-4 fw-medium text-uppercase tracking-wide">Search</button>
+
+        <!-- Search bar — always fixed to top -->
+        <div class="search-bar-wrap">
+            <div class="search-bar-inner">
+                <form class="search-form" @onsubmit="PerformSearch" @onsubmit:preventDefault="true">
+                    <i class="bi bi-search search-icon"></i>
+                    <input type="text"
+                           class="search-input"
+                           placeholder="Search movies, shows..."
+                           @bind="SearchText"
+                           @bind:event="oninput"
+                           @onfocus="() => isSearchFocused = true"
+                           @onblur="HandleBlur" />
+                    <button type="submit" class="search-btn">Search</button>
                 </form>
 
                 @if (isSearchFocused && WatchlistSvc.EnableSearchHistory && WatchlistSvc.SearchHistory.Any(s => string.IsNullOrEmpty(SearchText) || s.Contains(SearchText, StringComparison.OrdinalIgnoreCase)))
                 {
-                    <div class="position-absolute top-100 start-0 end-0 mt-2 bg-white shadow-lg border rounded-3 overflow-hidden" style="z-index: 101;">
-                        <div class="px-3 py-2 border-bottom bg-light d-flex justify-content-between align-items-center">
-                            <span style="font-size: 0.7rem;" class="fw-bold text-secondary text-uppercase tracking-widest">Recent Searches</span>
-                            <button class="btn btn-link text-danger text-decoration-none p-0 x-small" style="font-size: 0.7rem;" @onclick="WatchlistSvc.ClearSearchHistory">CLEAR ALL</button>
+                    <div class="search-history-dropdown">
+                        <div class="search-history-header">
+                            <span>Recent Searches</span>
+                            <button @onclick="WatchlistSvc.ClearSearchHistory">Clear all</button>
                         </div>
-                        <div class="list-group list-group-flush">
-                            @foreach (var query in WatchlistSvc.SearchHistory.Where(s => string.IsNullOrEmpty(SearchText) || s.Contains(SearchText, StringComparison.OrdinalIgnoreCase)))
-                            {
-                                <div class="list-group-item list-group-item-action border-0 py-2.5 px-3 d-flex align-items-center justify-content-between pointer" 
-                                        @onclick="() => QuickSearch(query)">
-                                    <div class="d-flex align-items-center gap-3">
-                                        <i class="bi bi-clock-history text-muted"></i>
-                                        <span class="text-dark">@query</span>
-                                    </div>
-                                    <button class="btn btn-link btn-sm text-secondary p-0 opacity-50 hover-opacity-100" 
-                                            @onclick:stopPropagation="true" @onclick="() => WatchlistSvc.RemoveFromSearchHistory(query)">
-                                        <i class="bi bi-x-lg" style="font-size: 0.8rem;"></i>
-                                    </button>
+                        @foreach (var query in WatchlistSvc.SearchHistory.Where(s => string.IsNullOrEmpty(SearchText) || s.Contains(SearchText, StringComparison.OrdinalIgnoreCase)))
+                        {
+                            <div class="search-history-item" @onclick="() => QuickSearch(query)">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="bi bi-clock-history"></i>
+                                    <span>@query</span>
                                 </div>
-                            }
-                        </div>
+                                <button class="search-history-remove"
+                                        @onclick:stopPropagation="true"
+                                        @onclick="() => WatchlistSvc.RemoveFromSearchHistory(query)">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </div>
+                        }
                     </div>
                 }
             </div>
@@ -58,12 +63,12 @@
             </div>
         }
 
-        <article class="content px-4 mt-2">
+        <article class="content px-3 px-md-4 mt-2">
             @Body
         </article>
 
         <MovieDetailsModal />
-        
+
         @if (!string.IsNullOrEmpty(WatchlistSvc.ToastMessage))
         {
             <div class="position-fixed bottom-0 start-50 translate-middle-x p-4" style="z-index: 1080;">
@@ -85,13 +90,168 @@
 
 </div>
 
+<style>
+    /* ── Search bar wrapper — always sticky to top ─────────── */
+    .search-bar-wrap {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        background: #fff;
+        border-bottom: 1px solid #e8eaed;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        padding: 10px 16px;
+    }
+
+    .search-bar-inner {
+        position: relative;
+        max-width: 680px;
+        margin: 0 auto;
+    }
+
+    /* ── Search form ────────────────────────────────────────── */
+    .search-form {
+        display: flex;
+        align-items: center;
+        background: #f1f3f4;
+        border-radius: 999px;
+        border: 2px solid transparent;
+        padding: 0 6px 0 16px;
+        transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+        height: 46px;
+    }
+
+    .search-form:focus-within {
+        background: #fff;
+        border-color: #1a73e8;
+        box-shadow: 0 2px 8px rgba(26,115,232,0.15);
+    }
+
+    .search-icon {
+        color: #888;
+        font-size: 1rem;
+        flex-shrink: 0;
+        margin-right: 10px;
+        transition: color 0.2s;
+    }
+
+    .search-form:focus-within .search-icon {
+        color: #1a73e8;
+    }
+
+    .search-input {
+        flex: 1;
+        border: none;
+        background: transparent;
+        outline: none;
+        font-size: 0.95rem;
+        color: #202124;
+        min-width: 0;
+    }
+
+    .search-input::placeholder {
+        color: #aaa;
+    }
+
+    .search-btn {
+        flex-shrink: 0;
+        background: #1a1a2e;
+        color: #fff;
+        border: none;
+        border-radius: 999px;
+        padding: 6px 18px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: background 0.2s, transform 0.1s;
+        height: 34px;
+    }
+
+    .search-btn:hover {
+        background: #3a0647;
+        transform: scale(1.03);
+    }
+
+    /* ── History dropdown ───────────────────────────────────── */
+    .search-history-dropdown {
+        position: absolute;
+        top: calc(100% + 8px);
+        left: 0;
+        right: 0;
+        background: #fff;
+        border-radius: 16px;
+        border: 1px solid #e8eaed;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+        overflow: hidden;
+        z-index: 200;
+    }
+
+    .search-history-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 16px;
+        border-bottom: 1px solid #f1f3f4;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #888;
+    }
+
+    .search-history-header button {
+        background: none;
+        border: none;
+        color: #e53935;
+        font-size: 0.7rem;
+        font-weight: 600;
+        cursor: pointer;
+        padding: 0;
+    }
+
+    .search-history-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 16px;
+        cursor: pointer;
+        font-size: 0.88rem;
+        color: #202124;
+        transition: background 0.12s;
+    }
+
+    .search-history-item:hover {
+        background: #f8f9fa;
+    }
+
+    .search-history-item .bi-clock-history {
+        color: #aaa;
+        font-size: 0.85rem;
+    }
+
+    .search-history-remove {
+        background: none;
+        border: none;
+        color: #bbb;
+        padding: 2px 4px;
+        cursor: pointer;
+        font-size: 0.75rem;
+        border-radius: 4px;
+        transition: color 0.15s;
+    }
+
+    .search-history-remove:hover {
+        color: #e53935;
+    }
+</style>
+
 @code {
     private string SearchText = "";
     private bool isSearchFocused = false;
 
     private async Task HandleBlur()
     {
-        // Small delay to allow click on history item to trigger first
         await Task.Delay(200);
         isSearchFocused = false;
         StateHasChanged();
@@ -100,6 +260,7 @@
     private void QuickSearch(string query)
     {
         SearchText = query;
+        isSearchFocused = false;
         PerformSearch();
     }
 
@@ -108,8 +269,6 @@
         WatchlistSvc.OnStateChanged += HandleWatchlistStateChanged;
         NavManager.LocationChanged += HandleLocationChanged;
         _wasModalOpen = WatchlistSvc.IsModalOpen;
-        
-        // Fire and forget initialization to ensure it happens on app start without blocking render
         _ = WatchlistSvc.InitializeAsync();
     }
 
@@ -121,16 +280,12 @@
         if (WatchlistSvc.IsModalOpen && !_wasModalOpen)
         {
             if (!NavManager.Uri.Contains("#details"))
-            {
                 NavManager.NavigateTo(NavManager.Uri + "#details");
-            }
         }
         else if (!WatchlistSvc.IsModalOpen && _wasModalOpen)
         {
             if (NavManager.Uri.Contains("#details") && !_isClosingFromNav)
-            {
                 _ = JS.InvokeVoidAsync("history.back");
-            }
         }
         _wasModalOpen = WatchlistSvc.IsModalOpen;
         _ = InvokeAsync(StateHasChanged);
@@ -156,6 +311,7 @@
     {
         if (!string.IsNullOrWhiteSpace(SearchText))
         {
+            isSearchFocused = false;
             WatchlistSvc.AddToSearchHistory(SearchText);
             NavManager.NavigateTo($"search/{Uri.EscapeDataString(SearchText)}");
         }
