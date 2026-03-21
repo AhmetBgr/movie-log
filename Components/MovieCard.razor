@@ -8,12 +8,55 @@
         <!-- Outer row: side panel + main content -->
         <div class="d-flex">
 
-            <!-- ── (new) Side Panel ──────────────────────────────────── -->
-            @if (SidePanel != null)
+            <!-- ── Side Panel (visible only in edit mode for library items) ── -->
+            @if (IsEditMode && IsInLibrary)
             {
                 <div class="side-panel d-flex align-items-center justify-content-center"
                      @onclick:stopPropagation="true">
-                    @SidePanel
+                    @switch (Item.Status)
+                    {
+                        case WatchlistStatus.Pending:
+                            <button class="btn btn-sm action-btn action-btn-success"
+                                    @onclick:stopPropagation="true" @onclick="() => SetStatus(WatchlistStatus.Watching)"
+                                    title="Start Watching">
+                                <i class="bi bi-play-fill fs-5"></i>
+                            </button>
+                            <button class="btn btn-sm action-btn action-btn-primary"
+                                    @onclick:stopPropagation="true" @onclick="() => SetStatus(WatchlistStatus.Watched)"
+                                    title="Mark as Watched">
+                                <i class="bi bi-check-lg fs-5"></i>
+                            </button>
+                            <button class="btn btn-sm action-btn action-btn-danger"
+                                    @onclick:stopPropagation="true" @onclick="RemoveFromLibrary"
+                                    title="Remove from library">
+                                <i class="bi bi-trash3-fill fs-5"></i>
+                            </button>
+                            break;
+                        case WatchlistStatus.Watching:
+                            <button class="btn btn-sm action-btn action-btn-primary"
+                                    @onclick:stopPropagation="true" @onclick="() => SetStatus(WatchlistStatus.Watched)"
+                                    title="Mark as Watched">
+                                <i class="bi bi-check-lg fs-5"></i>
+                            </button>
+                            <button class="btn btn-sm action-btn action-btn-danger"
+                                    @onclick:stopPropagation="true" @onclick="RemoveFromLibrary"
+                                    title="Remove from library">
+                                <i class="bi bi-trash3-fill fs-5"></i>
+                            </button>
+                            break;
+                        case WatchlistStatus.Watched:
+                            <button class="btn btn-sm action-btn action-btn-success"
+                                    @onclick:stopPropagation="true" @onclick="() => SetStatus(WatchlistStatus.Watching)"
+                                    title="Watch Again">
+                                <i class="bi bi-arrow-repeat fs-5"></i>
+                            </button>
+                            <button class="btn btn-sm action-btn action-btn-danger"
+                                    @onclick:stopPropagation="true" @onclick="RemoveFromLibrary"
+                                    title="Remove from library">
+                                <i class="bi bi-trash3-fill fs-5"></i>
+                            </button>
+                            break;
+                    }
                 </div>
             }
 
@@ -27,9 +70,9 @@
                         <div class="h-100 w-100 d-flex align-items-center justify-content-center p-0 m-0 poster-bg">
                             @if (!string.IsNullOrEmpty(Item.FullPosterUrl) && !Item.FullPosterUrl.Contains("data:image/png;base64"))
                             {
-                                <img src="@Item.FullPosterUrl" 
-                                     class="h-100 w-100 poster-img" 
-                                     alt="@Item.Title" 
+                                <img src="@Item.FullPosterUrl"
+                                     class="h-100 w-100 poster-img"
+                                     alt="@Item.Title"
                                      style="object-fit: cover; display: block;"
                                      onerror="this.style.display='none'; this.parentElement.innerHTML='<i class=&quot;bi bi-film fs-1 text-secondary opacity-25&quot;></i>';" />
                             }
@@ -39,62 +82,11 @@
                             }
                         </div>
 
-                        <!-- Action Buttons Overlay — only shown when SidePanel is NOT used -->
-                        @if (SidePanel == null && ShowEditControls && IsInLibrary)
-                        {
-                            <div class="position-absolute top-50 start-50 translate-middle d-flex gap-2 edit-overlay p-2 rounded-2">
-                                @switch (Item.Status)
-                                {
-                                    case WatchlistStatus.Pending:
-                                        <button class="btn btn-sm action-btn action-btn-success" 
-                                                @onclick:stopPropagation="true" @onclick="() => SetStatus(WatchlistStatus.Watching)"
-                                                title="Start Watching">
-                                            <i class="bi bi-play-fill fs-5"></i>
-                                        </button>
-                                        <button class="btn btn-sm action-btn action-btn-primary" 
-                                                @onclick:stopPropagation="true" @onclick="() => SetStatus(WatchlistStatus.Watched)"
-                                                title="Mark as Watched">
-                                            <i class="bi bi-check-lg fs-5"></i>
-                                        </button>
-                                        <button class="btn btn-sm action-btn action-btn-danger" 
-                                                @onclick:stopPropagation="true" @onclick="RemoveFromLibrary"
-                                                title="Remove from library">
-                                            <i class="bi bi-trash3-fill fs-5"></i>
-                                        </button>
-                                        break;
-                                    case WatchlistStatus.Watching:
-                                        <button class="btn btn-sm action-btn action-btn-primary" 
-                                                @onclick:stopPropagation="true" @onclick="() => SetStatus(WatchlistStatus.Watched)"
-                                                title="Mark as Watched">
-                                            <i class="bi bi-check-lg fs-5"></i>
-                                        </button>
-                                        <button class="btn btn-sm action-btn action-btn-danger" 
-                                                @onclick:stopPropagation="true" @onclick="RemoveFromLibrary"
-                                                title="Remove from library">
-                                            <i class="bi bi-trash3-fill fs-5"></i>
-                                        </button>
-                                        break;
-                                    case WatchlistStatus.Watched:
-                                        <button class="btn btn-sm action-btn action-btn-success" 
-                                                @onclick:stopPropagation="true" @onclick="() => SetStatus(WatchlistStatus.Watching)"
-                                                title="Watch Again">
-                                            <i class="bi bi-arrow-repeat fs-5"></i>
-                                        </button>
-                                        <button class="btn btn-sm action-btn action-btn-danger" 
-                                                @onclick:stopPropagation="true" @onclick="RemoveFromLibrary"
-                                                title="Remove from library">
-                                            <i class="bi bi-trash3-fill fs-5"></i>
-                                        </button>
-                                        break;
-                                }
-                            </div>
-                        }
-
-                        <!-- Add Button Overlay (only when edit mode is on and not in library) -->
-                        @if (ShowEditControls && !IsInLibrary)
+                        <!-- Add Button Overlay (edit mode, not yet in library) -->
+                        @if (IsEditMode && !IsInLibrary)
                         {
                             <div class="position-absolute top-50 start-50 translate-middle">
-                                <button class="btn btn-sm action-btn action-btn-primary" 
+                                <button class="btn btn-sm action-btn action-btn-primary"
                                         @onclick:stopPropagation="true" @onclick="AddToWatchlist"
                                         title="Add to watchlist">
                                     <i class="bi bi-plus-lg fs-5"></i>
@@ -196,8 +188,15 @@
     public bool ShowActionButtons { get; set; } = false;
 
     /// <summary>
-    /// Optional side-panel content rendered to the left of the poster.
-    /// When null the panel is completely absent (zero width, no layout impact).
+    /// When true, shows the side panel with action buttons (for Watchlist page).
+    /// Kept as a simple bool so Blazor can diff it in-place without recreating the component.
+    /// </summary>
+    [Parameter]
+    public bool IsEditMode { get; set; } = false;
+
+    /// <summary>
+    /// Legacy RenderFragment slot — kept for backward compatibility with Search page etc.
+    /// When IsEditMode is used instead, this stays null.
     /// </summary>
     [Parameter]
     public RenderFragment? SidePanel { get; set; }
@@ -206,18 +205,12 @@
 
     private void ShowDetails()
     {
-        if (Item != null)
-        {
-            WatchlistSvc.ShowDetailsAsync(Item);
-        }
+        if (Item != null) WatchlistSvc.ShowDetailsAsync(Item);
     }
 
     private void AddToWatchlist()
     {
-        if (Item != null)
-        {
-            WatchlistSvc.AddToWatchlistAsync(Item);
-        }
+        if (Item != null) WatchlistSvc.AddToWatchlistAsync(Item);
     }
 
     private void RemoveFromLibrary()
@@ -225,10 +218,7 @@
         if (Item != null)
         {
             var libItem = WatchlistSvc.Items.FirstOrDefault(i => i.ImdbId == Item.ImdbId);
-            if (libItem != null)
-            {
-                WatchlistSvc.RemoveFromWatchlistAsync(libItem);
-            }
+            if (libItem != null) WatchlistSvc.RemoveFromWatchlistAsync(libItem);
         }
     }
 
@@ -262,35 +252,6 @@
         }
     }
 
-    private string GetStatusText()
-    {
-        return Item?.Status switch
-        {
-            WatchlistStatus.Pending => "Watchlist",
-            WatchlistStatus.Watching => "Watching",
-            WatchlistStatus.Watched => "Watched",
-            _ => "Unknown"
-        };
-    }
-
-    private string GetStatusBadgeClass()
-    {
-        return Item?.Status switch
-        {
-            WatchlistStatus.Pending => "bg-secondary",
-            WatchlistStatus.Watching => "bg-success",
-            WatchlistStatus.Watched => "bg-primary",
-            _ => "bg-light text-dark"
-        };
-    }
-
-    private string GetTypeBadgeClass()
-    {
-        return Item?.TitleType?.Contains("TV", StringComparison.OrdinalIgnoreCase) == true
-            ? "bg-light text-dark border"
-            : "bg-secondary text-white";
-    }
-
     private string GetRatingColor(int val)
     {
         double hue = (val / 100.0) * 120;
@@ -318,21 +279,18 @@
         border-right: 1px solid rgba(0,0,0,0.06);
         background: #f7f7f7;
         border-radius: 10px 0 0 10px;
-        /* stacks buttons vertically with a small gap */
         flex-direction: column;
         gap: 6px;
         padding: 8px 4px;
     }
 
-    /* ── Poster ─────────────────────────────────────────────── */
+    /* ── Poster never shrinks ───────────────────────────────── */
     .poster-wrap {
-        /* only round left corners when there is NO side panel */
+        flex-shrink: 0 !important;
+        min-width: 96px !important;
+        width: 96px !important;
         border-radius: 0;
         overflow: hidden;
-    }
-    /* When side-panel is absent the poster is the leftmost element */
-    .movie-card > .d-flex > .flex-grow-1 > .d-flex > .poster-wrap:first-child {
-        border-radius: 10px 0 0 0;
     }
     .poster-bg {
         background: #f0f0f0;
@@ -345,11 +303,7 @@
         transform: scale(1.03);
     }
 
-    /* ── Edit overlay ───────────────────────────────────────── */
-    .edit-overlay {
-        background: rgba(10,10,10,0.72);
-        backdrop-filter: blur(4px);
-    }
+    /* ── Action buttons ─────────────────────────────────────── */
     .action-btn {
         width: 34px;
         height: 34px;
@@ -407,14 +361,8 @@
         padding: 2px 7px;
         border-radius: 4px;
     }
-    .type-movie {
-        background: #e8e8e8;
-        color: #444;
-    }
-    .type-tv {
-        background: #dbeafe;
-        color: #1d4ed8;
-    }
+    .type-movie { background: #e8e8e8; color: #444; }
+    .type-tv    { background: #dbeafe; color: #1d4ed8; }
 
     /* ── Genre pills ────────────────────────────────────────── */
     .genre-pill {
@@ -441,24 +389,17 @@
         line-height: 1.55;
     }
 
-    /* ── Poster never shrinks ───────────────────────────────── */
-    .poster-wrap {
-        flex-shrink: 0 !important;
-        min-width: 96px !important;
-        width: 96px !important;
-    }
-
     /* ── Mobile ─────────────────────────────────────────────── */
     @@media (max-width: 768px) {
-        .side-panel    { width: 36px; }
-        .poster-bg     { min-height: 130px; }
-        .data-col      { padding: 8px !important; }
-        .movie-title   { font-size: 0.8rem !important; }
-        .meta-text     { font-size: 0.68rem !important; }
-        .rating-badge  { min-width: 30px; height: 30px; font-size: 0.7rem; }
+        .side-panel   { width: 36px; }
+        .poster-bg    { min-height: 130px; }
+        .data-col     { padding: 8px !important; }
+        .movie-title  { font-size: 0.8rem !important; }
+        .meta-text    { font-size: 0.68rem !important; }
+        .rating-badge { min-width: 30px; height: 30px; font-size: 0.7rem; }
         .overview-section { padding: 7px 10px 9px; }
-        .overview-text { font-size: 0.75rem; }
-        .genre-pill    { font-size: 0.6rem; padding: 1px 6px; }
-        .action-btn    { width: 28px; height: 28px; }
+        .overview-text    { font-size: 0.75rem; }
+        .genre-pill   { font-size: 0.6rem; padding: 1px 6px; }
+        .action-btn   { width: 28px; height: 28px; }
     }
 </style>
