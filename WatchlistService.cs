@@ -98,6 +98,8 @@ public class WatchlistService
 
     public string WatchedSortColumn { get; set; } = "DateAdded";
     public bool WatchedSortDescending { get; set; } = true;
+    public string WatchingSortColumn { get; set; } = "DateAdded";
+    public bool WatchingSortDescending { get; set; } = true;
 
     private int _filterMinRating20 = 0;
     public int FilterMinRating20 
@@ -240,7 +242,13 @@ public class WatchlistService
             }
         }
 
-        _watchingCached = watching;
+        _watchingCached = (WatchingSortColumn switch
+        {
+            "Year" => WatchingSortDescending ? watching.OrderByDescending(m => m.ParsedYear) : watching.OrderBy(m => m.ParsedYear),
+            "Type" => WatchingSortDescending ? watching.OrderByDescending(m => m.TitleType) : watching.OrderBy(m => m.TitleType),
+            "DateAdded" => WatchingSortDescending ? watching.OrderByDescending(m => m.DateAdded) : watching.OrderBy(m => m.DateAdded),
+            _ => WatchingSortDescending ? watching.OrderByDescending(m => m.Title) : watching.OrderBy(m => m.Title)
+        }).ToList();
 
         _filteredCached = (SortColumn switch
         {
@@ -815,6 +823,20 @@ public class WatchlistService
     {
         return Items.Any(i => i.Title.Equals(title, StringComparison.OrdinalIgnoreCase) && 
                               (string.IsNullOrEmpty(year) || i.Year.Contains(year)));
+    }
+
+    public void ToggleWatchingSort(string column)
+    {
+        if (WatchingSortColumn == column)
+        {
+            WatchingSortDescending = !WatchingSortDescending;
+        }
+        else
+        {
+            WatchingSortColumn = column;
+            WatchingSortDescending = (column == "DateAdded" || column == "Year");
+        }
+        NotifyStateChanged();
     }
 
     public void ToggleWatchedSort(string column)
