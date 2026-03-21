@@ -233,23 +233,4 @@
     }
 </style>
 
-        private async Task ChangeSeason(WatchlistItem item, int delta)
-        {
-            int newS = Math.Max(1, (item.CurrentSeason ?? 1) + delta);
-            await WatchlistSvc.UpdateProgressAsync(item, newS, item.CurrentEpisode);
-        }
 
-        private async Task ChangeEpisode(WatchlistItem item, int delta)
-        {
-            int newE = Math.Max(1, (item.CurrentEpisode ?? 1) + delta);
-            await WatchlistSvc.UpdateProgressAsync(item, item.CurrentSeason, newE);
-        }
-
-        private static string Get1337xSearchUrl(WatchlistItem item)
-        {
-            var query = string.IsNullOrWhiteSpace(item.Year)
-                ? (item.Title ?? "").Trim()
-                : $"{item.Title?.Trim()} {item.Year?.Trim()}".Trim();
-            var encoded = System.Net.WebUtility.UrlEncode(query) ?? "";
-            return $"https://1337x.to/search/{encoded}/1/";
-        }
