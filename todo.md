@@ -1,6 +1,6 @@
 # Project Roadmap & Todo List
 
-## ✅ Completed (Recent Enhancements)
+## Completed (
 - [x] **Togglable Filter Bars**: Save space in Watchlist and Home views.
 - [x] **Dynamic Table Expansion**: Table grows to fill the screen when filters are hidden.
 - [x] **Instant UI**: Removed all fade animations for immediate response.
@@ -21,16 +21,30 @@
 - [x] **Stabilized Modal Layout**: Fixed-height media column to prevent UI jumping during view toggles.
 
 
-## Potential Next Steps
-- [ ] **Smart Collections (Franchises)**: Automatically group your movies into franchises using TMDB Collections API.
+## TODO
+- [ ] **Smart Collections (Franchises)**: franchise tag leading to franchise page in movie details.
 - [ ] **Cast & Crew Deep-Dive**: Clickable actors/directors to show profiles, bios, and their other work.
-- [ ] **Immersive Trailer Lightbox**: Watch trailers directly in a premium, focused overlay.
 - [ ] **Auto-Import Bookmarklet**: A browser tool to instantly add movies from IMDb/Letterboxd to your local Log.
 - [ ] **Export to CSV**: Export your filtered Watchlist view back to a file.
 - [ ] **Watchlist Statistics**: Pie charts or stats for genre distribution and year ranges.
 - [ ] **Cloud Backup**: Optional integration for saving your list beyond local storage.
 - [ ] **Dark/Light Mode Toggle**: Manual theme switcher (currently defaults to system/premium dark).
+- [ ] **open on**: button next to tiltes which will redirect to selected site(imdb, 1337x search, r/movies, criticker, letterboxd)
+- [ ] **global random**: show random movie outside of library.
 
-## 🐞 Known Issues & Maintenance
-- [ ] Continuous performance monitoring for 1000+ item lists.
-- [ ] Add unit tests for `WatchlistService` filtering logic.
+
+## Known Issues & small improvements
+- [ ] Continuous performance monitoring for 1000+ item lists(??).
+- [ ] Add unit tests for `WatchlistService` filtering logic(??).
+- [ ] search page should sort by relevance by default.
+- [ ] fix saved box showing at wrong place on watched page when editing rating
+- [ ] fix tracking controls on tv shows not appearing on mobile
+- [ ] show posters on watched and watching pages. improve tables and show card view option on these pages
+- [ ] make sorting buttons appear over table so that we can change sorting when even scrolled down.
+- [ ] reduce Corner softening on buttons
+- [ ] fix filter box rendering over search and side panel
+- [ ] remove movii log label on side panel
+- [ ] fix auto focux element on first load
+- [ ] try to improve load time
+- [ ] consider removing pwa
+- [ ] x button next to search text to quick deletion
