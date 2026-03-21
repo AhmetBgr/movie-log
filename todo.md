@@ -31,6 +31,7 @@
 - [ ] **Dark/Light Mode Toggle**: Manual theme switcher (currently defaults to system/premium dark).
 - [ ] **open on**: button next to tiltes which will redirect to selected site(imdb, 1337x search, r/movies, criticker, letterboxd)
 - [ ] **global random**: show random movie outside of library.
+- [ ] **GitHub Gist library sync**
 
 
 ## Known Issues & small improvements
