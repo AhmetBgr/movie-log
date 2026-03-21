@@ -152,10 +152,6 @@
                                 Added
                                 @if (WatchlistSvc.SortColumn == "DateAdded") { <i class="bi @(WatchlistSvc.SortDescending ? "bi-sort-numeric-up-alt" : "bi-sort-numeric-down") ms-1"></i> }
                             </th>
-                            <th scope="col" style="width: 13%; cursor: pointer;" class="border-bottom py-2.5" @onclick='() => WatchlistSvc.ToggleSort("Type")'>
-                                Type
-                                @if (WatchlistSvc.SortColumn == "Type") { <i class="bi @(WatchlistSvc.SortDescending ? "bi-sort-alpha-up-alt" : "bi-sort-alpha-down") ms-1"></i> }
-                            </th>
                         </tr>
                     </thead>
                     <tbody class="border-top-0">
@@ -246,11 +242,6 @@
                                 </td>
                                 <td class="text-secondary small px-2">
                                     @item.DateAdded.ToString("MMM dd")
-                                </td>
-                                <td>
-                                    <span class="badge rounded-pill @(item.TitleType.Equals("Movie", StringComparison.OrdinalIgnoreCase) ? "bg-secondary text-white" : "bg-light text-dark border")">
-                                        @item.TitleType
-                                    </span>
                                 </td>
                             </tr>
                         </Virtualize>

@@ -370,9 +370,13 @@ public class WatchlistService
 
     public async Task UpdateListAsync(List<WatchlistItem> newList)
     {
+        Console.WriteLine($"UpdateListAsync called with {newList.Count} items");
         Items = newList;
+        Console.WriteLine("Items collection updated");
         ScheduleSave();
+        Console.WriteLine("ScheduleSave called");
         NotifyStateChanged();
+        Console.WriteLine("NotifyStateChanged called");
     }
 
     private async Task SaveNowAsync()
@@ -743,11 +747,21 @@ public class WatchlistService
 
     public async Task AddItemAsync(WatchlistItem item)
     {
+        Console.WriteLine($"AddItemAsync called: {item.Title} (IMDB: {item.ImdbId})");
+        Console.WriteLine($"Current items count: {Items.Count}");
+        
         if (!Items.Any(i => i.ImdbId == item.ImdbId))
         {
+            Console.WriteLine("Item not found in collection, adding...");
             if (item.DateAdded == default) item.DateAdded = DateTime.Now;
             Items.Add(item);
+            Console.WriteLine($"Item added. New count: {Items.Count}");
             await UpdateListAsync(Items);
+            Console.WriteLine("UpdateListAsync completed");
+        }
+        else
+        {
+            Console.WriteLine("Item already exists in collection, not adding");
         }
     }
 

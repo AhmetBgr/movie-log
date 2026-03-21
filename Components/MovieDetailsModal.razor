@@ -176,7 +176,14 @@
                                             <button class="btn btn-lg @(status == WatchlistStatus.Pending ? "btn-secondary shadow-none" : "btn-light border-0 text-secondary bg-transparent") flex-grow-1 py-2.5 rounded-3 d-flex align-items-center justify-content-center transition-all px-1 px-md-3" 
                                                     onmouseover="if(!this.classList.contains('btn-secondary')) this.classList.add('bg-white')"
                                                     onmouseout="if(!this.classList.contains('btn-secondary')) this.classList.remove('bg-white')"
-                                                    @onclick="() => (status == WatchlistStatus.Pending ? RemoveItem() : HandleStatusTabClick(WatchlistStatus.Pending))">
+                                                    @onclick="() => {
+                                                        var currentItem = GetLibraryItem();
+                                                        if (currentItem?.Status == WatchlistStatus.Pending) {
+                                                            RemoveItem();
+                                                        } else {
+                                                            HandleStatusTabClick(WatchlistStatus.Pending);
+                                                        }
+                                                    }">
                                                 <i class="bi bi-list-nested me-1 me-md-2 fs-5"></i> 
                                                 <span class="small-mobile-text fw-bold">Watchlist</span>
                                             </button>
@@ -185,7 +192,14 @@
                                             <button class="btn btn-lg @(status == WatchlistStatus.Watching ? "btn-success shadow-none" : "btn-light border-0 text-success bg-transparent") flex-grow-1 py-2.5 rounded-3 d-flex align-items-center justify-content-center transition-all px-1 px-md-3" 
                                                     onmouseover="if(!this.classList.contains('btn-success')) this.classList.add('bg-white')"
                                                     onmouseout="if(!this.classList.contains('btn-success')) this.classList.remove('bg-white')"
-                                                    @onclick="() => (status == WatchlistStatus.Watching ? RemoveItem() : HandleStatusTabClick(WatchlistStatus.Watching))">
+                                                    @onclick="() => {
+                                                        var currentItem = GetLibraryItem();
+                                                        if (currentItem?.Status == WatchlistStatus.Watching) {
+                                                            RemoveItem();
+                                                        } else {
+                                                            HandleStatusTabClick(WatchlistStatus.Watching);
+                                                        }
+                                                    }">
                                                 <i class="bi bi-play-fill me-1 fs-4"></i> 
                                                 <span class="small-mobile-text fw-bold">Watching</span>
                                             </button>
@@ -193,8 +207,15 @@
                                             <!-- Watched -->
                                             <button class="btn btn-lg @(status == WatchlistStatus.Watched ? "btn-primary shadow-none" : "btn-light border-0 text-primary bg-transparent") flex-grow-1 py-2.5 rounded-3 d-flex align-items-center justify-content-center transition-all px-1 px-md-3" 
                                                     onmouseover="if(!this.classList.contains('btn-primary')) this.classList.add('bg-white')"
-                                                    onmouseout="if(!this.classList.contains('btn-primary')) this.classList.remove('btn-white')"
-                                                    @onclick="() => (status == WatchlistStatus.Watched ? RemoveItem() : HandleStatusTabClick(WatchlistStatus.Watched))">
+                                                    onmouseout="if(!this.classList.contains('btn-primary')) this.classList.remove('bg-white')"
+                                                    @onclick="() => {
+                                                        var currentItem = GetLibraryItem();
+                                                        if (currentItem?.Status == WatchlistStatus.Watched) {
+                                                            RemoveItem();
+                                                        } else {
+                                                            HandleStatusTabClick(WatchlistStatus.Watched);
+                                                        }
+                                                    }">
                                                 <i class="bi bi-check-lg me-1 me-md-2 fs-5"></i> 
                                                 <span class="small-mobile-text fw-bold">Watched</span>
                                             </button>
@@ -415,12 +436,15 @@
 
     protected override void OnInitialized()
     {
-        WatchlistSvc.OnStateChanged += StateHasChanged;
+        WatchlistSvc.OnStateChanged += () => {
+            Console.WriteLine("OnStateChanged event fired!");
+            StateHasChanged();
+        };
     }
 
     public void Dispose()
     {
-        WatchlistSvc.OnStateChanged -= StateHasChanged;
+        WatchlistSvc.OnStateChanged -= null;
     }
 
     private bool showSavedIndicator = false;
@@ -496,6 +520,7 @@
             if (libItem != null)
             {
                 await WatchlistSvc.RemoveFromWatchlistAsync(libItem);
+                // UI will update automatically through OnStateChanged event
             }
         }
     }
@@ -509,18 +534,36 @@
 
     private async Task HandleStatusTabClick(WatchlistStatus status)
     {
+        Console.WriteLine($"HandleStatusTabClick called with status: {status}");
+        Console.WriteLine($"SelectedItem: {WatchlistSvc.SelectedItem?.Title}");
+        Console.WriteLine($"SelectedMovie: {WatchlistSvc.SelectedMovie?.Title}");
+        
         if (WatchlistSvc.SelectedItem != null && WatchlistSvc.SelectedMovie != null)
         {
             var libItem = GetLibraryItem();
+            Console.WriteLine($"libItem: {libItem?.Title} (null? {libItem == null})");
+            
             if (libItem == null)
             {
                 var newItem = CreateItem(status);
+                Console.WriteLine($"Creating new item: {newItem.Title} with status {newItem.Status}");
                 await WatchlistSvc.AddToWatchlistAsync(newItem);
+                Console.WriteLine("Item added successfully");
+                // Force UI update
+                StateHasChanged();
             }
             else
             {
+                Console.WriteLine($"Updating existing item from {libItem.Status} to {status}");
                 await WatchlistSvc.UpdateStatusAsync(libItem, status);
+                Console.WriteLine("Item updated successfully");
+                // Force UI update
+                StateHasChanged();
             }
+        }
+        else
+        {
+            Console.WriteLine("SelectedItem or SelectedMovie is null");
         }
     }
 
@@ -547,9 +590,14 @@
     {
         var item = WatchlistSvc.SelectedItem!;
         var movie = WatchlistSvc.SelectedMovie!;
+        
+        Console.WriteLine($"CreateItem - Movie.ImdbId: '{movie.ImdbId}'");
+        Console.WriteLine($"CreateItem - SelectedItem.ImdbId: '{item.ImdbId}'");
+        Console.WriteLine($"CreateItem - Movie.Title: {movie.Title}");
+        
         return new WatchlistItem
         {
-            ImdbId = movie.ImdbId ?? "",
+            ImdbId = movie.ImdbId ?? item.ImdbId ?? "",
             Title = movie.Title,
             OriginalTitle = movie.OriginalTitle != movie.Title ? movie.OriginalTitle : null,
             TitleType = item.TitleType,
