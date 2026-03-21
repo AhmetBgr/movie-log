@@ -306,12 +306,27 @@ tr:hover .show-on-row-hover {
 
 
 /* ═══════════════════════════════════════════════════════════
-   RESPONSIVE NAV — desktop sidebar / mobile bottom bar
+   PAGE LAYOUT — single source of truth for both localhost & GitHub Pages
    ═══════════════════════════════════════════════════════════ */
 
-/* ── Mobile (<641px): fixed bottom bar ─────────────────── */
+/* Base: column layout (mobile first) */
+.page {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
+}
+
+main {
+    flex: 1;
+}
+
+.sidebar {
+    background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
+}
+
+/* ── Mobile (<641px): sidebar fixed to bottom ───────────── */
 @media (max-width: 640.98px) {
-    /* Sidebar fixed to bottom */
     .sidebar {
         position: fixed !important;
         bottom: 0 !important;
@@ -326,18 +341,21 @@ tr:hover .show-on-row-hover {
         box-shadow: 0 -2px 12px rgba(0,0,0,0.3) !important;
     }
 
-    /* Main content gets bottom padding so nothing hides behind the bar */
     main {
         padding-bottom: 72px !important;
     }
 
-    /* Hide the desktop nav entirely */
+    .top-row {
+        justify-content: space-between;
+    }
+
+    /* Hide desktop nav */
     .desktop-header,
     .desktop-nav {
         display: none !important;
     }
 
-    /* Show the mobile bottom bar */
+    /* Show mobile bottom bar */
     .mobile-bottom-nav {
         display: flex !important;
         flex-direction: row !important;
@@ -368,7 +386,6 @@ tr:hover .show-on-row-hover {
         background: rgba(255,255,255,0.18) !important;
     }
 
-    /* Icons in bottom bar: no margin, centered */
     .mobile-nav-item .bi {
         margin-right: 0 !important;
         top: 0 !important;
@@ -376,7 +393,6 @@ tr:hover .show-on-row-hover {
         height: 1.3rem !important;
     }
 
-    /* Label below icon */
     .mobile-nav-label {
         font-size: 0.58rem !important;
         font-weight: 500 !important;
@@ -388,6 +404,30 @@ tr:hover .show-on-row-hover {
 
 /* ── Desktop (≥641px): sidebar on the left ──────────────── */
 @media (min-width: 641px) {
+    .page {
+        flex-direction: row;
+    }
+
+    .sidebar {
+        order: -1 !important;
+        width: 250px !important;
+        height: 100vh !important;
+        position: sticky !important;
+        top: 0 !important;
+        flex-shrink: 0 !important;
+    }
+
+    .top-row {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+    }
+
+    .top-row, article {
+        padding-left: 2rem !important;
+        padding-right: 1.5rem !important;
+    }
+
     .mobile-bottom-nav {
         display: none !important;
     }
@@ -395,9 +435,5 @@ tr:hover .show-on-row-hover {
     .desktop-header,
     .desktop-nav {
         display: block !important;
-    }
-
-    .sidebar {
-        order: -1 !important;
     }
 }
