@@ -21,6 +21,7 @@
             .position-sticky {
                 position: relative !important;
                 max-height: none !important;
+                z-index: 10;
             }
         }
     </style>
@@ -73,7 +74,7 @@
         <div class="row g-4 h-100">
             @if (showFilters)
             {
-                <div class="col-md-3 position-sticky top-0 h-100" style="max-height: 88vh; overflow-y: auto;">
+                <div class="col-md-3 position-sticky top-0 h-100" style="max-height: 88vh; overflow-y: auto; z-index: 10;">
                     <div class="card shadow-sm border-0 rounded-2 bg-white sticky-top">
                         <div class="card-body p-4">
                             <h5 class="fw-bold text-dark mb-4 border-bottom pb-2">Refine List</h5>
