@@ -8,115 +8,104 @@
 
 <PageTitle>Search Results</PageTitle>
 
-<div class="container-fluid" style="padding-left: 4.5px; padding-right: 4.5px;">
-    <style>
-        @@media (max-width: 768px) {
-            .container-fluid {
-                padding-left: 2px !important;
-                padding-right: 2px !important;
-            }
-        }
-    </style>
-    <div class="d-flex align-items-center gap-2 mb-4 border-bottom pb-3 flex-wrap">
-        <button class="btn btn-sm @(isEditing ? "btn-dark shadow" : "btn-outline-secondary") rounded-2 px-3 py-2 transition-all fw-medium" @onclick="ToggleEdit">
-            <i class="bi @(isEditing ? "bi-check-lg" : "bi-pencil") me-1"></i>
-            @(isEditing ? "Done" : "Edit")
+<div class="page-shell">
+
+    <!-- ── Primary toolbar ──────────────────────────────────── -->
+    <div class="toolbar-primary">
+        <button class="tb-btn @(isEditing ? "active" : "")" @onclick="ToggleEdit">
+            <i class="bi @(isEditing ? "bi-check-lg" : "bi-pencil")"></i>
+            <span class="tb-label">@(isEditing ? "Done" : "Edit")</span>
         </button>
 
-        @if (isEditing)
-        {
-            <div class="d-flex align-items-center gap-2 ms-1 flex-wrap">
-                @if (_selectedKeys.Count > 0)
-                {
-                    <span class="badge bg-dark rounded-pill px-3 py-2">@_selectedKeys.Count selected</span>
-                    <button class="btn btn-sm btn-outline-secondary rounded-2 px-3 py-2 fw-medium"
-                            @onclick="BulkAddToWatchlist">
-                        <i class="bi bi-plus-lg me-1"></i> Add to Watchlist
-                    </button>
-                    <button class="btn btn-sm btn-outline-success rounded-2 px-3 py-2 fw-medium"
-                            @onclick="BulkStartWatching">
-                        <i class="bi bi-play-fill me-1"></i> Start Watching
-                    </button>
-                    <button class="btn btn-sm btn-outline-danger rounded-2 px-3 py-2 fw-medium"
-                            @onclick="BulkRemove">
-                        <i class="bi bi-trash3-fill me-1"></i> Remove
-                    </button>
-                }
-                else
-                {
-                    <span class="text-secondary small fst-italic">Select items to perform actions</span>
-                    <button class="btn btn-sm btn-outline-secondary rounded-2 px-3 py-2 fw-medium" disabled>
-                        <i class="bi bi-plus-lg me-1"></i> Add to Watchlist
-                    </button>
-                    <button class="btn btn-sm btn-outline-secondary rounded-2 px-3 py-2 fw-medium" disabled>
-                        <i class="bi bi-play-fill me-1"></i> Start Watching
-                    </button>
-                    <button class="btn btn-sm btn-outline-secondary rounded-2 px-3 py-2 fw-medium" disabled>
-                        <i class="bi bi-trash3-fill me-1"></i> Remove
-                    </button>
-                }
-            </div>
-        }
+        <div class="tb-divider"></div>
 
-        <h2 class="fw-bold text-dark mb-0 ms-2">Search Results for "@Uri.UnescapeDataString(Query)"</h2>
+        <button class="tb-btn tb-btn-sort @(_searchSortColumn == "Title" ? "sorted" : "")"
+                @onclick='() => ToggleSearchSort("Title")'>
+            <i class="bi @(_searchSortColumn == "Title"
+                ? (_searchSortDescending ? "bi-sort-alpha-up-alt" : "bi-sort-alpha-down")
+                : "bi-sort-alpha-down")"></i>
+            <span class="tb-label">Title</span>
+        </button>
+        <button class="tb-btn tb-btn-sort @(_searchSortColumn == "Year" ? "sorted" : "")"
+                @onclick='() => ToggleSearchSort("Year")'>
+            <i class="bi @(_searchSortColumn == "Year"
+                ? (_searchSortDescending ? "bi-sort-numeric-up-alt" : "bi-sort-numeric-down")
+                : "bi-sort-numeric-down")"></i>
+            <span class="tb-label">Year</span>
+        </button>
+
+        <div class="tb-spacer"></div>
+        <span class="text-secondary d-none d-sm-inline search-title" style="font-size:0.76rem;white-space:nowrap;padding-right:4px;">
+            "@Uri.UnescapeDataString(Query)"
+        </span>
     </div>
 
+    <!-- ── Action bar (edit mode only) ──────────────────────── -->
+    @if (isEditing)
+    {
+        <div class="toolbar-actions @(_selectedKeys.Count > 0 ? "has-selection" : "")">
+            @if (_selectedKeys.Count > 0)
+            {
+                <span class="sel-badge">@_selectedKeys.Count selected</span>
+                <button class="tb-btn tb-btn-primary live" @onclick="BulkAddToWatchlist">
+                    <i class="bi bi-plus-lg"></i>
+                    <span class="tb-label">Add to Watchlist</span>
+                </button>
+                <button class="tb-btn tb-btn-success live" @onclick="BulkStartWatching">
+                    <i class="bi bi-play-fill"></i>
+                    <span class="tb-label">Start Watching</span>
+                </button>
+                <button class="tb-btn tb-btn-danger live" @onclick="BulkRemove">
+                    <i class="bi bi-trash3-fill"></i>
+                    <span class="tb-label">Remove</span>
+                </button>
+            }
+            else
+            {
+                <span class="sel-hint"><i class="bi bi-check2-square me-1 opacity-50"></i>Select items to perform bulk actions</span>
+            }
+        </div>
+    }
+
+    <!-- ── Content ───────────────────────────────────────────── -->
     @if (isLoading)
     {
-        <div class="d-flex justify-content-center py-5 mt-5">
-            <div class="spinner-border text-secondary" style="width: 3rem; height: 3rem;" role="status">
+        <div class="page-content" style="overflow-y:auto;display:flex;align-items:center;justify-content:center;">
+            <div class="spinner-border text-secondary" style="width:3rem;height:3rem;" role="status">
                 <span class="visually-hidden">Loading...</span>
             </div>
         </div>
     }
-    else if (results != null && !results.Any())
+    else if (results != null && !results.Any(r => r.MediaType == "movie" || r.MediaType == "tv"))
     {
-        <div class="alert alert-secondary border-0 shadow-sm text-center py-5 fs-5 rounded-2 mt-4">
-            No results found on TMDB for "@Uri.UnescapeDataString(Query)".
+        <div class="page-content" style="overflow-y:auto;display:flex;align-items:center;justify-content:center;">
+            <div class="text-center py-5">
+                <i class="bi bi-search fs-1 d-block mb-3 text-secondary opacity-25"></i>
+                <p class="fs-5 text-secondary">No results found for "@Uri.UnescapeDataString(Query)".</p>
+            </div>
         </div>
     }
     else if (results != null)
     {
-        <div class="card shadow border-0 overflow-hidden rounded-2">
-            <div class="card-body p-0 bg-white" style="max-height: 88vh; overflow-y: auto;">
-
-                <!-- Header: count + sort -->
-                <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom bg-light flex-wrap gap-2">
-                    <span class="fw-bold text-dark">@results.Count(r => r.MediaType == "movie" || r.MediaType == "tv") Results</span>
-                    <div class="d-flex gap-2 flex-wrap">
-                        <button class="btn btn-sm @(_searchSortColumn == "Title" ? "btn-dark" : "btn-outline-secondary")" @onclick='() => ToggleSearchSort("Title")'>
-                            <i class="bi bi-sort-alpha-down me-1"></i> Title
-                        </button>
-                        <button class="btn btn-sm @(_searchSortColumn == "Year" ? "btn-dark" : "btn-outline-secondary")" @onclick='() => ToggleSearchSort("Year")'>
-                            <i class="bi bi-sort-numeric-down me-1"></i> Year
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Table View -->
-                <table class="table table-hover align-middle mb-0 border-light">
-                <thead class="bg-light text-secondary fw-semibold" style="position: sticky; top: 0; z-index: 1;">
+        <div class="page-content scroll-y">
+            <table class="table table-hover align-middle mb-0 sticky-thead">
+                <thead class="text-secondary fw-semibold">
                     <tr>
                         @if (isEditing)
                         {
-                            <th scope="col" style="width: 1%; white-space: nowrap; text-align: center;" class="border-bottom py-2 px-3">
-                                <input type="checkbox"
-                                       class="form-check-input shadow-none"
-                                       style="width: 18px; height: 18px; cursor: pointer;"
-                                       checked="@IsAllSelected"
-                                       @onchange="ToggleSelectAll" />
+                            <th class="py-2 px-3" style="width:1%;white-space:nowrap;text-align:center;">
+                                <input type="checkbox" class="form-check-input shadow-none" style="width:17px;height:17px;cursor:pointer;"
+                                       checked="@IsAllSelected" @onchange="ToggleSelectAll" />
                             </th>
                         }
-                        <th scope="col" style="width: 1%; white-space: nowrap; text-align: center;" class="border-bottom py-2 px-3">
-                            <i class="bi bi-image fs-6 text-secondary"></i>
-                        </th>
-                        <th scope="col" class="border-bottom py-2 px-3">Title</th>
-                        <th scope="col" class="border-bottom py-2 px-3 d-none d-lg-table-cell" style="width: 25%;">Director</th>
-                        <th scope="col" class="border-bottom py-2 d-none d-md-table-cell" style="width: 10%;">Year</th>
-                        <th scope="col" class="border-bottom py-2 d-none d-md-table-cell" style="width: 13%;">Type</th>
+                        <th class="py-2 px-3" style="width:1%;white-space:nowrap;text-align:center;"><i class="bi bi-image opacity-40"></i></th>
+                        <th class="py-2 px-3">Title</th>
+                        <th class="py-2 px-3 d-none d-lg-table-cell" style="width:22%;">Director</th>
+                        <th class="py-2 d-none d-md-table-cell" style="width:10%;">Year</th>
+                        <th class="py-2 d-none d-md-table-cell" style="width:13%;">Type</th>
                     </tr>
                 </thead>
-                <tbody class="border-top-0">
+                <tbody>
                     @foreach (var item in SortedResults)
                     {
                         var itemKey = $"{item.MediaType}-{item.Id}";
@@ -124,56 +113,41 @@
                         <tr class="@(isSelected ? "row-selected" : "")">
                             @if (isEditing)
                             {
-                                <td class="text-center px-3" style="width: 1%; white-space: nowrap;" @onclick:stopPropagation="true">
-                                    <input type="checkbox"
-                                           class="form-check-input shadow-none"
-                                           style="width: 18px; height: 18px; cursor: pointer;"
-                                           checked="@isSelected"
-                                           @onchange="() => ToggleSelect(itemKey)" />
+                                <td class="px-3 text-center" style="width:1%;white-space:nowrap;" @onclick:stopPropagation="true">
+                                    <input type="checkbox" class="form-check-input shadow-none" style="width:17px;height:17px;cursor:pointer;"
+                                           checked="@isSelected" @onchange="() => ToggleSelect(itemKey)" />
                                 </td>
                             }
-                            <td style="width: 1%; white-space: nowrap; padding: 0.1rem;" class="text-center">
-                                <img src="@(string.IsNullOrEmpty(item.PosterPath) ? "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" : $"https://image.tmdb.org/t/p/w92{item.PosterPath}")" 
-                                     class="rounded shadow-sm" style="width: 64px; height: 96px; object-fit: cover; border: 1px solid rgba(0,0,0,0.05);" alt="Thumbnail" />
+                            <td style="width:1%;white-space:nowrap;padding:0.1rem;" class="text-center">
+                                <img src="@(string.IsNullOrEmpty(item.PosterPath) ? "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" : $"https://image.tmdb.org/t/p/w92{item.PosterPath}")"
+                                     class="rounded shadow-sm" style="width:56px;height:84px;object-fit:cover;border:1px solid rgba(0,0,0,0.05);" alt="Thumbnail" />
                             </td>
-                            <td style="cursor: pointer;" class="px-3" @onclick="() => WatchlistSvc.ShowDetailsAsync(item)">
-                                <div class="title-with-1337x-hover d-flex align-items-center gap-2 flex-wrap">
-                                    <span class="fw-bold text-dark" style="transition: opacity 0.2s;" onmouseover="this.style.opacity='0.6'" onmouseout="this.style.opacity='1'">
+                            <td class="px-3" style="cursor:pointer;" @onclick="() => WatchlistSvc.ShowDetailsAsync(item)">
+                                <div class="d-flex align-items-center gap-2 flex-wrap">
+                                    <span class="fw-bold text-dark title-hover">
                                         @item.DisplayTitle
                                         @if (!string.IsNullOrEmpty(item.DisplayOriginalTitle))
                                         {
-                                            <span class="text-secondary small fw-normal ms-2">(@item.DisplayOriginalTitle)</span>
+                                            <span class="text-secondary small fw-normal ms-1">(@item.DisplayOriginalTitle)</span>
                                         }
                                     </span>
-                                    <a class="btn btn-sm btn-light border-0 text-secondary p-0 d-inline-flex align-items-center justify-content-center link-1337x-hover"
-                                       style="width: 24px; height: 24px;"
-                                       href="@Get1337xSearchUrl(item)"
-                                       target="_blank"
-                                       rel="noopener noreferrer"
-                                       title="Search on 1337x"
-                                       @onclick:stopPropagation="true">
+                                    <a class="ext-link" href="@Get1337xSearchUrl(item)" target="_blank" rel="noopener noreferrer"
+                                       title="Search on 1337x" @onclick:stopPropagation="true">
                                         <i class="bi bi-box-arrow-up-right"></i>
                                     </a>
                                 </div>
-                                <span class="d-lg-none text-secondary x-small opacity-75 d-block">
-                                    @if (directorsMap.TryGetValue($"{item.MediaType}-{item.Id}", out var dirMobile))
-                                    { @dirMobile }
+                                <span class="d-lg-none text-secondary d-block" style="font-size:0.72rem;opacity:0.75;">
+                                    @if (directorsMap.TryGetValue($"{item.MediaType}-{item.Id}", out var dirMobile)) { @dirMobile }
                                 </span>
-                                <span class="d-md-none text-secondary x-small opacity-75">
-                                    @(item.DisplayDate.Length >= 4 ? item.DisplayDate.Substring(0,4) : item.DisplayDate) · @(item.MediaType == "movie" ? "Movie" : "TV Series")
+                                <span class="d-md-none text-secondary" style="font-size:0.72rem;opacity:0.75;">
+                                    @(item.DisplayDate.Length >= 4 ? item.DisplayDate.Substring(0,4) : item.DisplayDate) · @(item.MediaType == "movie" ? "Movie" : "TV")
                                 </span>
                             </td>
                             <td class="text-secondary small px-3 d-none d-lg-table-cell">
                                 @if (directorsMap.TryGetValue($"{item.MediaType}-{item.Id}", out var director))
-                                {
-                                    @director
-                                }
+                                    { @director }
                                 else
-                                {
-                                    <div class="spinner-border spinner-border-sm opacity-25" role="status">
-                                        <span class="visually-hidden">Loading...</span>
-                                    </div>
-                                }
+                                    { <span class="spinner-border spinner-border-sm opacity-25" role="status"></span> }
                             </td>
                             <td class="text-secondary fw-medium d-none d-md-table-cell">
                                 @(item.DisplayDate.Length >= 4 ? item.DisplayDate.Substring(0,4) : item.DisplayDate)
@@ -188,13 +162,22 @@
                 </tbody>
             </table>
         </div>
-    </div>
     }
+    else
+    {
+        <!-- initial/empty state -->
+        <div class="page-content" style="overflow-y:auto;display:flex;align-items:center;justify-content:center;">
+            <div class="text-center py-5 text-secondary opacity-50">
+                <i class="bi bi-search fs-1 d-block mb-2"></i>
+                <p>Searching…</p>
+            </div>
+        </div>
+    }
+
 </div>
 
 @code {
-    [Parameter]
-    public string Query { get; set; } = "";
+    [Parameter] public string Query { get; set; } = "";
 
     private bool isEditing = false;
     private bool isLoading = false;
@@ -204,40 +187,22 @@
     private int _directorRefreshCounter = 0;
     private string _searchSortColumn = "Year";
     private bool _searchSortDescending = true;
-
-    // Search uses "mediaType-id" as key since items may not have ImdbId yet
     private HashSet<string> _selectedKeys = new();
 
     private bool IsAllSelected
     {
-        get
-        {
-            var visibleKeys = SortedResults.Select(r => $"{r.MediaType}-{r.Id}").ToList();
-            return visibleKeys.Count > 0 && visibleKeys.All(k => _selectedKeys.Contains(k));
-        }
+        get { var keys = SortedResults.Select(r => $"{r.MediaType}-{r.Id}").ToList(); return keys.Count > 0 && keys.All(k => _selectedKeys.Contains(k)); }
     }
 
     private void ToggleSelectAll()
     {
-        var visibleKeys = SortedResults.Select(r => $"{r.MediaType}-{r.Id}").ToList();
-        if (IsAllSelected)
-            foreach (var k in visibleKeys) _selectedKeys.Remove(k);
-        else
-            foreach (var k in visibleKeys) _selectedKeys.Add(k);
+        var keys = SortedResults.Select(r => $"{r.MediaType}-{r.Id}").ToList();
+        if (IsAllSelected) foreach (var k in keys) _selectedKeys.Remove(k);
+        else foreach (var k in keys) _selectedKeys.Add(k);
     }
 
-    private void ToggleSelect(string key)
-    {
-        if (!_selectedKeys.Remove(key))
-            _selectedKeys.Add(key);
-    }
-
-    private void ToggleEdit()
-    {
-        isEditing = !isEditing;
-        if (!isEditing)
-            _selectedKeys.Clear();
-    }
+    private void ToggleSelect(string key) { if (!_selectedKeys.Remove(key)) _selectedKeys.Add(key); }
+    private void ToggleEdit() { isEditing = !isEditing; if (!isEditing) _selectedKeys.Clear(); }
 
     private IEnumerable<TmdbSearchResultItem> SortedResults => results == null
         ? Enumerable.Empty<TmdbSearchResultItem>()
@@ -251,156 +216,83 @@
                 : results.Where(r => r.MediaType == "movie" || r.MediaType == "tv").OrderBy(r => r.DisplayDate)
         });
 
-    private void ToggleSearchSort(string column)
-    {
-        if (_searchSortColumn == column) _searchSortDescending = !_searchSortDescending;
-        else { _searchSortColumn = column; _searchSortDescending = column == "Year"; }
-    }
+    private void ToggleSearchSort(string col) { if (_searchSortColumn == col) _searchSortDescending = !_searchSortDescending; else { _searchSortColumn = col; _searchSortDescending = col == "Year"; } }
 
     private async Task BulkAddToWatchlist()
     {
-        var selectedItems = SortedResults.Where(r => _selectedKeys.Contains($"{r.MediaType}-{r.Id}")).ToList();
-        foreach (var item in selectedItems)
-        {
-            var libItem = FindLibraryItem(item);
-            if (libItem == null)
-                await HandleStatusClick(item, WatchlistStatus.Pending);
-        }
-        _selectedKeys.Clear();
-        StateHasChanged();
+        foreach (var item in SortedResults.Where(r => _selectedKeys.Contains($"{r.MediaType}-{r.Id}")).ToList())
+            if (FindLibraryItem(item) == null) await HandleStatusClick(item, WatchlistStatus.Pending);
+        _selectedKeys.Clear(); StateHasChanged();
     }
-
     private async Task BulkStartWatching()
     {
-        var selectedItems = SortedResults.Where(r => _selectedKeys.Contains($"{r.MediaType}-{r.Id}")).ToList();
-        foreach (var item in selectedItems)
-        {
+        foreach (var item in SortedResults.Where(r => _selectedKeys.Contains($"{r.MediaType}-{r.Id}")).ToList())
             await HandleStatusClick(item, WatchlistStatus.Watching);
-        }
-        _selectedKeys.Clear();
-        StateHasChanged();
+        _selectedKeys.Clear(); StateHasChanged();
     }
-
     private async Task BulkRemove()
     {
-        var selectedItems = SortedResults.Where(r => _selectedKeys.Contains($"{r.MediaType}-{r.Id}")).ToList();
-        foreach (var item in selectedItems)
+        foreach (var item in SortedResults.Where(r => _selectedKeys.Contains($"{r.MediaType}-{r.Id}")).ToList())
         {
-            var libItem = FindLibraryItem(item);
-            if (libItem != null)
-                await WatchlistSvc.RemoveFromWatchlistAsync(libItem);
+            var lib = FindLibraryItem(item);
+            if (lib != null) await WatchlistSvc.RemoveFromWatchlistAsync(lib);
         }
-        _selectedKeys.Clear();
-        StateHasChanged();
+        _selectedKeys.Clear(); StateHasChanged();
     }
 
     private WatchlistItem? FindLibraryItem(TmdbSearchResultItem item)
-    {
-        return WatchlistSvc.Items.FirstOrDefault(i =>
+        => WatchlistSvc.Items.FirstOrDefault(i =>
             i.Title.Equals(item.DisplayTitle, StringComparison.OrdinalIgnoreCase) &&
             (item.DisplayDate.Length >= 4 && i.Year.Contains(item.DisplayDate.Substring(0, 4))));
-    }
 
     protected override async Task OnParametersSetAsync()
     {
         if (string.IsNullOrWhiteSpace(Query)) return;
-
-        cts?.Cancel();
-        cts = new CancellationTokenSource();
-        directorsMap.Clear();
-        _directorRefreshCounter = 0;
-        _selectedKeys.Clear();
-        isEditing = false;
-
-        isLoading = true;
-        results = null;
-
+        cts?.Cancel(); cts = new CancellationTokenSource();
+        directorsMap.Clear(); _directorRefreshCounter = 0; _selectedKeys.Clear(); isEditing = false;
+        isLoading = true; results = null;
         try
         {
             var apiKey = Config["TmdbApiKey"];
-            var decodedQuery = Uri.UnescapeDataString(Query);
-            var url = $"https://api.themoviedb.org/3/search/multi?api_key={apiKey}&query={Uri.EscapeDataString(decodedQuery)}";
+            var url = $"https://api.themoviedb.org/3/search/multi?api_key={apiKey}&query={Uri.EscapeDataString(Uri.UnescapeDataString(Query))}";
             var response = await Http.GetFromJsonAsync<TmdbSearchResponse>(url);
             results = response?.Results;
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Search API Error: {ex.Message}");
-            results = new();
-        }
-        finally
-        {
-            isLoading = false;
-        }
-
-        if (results != null)
-        {
-            _ = FetchDirectorsAsync(results, cts.Token);
-        }
+        catch (Exception ex) { Console.WriteLine($"Search API Error: {ex.Message}"); results = new(); }
+        finally { isLoading = false; }
+        if (results != null) _ = FetchDirectorsAsync(results, cts.Token);
     }
 
     private async Task FetchDirectorsAsync(List<TmdbSearchResultItem> items, CancellationToken token)
     {
-        var fetchList = items.Where(r => r.MediaType == "movie" || r.MediaType == "tv").ToList();
-
-        foreach (var item in fetchList)
+        foreach (var item in items.Where(r => r.MediaType == "movie" || r.MediaType == "tv"))
         {
             if (token.IsCancellationRequested) break;
             var key = $"{item.MediaType}-{item.Id}";
             if (directorsMap.ContainsKey(key)) continue;
-
             try
             {
                 var movie = await WatchlistSvc.GetTmdbDetailsByIdAsync(item.Id, item.MediaType);
-                if (movie != null)
-                {
-                    var dirName = movie.Directors.Any() ? string.Join(", ", movie.Directors) : "N/A";
-                    directorsMap[key] = dirName;
-                    _directorRefreshCounter++;
-                    if (_directorRefreshCounter % 5 == 0)
-                    {
-                        await InvokeAsync(StateHasChanged);
-                    }
-                }
+                if (movie != null) { directorsMap[key] = movie.Directors.Any() ? string.Join(", ", movie.Directors) : "N/A"; _directorRefreshCounter++; if (_directorRefreshCounter % 5 == 0) await InvokeAsync(StateHasChanged); }
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Director Fetch Error for {item.DisplayTitle}: {ex.Message}");
-            }
-            
-            try
-            {
-                await Task.Delay(100, token);
-            }
-            catch (OperationCanceledException)
-            {
-                break;
-            }
+            catch { }
+            try { await Task.Delay(100, token); } catch (OperationCanceledException) { break; }
         }
-
         await InvokeAsync(StateHasChanged);
     }
 
-    public void Dispose()
-    {
-        cts?.Cancel();
-        cts?.Dispose();
-        WatchlistSvc.OnStateChanged -= StateHasChanged;
-    }
+    public void Dispose() { cts?.Cancel(); cts?.Dispose(); WatchlistSvc.OnStateChanged -= StateHasChanged; }
 
     private async Task HandleStatusClick(TmdbSearchResultItem item, WatchlistStatus status)
     {
-        var libItem = FindLibraryItem(item);
-        
-        if (libItem == null)
+        var lib = FindLibraryItem(item);
+        if (lib == null)
         {
             var movie = await WatchlistSvc.GetTmdbDetailsByIdAsync(item.Id, item.MediaType);
             if (movie != null && !string.IsNullOrEmpty(movie.ImdbId))
-            {
                 await WatchlistSvc.AddToWatchlistAsync(new WatchlistItem
                 {
-                    ImdbId = movie.ImdbId,
-                    Title = movie.Title,
+                    ImdbId = movie.ImdbId, Title = movie.Title,
                     OriginalTitle = movie.OriginalTitle != movie.Title ? movie.OriginalTitle : null,
                     TitleType = item.MediaType == "movie" ? "Movie" : "TV Series",
                     Year = movie.ReleaseDate ?? "",
@@ -412,28 +304,22 @@
                     CurrentEpisode = (status == WatchlistStatus.Watching && item.MediaType == "tv") ? 1 : null,
                     PosterPath = movie.PosterPath
                 });
-            }
         }
-        else
-        {
-            await WatchlistSvc.UpdateStatusAsync(libItem, status);
-        }
+        else await WatchlistSvc.UpdateStatusAsync(lib, status);
     }
 
     private static string Get1337xSearchUrl(TmdbSearchResultItem item)
     {
         var year = item.DisplayDate.Length >= 4 ? item.DisplayDate.Substring(0, 4) : "";
-        var title = item.DisplayTitle?.Trim() ?? "";
-        var query = string.IsNullOrWhiteSpace(year) ? title : $"{title} {year}".Trim();
-        var encoded = System.Net.WebUtility.UrlEncode(query) ?? "";
-        return $"https://1337x.to/search/{encoded}/1/";
+        var q = string.IsNullOrWhiteSpace(year) ? item.DisplayTitle?.Trim() ?? "" : $"{item.DisplayTitle?.Trim()} {year}".Trim();
+        return $"https://1337x.to/search/{System.Net.WebUtility.UrlEncode(q)}/1/";
     }
 }
 
 <style>
-    .x-small { font-size: 0.75rem; }
-
-    tr.row-selected td {
-        background-color: rgba(13, 110, 253, 0.06) !important;
-    }
+    .title-hover { transition: opacity 0.15s; }
+    .title-hover:hover { opacity: 0.6; }
+    .ext-link { opacity: 0; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; color: #888; font-size: 0.7rem; transition: opacity 0.15s; text-decoration: none; }
+    tr:hover .ext-link { opacity: 1; }
+    .search-title { max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
 </style>

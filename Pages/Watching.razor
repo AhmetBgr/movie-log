@@ -6,227 +6,157 @@
 
 <PageTitle>Watching</PageTitle>
 
-<div class="container-fluid" style="padding-left: 4.5px; padding-right: 4.5px;">
-    <style>
-        @@media (max-width: 768px) {
-            .container-fluid {
-                padding-left: 2px !important;
-                padding-right: 2px !important;
-            }
-        }
-    </style>
-    <div class="d-flex justify-content-start align-items-center mb-4 gap-2 border-bottom pb-3 flex-wrap">
-        <button class="btn btn-sm @(isEditing ? "btn-dark shadow" : "btn-outline-secondary") rounded-2 px-3 py-2 transition-all fw-medium" @onclick="ToggleEdit">
-            <i class="bi @(isEditing ? "bi-check-lg" : "bi-pencil") me-1"></i>
-            @(isEditing ? "Done" : "Edit")
+<div class="page-shell">
+
+    <!-- ── Primary toolbar ──────────────────────────────────── -->
+    <div class="toolbar-primary">
+        <button class="tb-btn @(isEditing ? "active" : "")" @onclick="ToggleEdit">
+            <i class="bi @(isEditing ? "bi-check-lg" : "bi-pencil")"></i>
+            <span class="tb-label">@(isEditing ? "Done" : "Edit")</span>
         </button>
 
-        @if (isEditing)
-        {
-            <div class="d-flex align-items-center gap-2 ms-2 flex-wrap">
-                @if (_selectedIds.Count > 0)
-                {
-                    <span class="badge bg-dark rounded-pill px-3 py-2">@_selectedIds.Count selected</span>
-                    <button class="btn btn-sm btn-outline-secondary rounded-2 px-3 py-2 fw-medium"
-                            @onclick="BulkMoveToWatchlist">
-                        <i class="bi bi-list-nested me-1"></i> To Watchlist
-                    </button>
-                    <button class="btn btn-sm btn-outline-primary rounded-2 px-3 py-2 fw-medium"
-                            @onclick="BulkMarkWatched">
-                        <i class="bi bi-check-lg me-1"></i> Mark Watched
-                    </button>
-                    <button class="btn btn-sm btn-outline-danger rounded-2 px-3 py-2 fw-medium"
-                            @onclick="BulkRemove">
-                        <i class="bi bi-trash3-fill me-1"></i> Remove
-                    </button>
-                }
-                else
-                {
-                    <span class="text-secondary small fst-italic">Select items to perform actions</span>
-                    <button class="btn btn-sm btn-outline-secondary rounded-2 px-3 py-2 fw-medium" disabled>
-                        <i class="bi bi-list-nested me-1"></i> To Watchlist
-                    </button>
-                    <button class="btn btn-sm btn-outline-secondary rounded-2 px-3 py-2 fw-medium" disabled>
-                        <i class="bi bi-check-lg me-1"></i> Mark Watched
-                    </button>
-                    <button class="btn btn-sm btn-outline-secondary rounded-2 px-3 py-2 fw-medium" disabled>
-                        <i class="bi bi-trash3-fill me-1"></i> Remove
-                    </button>
-                }
-            </div>
-        }
+        <div class="tb-divider"></div>
+
+        <button class="tb-btn tb-btn-sort @(WatchlistSvc.WatchingSortColumn == "Title" ? "sorted" : "")"
+                @onclick='() => WatchlistSvc.ToggleWatchingSort("Title")'>
+            <i class="bi bi-sort-alpha-down"></i>
+            <span class="tb-label">Title</span>
+        </button>
+        <button class="tb-btn tb-btn-sort @(WatchlistSvc.WatchingSortColumn == "Year" ? "sorted" : "")"
+                @onclick='() => WatchlistSvc.ToggleWatchingSort("Year")'>
+            <i class="bi bi-sort-numeric-down"></i>
+            <span class="tb-label">Year</span>
+        </button>
+        <button class="tb-btn tb-btn-sort @(WatchlistSvc.WatchingSortColumn == "DateAdded" ? "sorted" : "")"
+                @onclick='() => WatchlistSvc.ToggleWatchingSort("DateAdded")'>
+            <i class="bi bi-calendar-plus"></i>
+            <span class="tb-label">Added</span>
+        </button>
+
+        <div class="tb-spacer"></div>
+        <span class="text-secondary d-none d-sm-inline" style="font-size:0.76rem;white-space:nowrap;padding-right:4px;">@WatchlistSvc.WatchingItems.Count() items</span>
     </div>
 
+    <!-- ── Action bar (edit mode only) ──────────────────────── -->
+    @if (isEditing)
+    {
+        <div class="toolbar-actions @(_selectedIds.Count > 0 ? "has-selection" : "")">
+            @if (_selectedIds.Count > 0)
+            {
+                <span class="sel-badge">@_selectedIds.Count selected</span>
+                <button class="tb-btn tb-btn-primary live" @onclick="BulkMoveToWatchlist">
+                    <i class="bi bi-list-nested"></i>
+                    <span class="tb-label">To Watchlist</span>
+                </button>
+                <button class="tb-btn tb-btn-success live" @onclick="BulkMarkWatched">
+                    <i class="bi bi-check-lg"></i>
+                    <span class="tb-label">Mark Watched</span>
+                </button>
+                <button class="tb-btn tb-btn-danger live" @onclick="BulkRemove">
+                    <i class="bi bi-trash3-fill"></i>
+                    <span class="tb-label">Remove</span>
+                </button>
+            }
+            else
+            {
+                <span class="sel-hint"><i class="bi bi-check2-square me-1 opacity-50"></i>Select items to perform bulk actions</span>
+            }
+        </div>
+    }
+
+    <!-- ── Content ───────────────────────────────────────────── -->
     @if (!WatchlistSvc.WatchingItems.Any())
     {
-        <div class="alert alert-light border-0 shadow-sm text-center py-5 fs-5 rounded-2 mt-4 text-secondary">
-            <i class="bi bi-film fs-1 mb-3 d-block opacity-25"></i>
-            You are not currently watching anything.<br/>
-            Start watching from your <a href="watchlist" class="text-success fw-bold text-decoration-none">Watchlist</a>!
+        <div class="page-content" style="overflow-y:auto;display:flex;align-items:center;justify-content:center;">
+            <div class="text-center py-5">
+                <i class="bi bi-film fs-1 d-block mb-3 text-secondary opacity-25"></i>
+                <p class="fs-5 text-secondary">You are not currently watching anything.</p>
+                <p class="text-secondary small">Start watching from your <a href="watchlist" class="text-success fw-bold text-decoration-none">Watchlist</a>.</p>
+            </div>
         </div>
     }
     else
     {
-        <div class="card shadow border-0 overflow-hidden rounded-2">
-            <div class="card-body p-0 bg-white" style="max-height: 85vh; overflow-y: auto;">
-
-                <!-- Header: count + sort buttons -->
-                <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom bg-light flex-wrap gap-2">
-                    <span class="fw-bold text-dark">@WatchlistSvc.WatchingItems.Count() Items</span>
-                    <div class="d-flex gap-2 flex-wrap">
-                        <button class="btn btn-sm @(WatchlistSvc.WatchingSortColumn == "Title" ? "btn-dark" : "btn-outline-secondary")" @onclick='() => WatchlistSvc.ToggleWatchingSort("Title")'>
-                            <i class="bi bi-sort-alpha-down me-1"></i> Title
-                        </button>
-                        <button class="btn btn-sm @(WatchlistSvc.WatchingSortColumn == "Year" ? "btn-dark" : "btn-outline-secondary")" @onclick='() => WatchlistSvc.ToggleWatchingSort("Year")'>
-                            <i class="bi bi-sort-numeric-down me-1"></i> Year
-                        </button>
-                        <button class="btn btn-sm @(WatchlistSvc.WatchingSortColumn == "DateAdded" ? "btn-dark" : "btn-outline-secondary")" @onclick='() => WatchlistSvc.ToggleWatchingSort("DateAdded")'>
-                            <i class="bi bi-calendar-plus me-1"></i> Added
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Table View -->
-                <table class="table table-hover align-middle mb-0 border-light">
-                <thead class="bg-light text-secondary fw-semibold" style="position: sticky; top: 0; z-index: 1;">
+        <div class="page-content scroll-y">
+            <table class="table table-hover align-middle mb-0 sticky-thead">
+                <thead class="text-secondary fw-semibold">
                     <tr>
                         @if (isEditing)
                         {
-                            <th scope="col" style="width: 1%; white-space: nowrap;" class="border-bottom py-3 px-3 text-center">
-                                <input type="checkbox"
-                                       class="form-check-input shadow-none"
-                                       style="width: 18px; height: 18px; cursor: pointer;"
-                                       checked="@IsAllSelected"
-                                       @onchange="ToggleSelectAll" />
+                            <th class="py-2 px-3" style="width:1%;white-space:nowrap;text-align:center;">
+                                <input type="checkbox" class="form-check-input shadow-none" style="width:17px;height:17px;cursor:pointer;"
+                                       checked="@IsAllSelected" @onchange="ToggleSelectAll" />
                             </th>
                         }
-                        <th scope="col" class="border-bottom py-3 px-3">Title</th>
-                        <th scope="col" class="border-bottom py-3 px-3 text-center d-none d-md-table-cell" style="width: 20%;">Tracking</th>
-                        <th scope="col" class="border-bottom py-3 d-none d-lg-table-cell" style="width: 10%;">Year</th>
-                        <th scope="col" class="border-bottom py-3 d-none d-lg-table-cell" style="width: 12%;">Added</th>
-                        <th scope="col" class="border-bottom py-3 d-none d-md-table-cell" style="width: 13%;">Type</th>
+                        <th class="py-2 px-3">Title</th>
+                        <th class="py-2 px-3 text-center d-none d-md-table-cell" style="width:22%;">Tracking</th>
+                        <th class="py-2 d-none d-lg-table-cell" style="width:10%;">Year</th>
+                        <th class="py-2 d-none d-lg-table-cell" style="width:12%;">Added</th>
+                        <th class="py-2 d-none d-md-table-cell" style="width:13%;">Type</th>
                     </tr>
                 </thead>
-                <tbody class="border-top-0">
-                    @if (!WatchlistSvc.WatchingItems.Any())
-                    {
-                        <tr>
-                            <td colspan="6" class="py-5 text-center text-secondary opacity-50 fst-italic">
-                                Nothing currently watching.
-                            </td>
-                        </tr>
-                    }
+                <tbody>
                     <Virtualize Items="@WatchlistSvc.WatchingItems.ToList()" Context="item" ItemSize="70" OverscanCount="5">
-                        <tr @key="item.ImdbId" class="position-relative @(_selectedIds.Contains(item.ImdbId) ? "row-selected" : "")">
+                        <tr @key="item.ImdbId" class="@(_selectedIds.Contains(item.ImdbId) ? "row-selected" : "")">
                             @if (isEditing)
                             {
-                                <td class="text-center px-3" style="width: 1%; white-space: nowrap;" @onclick:stopPropagation="true">
-                                    <input type="checkbox"
-                                           class="form-check-input shadow-none"
-                                           style="width: 18px; height: 18px; cursor: pointer;"
+                                <td class="px-3 text-center" style="width:1%;white-space:nowrap;" @onclick:stopPropagation="true">
+                                    <input type="checkbox" class="form-check-input shadow-none" style="width:17px;height:17px;cursor:pointer;"
                                            checked="@_selectedIds.Contains(item.ImdbId)"
                                            @onchange="() => ToggleSelect(item.ImdbId)" />
                                 </td>
                             }
-                            <td style="cursor: pointer;" class="px-3" @onclick="() => WatchlistSvc.ShowDetailsAsync(item)">
-                                <div class="title-with-1337x-hover d-flex align-items-center gap-2">
-                                    <span class="fw-bold text-dark" style="transition: opacity 0.2s;" onmouseover="this.style.opacity='0.6'" onmouseout="this.style.opacity='1'">
-                                        @item.Title
-                                    </span>
-                                    <a class="btn btn-sm btn-light border-0 text-secondary p-0 d-inline-flex align-items-center justify-content-center link-1337x-hover"
-                                       style="width: 24px; height: 24px;"
-                                       href="@Get1337xSearchUrl(item)"
-                                       target="_blank"
-                                       rel="noopener noreferrer"
-                                       title="Search on 1337x"
-                                       @onclick:stopPropagation="true">
+                            <td class="px-3" style="cursor:pointer;" @onclick="() => WatchlistSvc.ShowDetailsAsync(item)">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="fw-bold text-dark title-hover">@item.Title</span>
+                                    <a class="ext-link" href="@Get1337xSearchUrl(item)" target="_blank" rel="noopener noreferrer"
+                                       title="Search on 1337x" @onclick:stopPropagation="true">
                                         <i class="bi bi-box-arrow-up-right"></i>
                                     </a>
                                 </div>
                                 @if (!string.IsNullOrEmpty(item.Director))
                                 {
-                                    <span class="text-secondary x-small opacity-75 d-block">@item.Director</span>
+                                    <span class="text-secondary d-block" style="font-size:0.73rem;opacity:0.75;">@item.Director</span>
                                 }
                                 @if (item.TitleType.Contains("TV", StringComparison.OrdinalIgnoreCase))
-                                {
-                                    <span class="d-md-none text-secondary x-small">S@(item.CurrentSeason) · E@(item.CurrentEpisode)</span>
-                                }
+                                    { <span class="d-md-none text-secondary" style="font-size:0.72rem;">S@(item.CurrentSeason) · E@(item.CurrentEpisode)</span> }
                                 else
-                                {
-                                    <span class="d-md-none text-secondary x-small opacity-75">@item.Year · Movie</span>
-                                }
+                                    { <span class="d-md-none text-secondary" style="font-size:0.72rem;">@item.Year · Movie</span> }
                             </td>
                             <td class="px-3 text-center d-none d-md-table-cell">
                                 @if (item.TitleType.Contains("TV", StringComparison.OrdinalIgnoreCase))
                                 {
-                                    <div class="d-inline-flex align-items-center bg-light rounded-pill p-1 border shadow-sm mx-auto tracking-pill">
-                                        <!-- Season Control -->
+                                    <div class="d-inline-flex align-items-center bg-light rounded-pill px-2 py-1 border shadow-sm tracking-pill">
                                         <div class="d-flex align-items-center px-1">
-                                            @if (isEditing)
-                                            {
-                                                <button class="btn btn-xs btn-white border shadow-sm rounded-circle p-0 d-flex align-items-center justify-content-center me-1" 
-                                                        style="width: 22px; height: 22px;" @onclick="() => ChangeSeason(item, -1)" @onclick:stopPropagation="true">
-                                                    <i class="bi bi-dash fs-6"></i>
-                                                </button>
-                                            }
+                                            @if (isEditing) { <button class="track-btn" @onclick="() => ChangeSeason(item,-1)" @onclick:stopPropagation="true"><i class="bi bi-dash"></i></button> }
                                             <span class="text-secondary small fw-bold mx-1">S</span>
-                                            <span class="fw-bolder text-dark" style="min-width: 20px;">@item.CurrentSeason</span>
-                                            @if (isEditing)
-                                            {
-                                                <button class="btn btn-xs btn-white border shadow-sm rounded-circle p-0 d-flex align-items-center justify-content-center ms-1" 
-                                                        style="width: 22px; height: 22px;" @onclick="() => ChangeSeason(item, 1)" @onclick:stopPropagation="true">
-                                                    <i class="bi bi-plus fs-6"></i>
-                                                </button>
-                                            }
+                                            <span class="fw-bolder text-dark" style="min-width:18px;">@item.CurrentSeason</span>
+                                            @if (isEditing) { <button class="track-btn" @onclick="() => ChangeSeason(item,1)" @onclick:stopPropagation="true"><i class="bi bi-plus"></i></button> }
                                         </div>
-                                        
-                                        <div class="vr mx-1 my-1 opacity-10" style="height: 18px;"></div>
-                                        
-                                        <!-- Episode Control -->
+                                        <div class="vr mx-1 opacity-10" style="height:16px;"></div>
                                         <div class="d-flex align-items-center px-1">
-                                            @if (isEditing)
-                                            {
-                                                <button class="btn btn-xs btn-white border shadow-sm rounded-circle p-0 d-flex align-items-center justify-content-center me-1" 
-                                                        style="width: 22px; height: 22px;" @onclick="() => ChangeEpisode(item, -1)" @onclick:stopPropagation="true">
-                                                    <i class="bi bi-dash fs-6"></i>
-                                                </button>
-                                            }
+                                            @if (isEditing) { <button class="track-btn" @onclick="() => ChangeEpisode(item,-1)" @onclick:stopPropagation="true"><i class="bi bi-dash"></i></button> }
                                             <span class="text-secondary small fw-bold mx-1">E</span>
-                                            <span class="fw-bolder text-dark" style="min-width: 20px;">@item.CurrentEpisode</span>
-                                            @if (isEditing)
-                                            {
-                                                <button class="btn btn-xs btn-white border shadow-sm rounded-circle p-0 d-flex align-items-center justify-content-center ms-1" 
-                                                        style="width: 22px; height: 22px;" @onclick="() => ChangeEpisode(item, 1)" @onclick:stopPropagation="true">
-                                                    <i class="bi bi-plus fs-6"></i>
-                                                </button>
-                                            }
+                                            <span class="fw-bolder text-dark" style="min-width:18px;">@item.CurrentEpisode</span>
+                                            @if (isEditing) { <button class="track-btn" @onclick="() => ChangeEpisode(item,1)" @onclick:stopPropagation="true"><i class="bi bi-plus"></i></button> }
                                         </div>
                                     </div>
                                 }
                                 else
                                 {
-                                    <div class="badge bg-light text-secondary fw-normal border px-3 py-2 rounded-pill italic">
-                                        Feature Movie
-                                    </div>
+                                    <span class="badge bg-light text-secondary fw-normal border px-3 py-2 rounded-pill">Feature Movie</span>
                                 }
                             </td>
-                            <td class="text-secondary fw-medium d-none d-lg-table-cell">
-                                @item.Year
-                            </td>
-                            <td class="text-secondary small d-none d-lg-table-cell">
-                                @item.DateAdded.ToString("MMM dd")
-                            </td>
+                            <td class="text-secondary fw-medium d-none d-lg-table-cell">@item.Year</td>
+                            <td class="text-secondary small d-none d-lg-table-cell">@item.DateAdded.ToString("MMM dd")</td>
                             <td class="d-none d-md-table-cell">
-                                <span class="badge rounded-pill @(item.TitleType.Equals("Movie", StringComparison.OrdinalIgnoreCase) ? "bg-secondary text-white" : "bg-light text-dark border")">
-                                    @item.TitleType
-                                </span>
+                                <span class="badge rounded-pill @(item.TitleType.Equals("Movie", StringComparison.OrdinalIgnoreCase) ? "bg-secondary text-white" : "bg-light text-dark border")">@item.TitleType</span>
                             </td>
                         </tr>
                     </Virtualize>
                 </tbody>
             </table>
         </div>
-    </div>
     }
 </div>
 
@@ -234,121 +164,34 @@
     private bool isEditing = false;
     private HashSet<string> _selectedIds = new();
 
-    private bool IsAllSelected
-    {
-        get
-        {
-            var items = WatchlistSvc.WatchingItems.ToList();
-            return items.Count > 0 && items.All(i => _selectedIds.Contains(i.ImdbId));
-        }
-    }
+    private bool IsAllSelected { get { var items = WatchlistSvc.WatchingItems.ToList(); return items.Count > 0 && items.All(i => _selectedIds.Contains(i.ImdbId)); } }
+    private void ToggleSelectAll() { var items = WatchlistSvc.WatchingItems.ToList(); if (IsAllSelected) _selectedIds.Clear(); else _selectedIds = items.Select(i => i.ImdbId).ToHashSet(); }
+    private void ToggleSelect(string id) { if (!_selectedIds.Remove(id)) _selectedIds.Add(id); }
+    private void ToggleEdit() { isEditing = !isEditing; if (!isEditing) _selectedIds.Clear(); }
 
-    private void ToggleSelectAll()
-    {
-        var items = WatchlistSvc.WatchingItems.ToList();
-        if (IsAllSelected)
-            _selectedIds.Clear();
-        else
-            _selectedIds = items.Select(i => i.ImdbId).ToHashSet();
-    }
+    private async Task BulkMoveToWatchlist() { foreach (var i in WatchlistSvc.WatchingItems.Where(i => _selectedIds.Contains(i.ImdbId)).ToList()) await WatchlistSvc.UpdateStatusAsync(i, WatchlistStatus.Pending); _selectedIds.Clear(); }
+    private async Task BulkMarkWatched() { foreach (var i in WatchlistSvc.WatchingItems.Where(i => _selectedIds.Contains(i.ImdbId)).ToList()) await WatchlistSvc.UpdateStatusAsync(i, WatchlistStatus.Watched); _selectedIds.Clear(); }
+    private async Task BulkRemove() { foreach (var i in WatchlistSvc.WatchingItems.Where(i => _selectedIds.Contains(i.ImdbId)).ToList()) await WatchlistSvc.RemoveFromWatchlistAsync(i); _selectedIds.Clear(); }
 
-    private void ToggleSelect(string imdbId)
-    {
-        if (!_selectedIds.Remove(imdbId))
-            _selectedIds.Add(imdbId);
-    }
+    private async Task ChangeEpisode(WatchlistItem item, int d) { var n = (item.CurrentEpisode ?? 1) + d; if (n >= 1) await WatchlistSvc.UpdateProgressAsync(item, item.CurrentSeason, n); }
+    private async Task ChangeSeason(WatchlistItem item, int d) { await WatchlistSvc.UpdateProgressAsync(item, Math.Max(1, (item.CurrentSeason ?? 1) + d), item.CurrentEpisode); }
 
-    private void ToggleEdit()
-    {
-        isEditing = !isEditing;
-        if (!isEditing)
-            _selectedIds.Clear();
-    }
-
-    private async Task BulkMoveToWatchlist()
-    {
-        var items = WatchlistSvc.WatchingItems.Where(i => _selectedIds.Contains(i.ImdbId)).ToList();
-        foreach (var item in items)
-            await WatchlistSvc.UpdateStatusAsync(item, WatchlistStatus.Pending);
-        _selectedIds.Clear();
-    }
-
-    private async Task BulkMarkWatched()
-    {
-        var items = WatchlistSvc.WatchingItems.Where(i => _selectedIds.Contains(i.ImdbId)).ToList();
-        foreach (var item in items)
-            await WatchlistSvc.UpdateStatusAsync(item, WatchlistStatus.Watched);
-        _selectedIds.Clear();
-    }
-
-    private async Task BulkRemove()
-    {
-        var items = WatchlistSvc.WatchingItems.Where(i => _selectedIds.Contains(i.ImdbId)).ToList();
-        foreach (var item in items)
-            await WatchlistSvc.RemoveFromWatchlistAsync(item);
-        _selectedIds.Clear();
-    }
-
-    private async Task MoveToWatchlist(WatchlistItem item)
-    {
-        await WatchlistSvc.UpdateStatusAsync(item, WatchlistStatus.Pending);
-    }
-
-    private async Task MarkAsWatched(WatchlistItem item)
-    {
-        await WatchlistSvc.UpdateStatusAsync(item, WatchlistStatus.Watched);
-    }
-
-    private async Task ChangeEpisode(WatchlistItem item, int delta)
-    {
-        var newEpisode = (item.CurrentEpisode ?? 1) + delta;
-        if (newEpisode >= 1)
-        {
-            await WatchlistSvc.UpdateProgressAsync(item, item.CurrentSeason, newEpisode);
-        }
-    }
-
-    private async Task ChangeSeason(WatchlistItem item, int delta)
-    {
-        int newS = Math.Max(1, (item.CurrentSeason ?? 1) + delta);
-        await WatchlistSvc.UpdateProgressAsync(item, newS, item.CurrentEpisode);
-    }
+    protected override void OnInitialized() => WatchlistSvc.OnStateChanged += HandleStateChanged;
+    public void Dispose() => WatchlistSvc.OnStateChanged -= HandleStateChanged;
+    private void HandleStateChanged() { _selectedIds.IntersectWith(WatchlistSvc.WatchingItems.Select(i => i.ImdbId).ToHashSet()); StateHasChanged(); }
 
     private static string Get1337xSearchUrl(WatchlistItem item)
     {
-        var query = string.IsNullOrWhiteSpace(item.Year)
-            ? (item.Title ?? "").Trim()
-            : $"{item.Title?.Trim()} {item.Year?.Trim()}".Trim();
-        var encoded = System.Net.WebUtility.UrlEncode(query) ?? "";
-        return $"https://1337x.to/search/{encoded}/1/";
-    }
-
-    protected override void OnInitialized()
-    {
-        WatchlistSvc.OnStateChanged += HandleStateChanged;
-    }
-
-    public void Dispose()
-    {
-        WatchlistSvc.OnStateChanged -= HandleStateChanged;
-    }
-
-    private void HandleStateChanged()
-    {
-        var currentIds = WatchlistSvc.WatchingItems.Select(i => i.ImdbId).ToHashSet();
-        _selectedIds.IntersectWith(currentIds);
-        StateHasChanged();
+        var q = string.IsNullOrWhiteSpace(item.Year) ? item.Title?.Trim() ?? "" : $"{item.Title?.Trim()} {item.Year?.Trim()}".Trim();
+        return $"https://1337x.to/search/{System.Net.WebUtility.UrlEncode(q)}/1/";
     }
 }
 
 <style>
-    .btn-xs {
-        font-size: 0.75rem;
-        padding: 0.25rem 0.5rem;
-    }
-    .x-small { font-size: 0.75rem; }
-
-    tr.row-selected td {
-        background-color: rgba(13, 110, 253, 0.06) !important;
-    }
+    .title-hover { transition: opacity 0.15s; }
+    .title-hover:hover { opacity: 0.6; }
+    .ext-link { opacity: 0; width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; color: #888; font-size: 0.72rem; transition: opacity 0.15s; text-decoration: none; }
+    tr:hover .ext-link { opacity: 1; }
+    .track-btn { width: 22px; height: 22px; padding: 0; border: 1px solid rgba(0,0,0,0.15); background: #fff; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; font-size: 0.85rem; transition: background 0.12s; }
+    .track-btn:hover { background: #f0f0f0; }
 </style>

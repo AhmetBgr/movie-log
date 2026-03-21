@@ -6,319 +6,244 @@
 
 <PageTitle>Watched History</PageTitle>
 
-<div class="container-fluid" style="padding-left: 4.5px; padding-right: 4.5px;">
-    <style>
-        @@media (max-width: 768px) {
-            .container-fluid {
-                padding-left: 2px !important;
-                padding-right: 2px !important;
-            }
-            .d-flex.justify-content-start {
-                flex-wrap: wrap !important;
-            }
-            .position-sticky {
-                position: relative !important;
-                max-height: none !important;
-            }
-        }
-    </style>
-    <div class="d-flex justify-content-start align-items-center mb-4 border-bottom pb-3 gap-2 flex-wrap">
-        <button class="btn btn-sm @(showFilters ? "btn-dark shadow" : "btn-outline-secondary") rounded-2 px-3 py-2 transition-all fw-medium position-relative" @onclick="ToggleFilters">
-            <i class="bi @(showFilters ? "bi-x-lg" : "bi-funnel") me-1"></i>
-            Filters
-            @{
-                int activeFilterCount = (WatchlistSvc.FilterMinRating20 > 0 ? 1 : 0)
-                    + (WatchlistSvc.FilterMaxRating20 < 100 ? 1 : 0)
-                    + (!string.IsNullOrEmpty(WatchlistSvc.StartYear) ? 1 : 0)
-                    + (!string.IsNullOrEmpty(WatchlistSvc.EndYear) ? 1 : 0)
-                    + (!string.IsNullOrEmpty(WatchlistSvc.SelectedGenre) && WatchlistSvc.SelectedGenre != "All" ? 1 : 0)
-                    + (!string.IsNullOrEmpty(WatchlistSvc.SelectedType) && WatchlistSvc.SelectedType != "All" ? 1 : 0)
-                    + (!string.IsNullOrEmpty(WatchlistSvc.SearchQuery) ? 1 : 0);
-            }
+<div class="page-shell">
+
+    <!-- ── Primary toolbar ──────────────────────────────────── -->
+    <div class="toolbar-primary">
+        <button class="tb-btn @(showFilters ? "active" : "") position-relative" @onclick="ToggleFilters">
+            <i class="bi bi-funnel"></i>
+            <span class="tb-label">Filters</span>
             @if (activeFilterCount > 0 && !showFilters)
             {
-                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">@activeFilterCount</span>
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                      style="font-size:0.55rem;padding:2px 5px;min-width:16px;">@activeFilterCount</span>
             }
         </button>
-        <button class="btn btn-sm @(isEditing ? "btn-dark shadow" : "btn-outline-secondary") rounded-2 px-3 py-2 transition-all fw-medium" @onclick="ToggleEdit">
-            <i class="bi @(isEditing ? "bi-check-lg" : "bi-pencil") me-1"></i>
-            @(isEditing ? "Done" : "Edit")
+
+        <button class="tb-btn @(isEditing ? "active" : "")" @onclick="ToggleEdit">
+            <i class="bi @(isEditing ? "bi-check-lg" : "bi-pencil")"></i>
+            <span class="tb-label">@(isEditing ? "Done" : "Edit")</span>
         </button>
 
-        @if (isEditing)
-        {
-            <div class="d-flex align-items-center gap-2 ms-2 flex-wrap">
-                @if (_selectedIds.Count > 0)
-                {
-                    <span class="badge bg-dark rounded-pill px-3 py-2">@_selectedIds.Count selected</span>
-                    <button class="btn btn-sm btn-outline-secondary rounded-2 px-3 py-2 fw-medium"
-                            @onclick="BulkMoveToWatchlist">
-                        <i class="bi bi-list-nested me-1"></i> To Watchlist
-                    </button>
-                    <button class="btn btn-sm btn-outline-success rounded-2 px-3 py-2 fw-medium"
-                            @onclick="BulkWatchAgain">
-                        <i class="bi bi-play-fill me-1"></i> Watch Again
-                    </button>
-                    <button class="btn btn-sm btn-outline-danger rounded-2 px-3 py-2 fw-medium"
-                            @onclick="BulkRemove">
-                        <i class="bi bi-trash3-fill me-1"></i> Remove
-                    </button>
-                }
-                else
-                {
-                    <span class="text-secondary small fst-italic">Select items to perform actions</span>
-                    <button class="btn btn-sm btn-outline-secondary rounded-2 px-3 py-2 fw-medium" disabled>
-                        <i class="bi bi-list-nested me-1"></i> To Watchlist
-                    </button>
-                    <button class="btn btn-sm btn-outline-secondary rounded-2 px-3 py-2 fw-medium" disabled>
-                        <i class="bi bi-play-fill me-1"></i> Watch Again
-                    </button>
-                    <button class="btn btn-sm btn-outline-secondary rounded-2 px-3 py-2 fw-medium" disabled>
-                        <i class="bi bi-trash3-fill me-1"></i> Remove
-                    </button>
-                }
-            </div>
-        }
+        <div class="tb-divider"></div>
+
+        <button class="tb-btn tb-btn-sort @(WatchlistSvc.WatchedSortColumn == "Title" ? "sorted" : "")"
+                @onclick='() => WatchlistSvc.ToggleWatchedSort("Title")'>
+            <i class="bi @(WatchlistSvc.WatchedSortColumn == "Title"
+                ? (WatchlistSvc.WatchedSortDescending ? "bi-sort-alpha-up-alt" : "bi-sort-alpha-down")
+                : "bi-sort-alpha-down")"></i>
+            <span class="tb-label">Title</span>
+        </button>
+        <button class="tb-btn tb-btn-sort @(WatchlistSvc.WatchedSortColumn == "Year" ? "sorted" : "")"
+                @onclick='() => WatchlistSvc.ToggleWatchedSort("Year")'>
+            <i class="bi @(WatchlistSvc.WatchedSortColumn == "Year"
+                ? (WatchlistSvc.WatchedSortDescending ? "bi-sort-numeric-up-alt" : "bi-sort-numeric-down")
+                : "bi-sort-numeric-down")"></i>
+            <span class="tb-label">Year</span>
+        </button>
+        <button class="tb-btn tb-btn-sort @(WatchlistSvc.WatchedSortColumn == "Rating" ? "sorted" : "")"
+                @onclick='() => WatchlistSvc.ToggleWatchedSort("Rating")'>
+            <i class="bi bi-star"></i>
+            <span class="tb-label">Rating</span>
+        </button>
+        <button class="tb-btn tb-btn-sort @(WatchlistSvc.WatchedSortColumn == "DateAdded" ? "sorted" : "")"
+                @onclick='() => WatchlistSvc.ToggleWatchedSort("DateAdded")'>
+            <i class="bi bi-calendar-plus"></i>
+            <span class="tb-label">Added</span>
+        </button>
+
+        <div class="tb-spacer"></div>
+        <span class="text-secondary d-none d-sm-inline" style="font-size:0.76rem;white-space:nowrap;padding-right:4px;">@_watchedItems.Count items</span>
     </div>
 
+    <!-- ── Action bar (edit mode only) ──────────────────────── -->
+    @if (isEditing)
+    {
+        <div class="toolbar-actions @(_selectedIds.Count > 0 ? "has-selection" : "")">
+            @if (_selectedIds.Count > 0)
+            {
+                <span class="sel-badge">@_selectedIds.Count selected</span>
+                <button class="tb-btn tb-btn-primary live" @onclick="BulkMoveToWatchlist">
+                    <i class="bi bi-list-nested"></i>
+                    <span class="tb-label">To Watchlist</span>
+                </button>
+                <button class="tb-btn tb-btn-success live" @onclick="BulkWatchAgain">
+                    <i class="bi bi-play-fill"></i>
+                    <span class="tb-label">Watch Again</span>
+                </button>
+                <button class="tb-btn tb-btn-danger live" @onclick="BulkRemove">
+                    <i class="bi bi-trash3-fill"></i>
+                    <span class="tb-label">Remove</span>
+                </button>
+            }
+            else
+            {
+                <span class="sel-hint"><i class="bi bi-check2-square me-1 opacity-50"></i>Select items to perform bulk actions</span>
+            }
+        </div>
+    }
+
+    <!-- ── Content: filter sidebar + table ──────────────────── -->
     @if (!WatchlistSvc.Items.Any(i => i.Status == WatchlistStatus.Watched))
     {
-        <div class="alert alert-light border shadow-sm text-center py-5 fs-5 rounded-2 mt-4">
-            <i class="bi bi-journal-check fs-1 d-block mb-3 text-secondary opacity-50"></i>
-            You haven't marked anything as watched yet.
+        <div class="page-content" style="overflow-y:auto;display:flex;align-items:center;justify-content:center;">
+            <div class="text-center py-5">
+                <i class="bi bi-journal-check fs-1 d-block mb-3 text-secondary opacity-50"></i>
+                <p class="fs-5 text-secondary">You haven't marked anything as watched yet.</p>
+            </div>
         </div>
     }
     else
     {
-    <div class="row g-4 h-100">
-        @if (showFilters)
-        {
-            <div class="col-md-3 position-sticky top-0 h-100" style="max-height: 85vh; overflow-y: auto; z-index: 10;">
-                <div class="card shadow-sm border-0 rounded-2 bg-white sticky-top">
-                    <div class="card-body p-4">
-                        <h5 class="fw-bold text-dark mb-4 border-bottom pb-2">Refine History</h5>
-                        
-                        <div class="mb-4">
-                            <label class="form-label small fw-bold text-secondary text-uppercase tracking-wider">Search History</label>
-                            <div class="input-group shadow-none border rounded-2 overflow-hidden">
-                                <span class="input-group-text bg-light border-0"><i class="bi bi-search"></i></span>
-                                <input type="text" class="form-control border-0 bg-light shadow-none" placeholder="Search title or director..." 
-                                       @bind="WatchlistSvc.SearchQuery" @bind:event="oninput" />
-                            </div>
-                        </div>
+        <div class="page-content">
 
-                        <div class="mb-4">
-                            <label class="form-label small fw-bold text-secondary text-uppercase tracking-wider">Rating Range</label>
-                            <div class="d-flex gap-2 align-items-center">
-                                <select class="form-select form-select-sm border rounded-2 bg-light shadow-none py-1" 
-                                        value="@WatchlistSvc.FilterMinRating20"
-                                        @onchange="@(e => WatchlistSvc.FilterMinRating20 = int.Parse(e.Value?.ToString() ?? "0"))">
-                                    @for (int i = 0; i <= 100; i += 5) {
-                                        <option value="@i">@(i == 0 ? "Min (0)" : i.ToString())</option>
-                                    }
-                                </select>
-                                <span class="text-secondary x-small">to</span>
-                                <select class="form-select form-select-sm border rounded-2 bg-light shadow-none py-1" 
-                                        value="@WatchlistSvc.FilterMaxRating20"
-                                        @onchange="@(e => WatchlistSvc.FilterMaxRating20 = int.Parse(e.Value?.ToString() ?? "100"))">
-                                    @for (int i = 0; i <= 100; i += 5) {
-                                        <option value="@i">@(i == 100 ? "Max (100)" : i.ToString())</option>
-                                    }
-                                </select>
-                            </div>
-                        </div>
+            <!-- Filter sidebar -->
+            @if (showFilters)
+            {
+                <div class="filter-sidebar">
+                    <h6 class="fw-bold mb-3">Refine History</h6>
 
-                        <div class="mb-4">
-                            <label class="form-label small fw-bold text-secondary text-uppercase tracking-wider">Genre</label>
-                            <select class="form-select border rounded-2 bg-light shadow-none" @bind="WatchlistSvc.SelectedGenre">
-                                <option value="All">All Genres</option>
-                                @foreach (var genre in AvailableGenres)
-                                {
-                                    <option value="@genre">@genre</option>
-                                }
+                    <div class="mb-3">
+                        <label class="filter-label">Search</label>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-secondary"></i></span>
+                            <input type="text" class="form-control border-start-0 bg-light shadow-none" placeholder="Title or director…"
+                                   @bind="WatchlistSvc.SearchQuery" @bind:event="oninput" />
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="filter-label">Rating range</label>
+                        <div class="d-flex gap-2 align-items-center">
+                            <select class="form-select form-select-sm bg-light shadow-none"
+                                    value="@WatchlistSvc.FilterMinRating20"
+                                    @onchange="@(e => WatchlistSvc.FilterMinRating20 = int.Parse(e.Value?.ToString() ?? "0"))">
+                                @for (int i = 0; i <= 100; i += 5) { <option value="@i">@(i == 0 ? "Min" : i.ToString())</option> }
+                            </select>
+                            <span class="text-secondary" style="font-size:0.75rem;">–</span>
+                            <select class="form-select form-select-sm bg-light shadow-none"
+                                    value="@WatchlistSvc.FilterMaxRating20"
+                                    @onchange="@(e => WatchlistSvc.FilterMaxRating20 = int.Parse(e.Value?.ToString() ?? "100"))">
+                                @for (int i = 0; i <= 100; i += 5) { <option value="@i">@(i == 100 ? "Max" : i.ToString())</option> }
                             </select>
                         </div>
-
-                        <div class="mb-4">
-                            <label class="form-label small fw-bold text-secondary text-uppercase tracking-wider">Type</label>
-                            <select class="form-select border rounded-2 bg-light shadow-none" @bind="WatchlistSvc.SelectedType">
-                                <option value="All">All Types</option>
-                                <option value="Movie">Movies</option>
-                                <option value="TV Series">TV Series</option>
-                            </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="filter-label">Genre</label>
+                        <select class="form-select form-select-sm bg-light shadow-none" @bind="WatchlistSvc.SelectedGenre">
+                            <option value="All">All genres</option>
+                            @foreach (var g in AvailableGenres) { <option value="@g">@g</option> }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="filter-label">Type</label>
+                        <select class="form-select form-select-sm bg-light shadow-none" @bind="WatchlistSvc.SelectedType">
+                            <option value="All">All types</option>
+                            <option value="Movie">Movies</option>
+                            <option value="TV Series">TV Series</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="filter-label">Year range</label>
+                        <div class="d-flex gap-2">
+                            <input type="number" class="form-control form-control-sm bg-light shadow-none" placeholder="From" @bind="WatchlistSvc.StartYear" />
+                            <input type="number" class="form-control form-control-sm bg-light shadow-none" placeholder="To" @bind="WatchlistSvc.EndYear" />
                         </div>
-
-                        <div class="mb-4">
-                            <label class="form-label small fw-bold text-secondary text-uppercase tracking-wider">Year Range</label>
-                            <div class="d-flex gap-2">
-                                <input type="number" class="form-control border rounded-2 bg-light shadow-none px-2" placeholder="From" 
-                                       @bind="WatchlistSvc.StartYear" />
-                                <input type="number" class="form-control border rounded-2 bg-light shadow-none px-2" placeholder="To" 
-                                       @bind="WatchlistSvc.EndYear" />
-                            </div>
-                        </div>
-
-                        <div class="d-grid gap-2 pt-2">
-                            <button class="btn btn-dark rounded-pill py-2 shadow-sm border-0 fw-semibold" @onclick="WatchlistSvc.ShowRandomMovieAsync">
-                                <i class="bi bi-dice-5 me-2"></i> Pick Random Movie
-                            </button>
-                            <button class="btn btn-outline-secondary btn-sm border-0 py-2" @onclick="ClearFilters">
-                                <i class="bi bi-eraser me-2"></i> Clear All Filters
-                            </button>
-                        </div>
+                    </div>
+                    <div class="d-grid gap-2 mt-4">
+                        <button class="btn btn-dark btn-sm rounded-pill fw-semibold" @onclick="WatchlistSvc.ShowRandomMovieAsync">
+                            <i class="bi bi-dice-5 me-1"></i> Random pick
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" @onclick="ClearFilters">
+                            <i class="bi bi-eraser me-1"></i> Clear filters
+                        </button>
                     </div>
                 </div>
-            </div>
-        }
+            }
 
-        <div class="@(showFilters ? "col-md-9" : "col-12")">
-            <div class="card shadow-sm border-0 overflow-hidden rounded-2">
-                <div class="card-body p-0 bg-white" style="max-height: 85vh; overflow-y: auto;">
-
-                    <!-- Header: count + sort buttons -->
-                    <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom bg-light flex-wrap gap-2">
-                        <span class="fw-bold text-dark">@_watchedItems.Count Items</span>
-                        <div class="d-flex gap-2 flex-wrap">
-                            <button class="btn btn-sm @(WatchlistSvc.WatchedSortColumn == "Title" ? "btn-dark" : "btn-outline-secondary")" @onclick='() => WatchlistSvc.ToggleWatchedSort("Title")'>
-                                <i class="bi bi-sort-alpha-down me-1"></i> Title
-                            </button>
-                            <button class="btn btn-sm @(WatchlistSvc.WatchedSortColumn == "Year" ? "btn-dark" : "btn-outline-secondary")" @onclick='() => WatchlistSvc.ToggleWatchedSort("Year")'>
-                                <i class="bi bi-sort-numeric-down me-1"></i> Year
-                            </button>
-                            <button class="btn btn-sm @(WatchlistSvc.WatchedSortColumn == "Rating" ? "btn-dark" : "btn-outline-secondary")" @onclick='() => WatchlistSvc.ToggleWatchedSort("Rating")'>
-                                <i class="bi bi-star me-1"></i> Rating
-                            </button>
-                            <button class="btn btn-sm @(WatchlistSvc.WatchedSortColumn == "DateAdded" ? "btn-dark" : "btn-outline-secondary")" @onclick='() => WatchlistSvc.ToggleWatchedSort("DateAdded")'>
-                                <i class="bi bi-calendar-plus me-1"></i> Added
-                            </button>
-                        </div>
-                    </div>
-
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="bg-light text-secondary fw-semibold" style="position: sticky; top: 0; z-index: 1;">
-                            <tr>
+            <!-- Table -->
+            <div class="content-scroll">
+                <table class="table table-hover align-middle mb-0 sticky-thead">
+                    <thead class="text-secondary fw-semibold">
+                        <tr>
+                            @if (isEditing)
+                            {
+                                <th class="py-2 px-3" style="width:1%;white-space:nowrap;text-align:center;">
+                                    <input type="checkbox" class="form-check-input shadow-none" style="width:17px;height:17px;cursor:pointer;"
+                                           checked="@IsAllSelected" @onchange="ToggleSelectAll" />
+                                </th>
+                            }
+                            <th class="py-2 px-3" style="width:@(isEditing ? "40%" : "50%")">Title</th>
+                            <th class="py-2 px-3 d-none d-sm-table-cell" style="width:10%">Year</th>
+                            <th class="py-2 px-3 text-center" style="width:14%;position:relative;">
+                                Rating
+                                @if (showSavedIndicator)
+                                {
+                                    <span class="position-absolute top-100 start-50 translate-middle-x badge bg-success rounded-pill animate-fade-out" style="font-size:0.6rem;margin-top:-6px;">SAVED</span>
+                                }
+                            </th>
+                            <th class="py-2 px-3 d-none d-md-table-cell" style="width:14%">Added</th>
+                            <th class="py-2 px-3 d-none d-lg-table-cell" style="width:12%">Type</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!_watchedItems.Any())
+                        {
+                            <tr><td colspan="6" class="py-5 text-center text-secondary fst-italic opacity-50">No movies match your filters.</td></tr>
+                        }
+                        <Virtualize Items="_watchedItems" Context="item" ItemSize="68" OverscanCount="5">
+                            <tr @key="item.ImdbId" class="@(_selectedIds.Contains(item.ImdbId) ? "row-selected" : "")">
                                 @if (isEditing)
                                 {
-                                    <th scope="col" style="width: 1%; white-space: nowrap; text-align: center;" class="py-3 px-3">
-                                        <input type="checkbox"
-                                               class="form-check-input shadow-none"
-                                               style="width: 18px; height: 18px; cursor: pointer;"
-                                               checked="@IsAllSelected"
-                                               @onchange="ToggleSelectAll" />
-                                    </th>
+                                    <td class="px-3 text-center" style="width:1%;white-space:nowrap;" @onclick:stopPropagation="true">
+                                        <input type="checkbox" class="form-check-input shadow-none" style="width:17px;height:17px;cursor:pointer;"
+                                               checked="@_selectedIds.Contains(item.ImdbId)"
+                                               @onchange="() => ToggleSelect(item.ImdbId)" />
+                                    </td>
                                 }
-                                <th scope="col" style="width: @(isEditing ? "38%" : "48%"); cursor: pointer;" class="py-3 px-3" @onclick='() => WatchlistSvc.ToggleWatchedSort("Title")'>
-                                    Title
-                                    @if (WatchlistSvc.WatchedSortColumn == "Title") { <i class="bi @(WatchlistSvc.WatchedSortDescending ? "bi-sort-alpha-up-alt" : "bi-sort-alpha-down") ms-1"></i> }
-                                </th>
-                                <th scope="col" style="width: 12%; cursor: pointer;" class="py-3 px-3" @onclick='() => WatchlistSvc.ToggleWatchedSort("Year")'>
-                                    Year
-                                    @if (WatchlistSvc.WatchedSortColumn == "Year") { <i class="bi @(WatchlistSvc.WatchedSortDescending ? "bi-sort-numeric-up-alt" : "bi-sort-numeric-down") ms-1"></i> }
-                                </th>
-                                <th scope="col" style="width: 15%; text-align: center; cursor: pointer; position: relative;" class="py-3 px-3" @onclick='() => WatchlistSvc.ToggleWatchedSort("Rating")'>
-                                    Rating
-                                    @if (WatchlistSvc.WatchedSortColumn == "Rating") { <i class="bi @(WatchlistSvc.WatchedSortDescending ? "bi-sort-numeric-up-alt" : "bi-sort-numeric-down") ms-1"></i> }
-                                    @if (showSavedIndicator)
+                                <td class="px-3" style="cursor:pointer;" @onclick="() => WatchlistSvc.ShowDetailsAsync(item)">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="fw-bold text-dark title-hover">@item.Title</span>
+                                        <a class="ext-link" href="@Get1337xSearchUrl(item)" target="_blank" rel="noopener noreferrer"
+                                           title="Search on 1337x" @onclick:stopPropagation="true">
+                                            <i class="bi bi-box-arrow-up-right"></i>
+                                        </a>
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(item.Director))
                                     {
-                                        <div class="position-absolute top-100 start-50 translate-middle-x z-3" style="margin-top: -10px;">
-                                            <span class="badge bg-success shadow-sm rounded-pill py-1 px-3 fw-bold border border-white animate-fade-out" style="font-size: 0.65rem;">SAVED</span>
-                                        </div>
+                                        <span class="d-block text-secondary" style="font-size:0.73rem;opacity:0.75;">@item.Director</span>
                                     }
-                                </th>
-                                <th scope="col" style="width: 12%; cursor: pointer;" class="py-3 px-3" @onclick='() => WatchlistSvc.ToggleWatchedSort("DateAdded")'>
-                                    Added
-                                    @if (WatchlistSvc.WatchedSortColumn == "DateAdded") { <i class="bi @(WatchlistSvc.WatchedSortDescending ? "bi-sort-numeric-up-alt" : "bi-sort-numeric-down") ms-1"></i> }
-                                </th>
-                                <th scope="col" style="width: 13%; cursor: pointer;" class="py-3 px-3" @onclick='() => WatchlistSvc.ToggleWatchedSort("Type")'>
-                                    Type
-                                    @if (WatchlistSvc.WatchedSortColumn == "Type") { <i class="bi @(WatchlistSvc.WatchedSortDescending ? "bi-sort-alpha-up-alt" : "bi-sort-alpha-down") ms-1"></i> }
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody class="border-top-0">
-                            @if (!WatchlistSvc.WatchedItems.Any())
-                            {
-                                <tr>
-                                    <td colspan="5" class="py-5 text-center text-secondary opacity-50 fst-italic">
-                                        No movies found matching your current filters.
-                                    </td>
-                                </tr>
-                            }
-                            <Virtualize Items="_watchedItems" Context="item" ItemSize="70" OverscanCount="5">
-                                <tr @key="item.ImdbId" class="@(_selectedIds.Contains(item.ImdbId) ? "row-selected" : "")">
-                                    @if (isEditing)
-                                    {
-                                        <td class="text-center px-3" style="width: 1%; white-space: nowrap;" @onclick:stopPropagation="true">
-                                            <input type="checkbox"
-                                                   class="form-check-input shadow-none"
-                                                   style="width: 18px; height: 18px; cursor: pointer;"
-                                                   checked="@_selectedIds.Contains(item.ImdbId)"
-                                                   @onchange="() => ToggleSelect(item.ImdbId)" />
-                                        </td>
-                                    }
-                                    <td style="cursor: pointer;" class="px-3" @onclick="() => WatchlistSvc.ShowDetailsAsync(item)">
-                                        <div class="title-with-1337x-hover d-flex align-items-center gap-2">
-                                            <span class="fw-bold text-dark" style="transition: opacity 0.2s;" onmouseover="this.style.opacity='0.6'" onmouseout="this.style.opacity='1'">
-                                                @item.Title
-                                            </span>
-                                            <a class="btn btn-sm btn-light border-0 text-secondary p-0 d-inline-flex align-items-center justify-content-center link-1337x-hover"
-                                               style="width: 24px; height: 24px;"
-                                               href="@Get1337xSearchUrl(item)"
-                                               target="_blank"
-                                               rel="noopener noreferrer"
-                                               title="Search on 1337x"
-                                               @onclick:stopPropagation="true">
-                                                <i class="bi bi-box-arrow-up-right"></i>
-                                            </a>
+                                    <span class="d-sm-none text-secondary" style="font-size:0.72rem;">@item.Year</span>
+                                </td>
+                                <td class="px-3 text-secondary fw-medium d-none d-sm-table-cell">@item.Year</td>
+                                <td class="text-center">
+                                    <div class="d-flex align-items-center justify-content-center gap-2 py-1">
+                                        <div class="rating-box @(item.Rating20 == null ? "rating-empty" : "")"
+                                             style="@(item.Rating20 != null ? $"background:{GetRatingColor(item.Rating20.Value)};" : "")">
+                                            <input type="number" class="rating-input @(item.Rating20 == null ? "" : "text-white")"
+                                                   min="0" max="100" placeholder="–"
+                                                   value="@item.Rating20"
+                                                   @onchange="(e) => UpdateRating20(item, string.IsNullOrEmpty(e.Value?.ToString()) ? null : int.Parse(e.Value.ToString()!))" />
                                         </div>
-                                        @if (!string.IsNullOrEmpty(item.Director))
+                                        @if (isEditing && item.Rating20 != null)
                                         {
-                                            <span class="text-secondary x-small opacity-75 d-block">@item.Director</span>
+                                            <button class="btn btn-link btn-sm p-0 text-secondary opacity-40" style="text-decoration:none;"
+                                                    @onclick="() => UpdateRating20(item, null)" title="Clear rating">
+                                                <i class="bi bi-x-circle"></i>
+                                            </button>
                                         }
-                                    </td>
-                                    <td class="text-secondary fw-medium px-3 text-center">
-                                        @item.Year
-                                    </td>
-                                    <td class="text-center">
-                                        <div class="d-flex align-items-center justify-content-center py-2 gap-2">
-                                            <div class="rounded-3 d-flex flex-column align-items-center justify-content-center shadow-sm transition-all rating-box-indicator" 
-                                                 style="width: 58px; height: 58px; background-color: @(item.Rating20 == null ? "#f8f9fa" : GetRatingColor(item.Rating20.Value)); 
-                                                        color: @(item.Rating20 == null ? "#adb5bd" : "#fff"); 
-                                                        border: @(item.Rating20 == null ? "2px dashed #dee2e6" : "none")">
-                                                <input type="number" class="form-control form-control-sm text-center fw-black p-0 border-0 bg-transparent fs-4 no-spinner shadow-none @(item.Rating20 == null ? "text-dark" : "text-white")" 
-                                                       style="width: 58px; height: 58px; cursor: pointer; caret-color: @(item.Rating20 == null ? "#212529" : "#fff");"
-                                                       min="0" max="100" 
-                                                       placeholder="-"
-                                                       value="@(item.Rating20)" 
-                                                       @onchange="(e) => UpdateRating20(item, string.IsNullOrEmpty(e.Value?.ToString()) ? null : int.Parse(e.Value.ToString()!))" />
-                                            </div>
-                                            @if (isEditing && item.Rating20 != null)
-                                            {
-                                                <button class="btn btn-link btn-sm p-0 text-secondary opacity-50 hover-opacity-100" 
-                                                        style="text-decoration: none;"
-                                                        @onclick="() => UpdateRating20(item, null)"
-                                                        title="Remove Rating">
-                                                    <i class="bi bi-trash3-fill fs-5"></i>
-                                                </button>
-                                            }
-                                        </div>
-                                    </td>
-                                    <td class="text-secondary small px-3">
-                                        @item.DateAdded.ToString("MMM dd, yyyy")
-                                    </td>
-                                    <td class="px-3">
-                                        <span class="badge rounded-pill @(item.TitleType == "Movie" ? "bg-secondary" : "bg-light text-dark border")">
-                                            @item.TitleType
-                                        </span>
-                                    </td>
-                                </tr>
-                            </Virtualize>
-                        </tbody>
-                    </table>
-                </div>
+                                    </div>
+                                </td>
+                                <td class="px-3 text-secondary small d-none d-md-table-cell">@item.DateAdded.ToString("MMM dd, yyyy")</td>
+                                <td class="px-3 d-none d-lg-table-cell">
+                                    <span class="badge rounded-pill @(item.TitleType == "Movie" ? "bg-secondary" : "bg-light text-dark border")">@item.TitleType</span>
+                                </td>
+                            </tr>
+                        </Virtualize>
+                    </tbody>
+                </table>
             </div>
+
         </div>
-    </div>
     }
 </div>
 
@@ -330,161 +255,151 @@
     private List<WatchlistItem> _watchedItems = new();
     private List<string> _availableGenres = new();
 
+    private int activeFilterCount => (WatchlistSvc.FilterMinRating20 > 0 ? 1 : 0)
+        + (WatchlistSvc.FilterMaxRating20 < 100 ? 1 : 0)
+        + (!string.IsNullOrEmpty(WatchlistSvc.StartYear) ? 1 : 0)
+        + (!string.IsNullOrEmpty(WatchlistSvc.EndYear) ? 1 : 0)
+        + (!string.IsNullOrEmpty(WatchlistSvc.SelectedGenre) && WatchlistSvc.SelectedGenre != "All" ? 1 : 0)
+        + (!string.IsNullOrEmpty(WatchlistSvc.SelectedType) && WatchlistSvc.SelectedType != "All" ? 1 : 0)
+        + (!string.IsNullOrEmpty(WatchlistSvc.SearchQuery) ? 1 : 0);
+
     private bool IsAllSelected => _watchedItems.Count > 0 && _watchedItems.All(i => _selectedIds.Contains(i.ImdbId));
+    private void ToggleSelectAll() { if (IsAllSelected) _selectedIds.Clear(); else _selectedIds = _watchedItems.Select(i => i.ImdbId).ToHashSet(); }
+    private void ToggleSelect(string id) { if (!_selectedIds.Remove(id)) _selectedIds.Add(id); }
+    private void ToggleFilters() => showFilters = !showFilters;
+    private void ToggleEdit() { isEditing = !isEditing; if (!isEditing) _selectedIds.Clear(); }
 
-    private void ToggleSelectAll()
-    {
-        if (IsAllSelected)
-            _selectedIds.Clear();
-        else
-            _selectedIds = _watchedItems.Select(i => i.ImdbId).ToHashSet();
-    }
-
-    private void ToggleSelect(string imdbId)
-    {
-        if (!_selectedIds.Remove(imdbId))
-            _selectedIds.Add(imdbId);
-    }
-
-    private void ToggleFilters()
-    {
-        showFilters = !showFilters;
-        StateHasChanged();
-    }
-
-    private void ToggleEdit()
-    {
-        isEditing = !isEditing;
-        if (!isEditing)
-            _selectedIds.Clear();
-    }
-
-    protected override void OnInitialized()
-    {
-        WatchlistSvc.OnStateChanged += HandleStateChanged;
-        SyncWatchedItems();
-    }
-
-    public void Dispose()
-    {
-        WatchlistSvc.OnStateChanged -= HandleStateChanged;
-    }
+    protected override void OnInitialized() { WatchlistSvc.OnStateChanged += HandleStateChanged; SyncItems(); }
+    public void Dispose() => WatchlistSvc.OnStateChanged -= HandleStateChanged;
 
     private void HandleStateChanged()
     {
-        SyncWatchedItems();
+        SyncItems();
         _selectedIds.IntersectWith(_watchedItems.Select(i => i.ImdbId).ToHashSet());
         StateHasChanged();
     }
 
-    private void SyncWatchedItems()
+    private void SyncItems()
     {
         _watchedItems = WatchlistSvc.WatchedItems.ToList();
         _availableGenres = WatchlistSvc.Items
             .Where(m => m.Status == WatchlistStatus.Watched)
             .SelectMany(m => (m.Genres ?? "").Split(','))
-            .Select(g => g.Trim())
-            .Where(g => !string.IsNullOrEmpty(g))
-            .Distinct()
-            .OrderBy(g => g)
-            .ToList();
+            .Select(g => g.Trim()).Where(g => !string.IsNullOrEmpty(g))
+            .Distinct().OrderBy(g => g).ToList();
     }
 
     private async Task BulkMoveToWatchlist()
     {
-        var items = _watchedItems.Where(i => _selectedIds.Contains(i.ImdbId)).ToList();
-        foreach (var item in items)
+        foreach (var item in _watchedItems.Where(i => _selectedIds.Contains(i.ImdbId)).ToList())
             await WatchlistSvc.UpdateStatusAsync(item, WatchlistStatus.Pending);
         _selectedIds.Clear();
     }
-
     private async Task BulkWatchAgain()
     {
-        var items = _watchedItems.Where(i => _selectedIds.Contains(i.ImdbId)).ToList();
-        foreach (var item in items)
+        foreach (var item in _watchedItems.Where(i => _selectedIds.Contains(i.ImdbId)).ToList())
             await WatchlistSvc.UpdateStatusAsync(item, WatchlistStatus.Watching);
         _selectedIds.Clear();
     }
-
     private async Task BulkRemove()
     {
-        var items = _watchedItems.Where(i => _selectedIds.Contains(i.ImdbId)).ToList();
-        foreach (var item in items)
+        foreach (var item in _watchedItems.Where(i => _selectedIds.Contains(i.ImdbId)).ToList())
             await WatchlistSvc.RemoveFromWatchlistAsync(item);
         _selectedIds.Clear();
     }
 
-    private async Task UpdateRating20(WatchlistItem item, int? rating20)
+    private async Task UpdateRating20(WatchlistItem item, int? r)
     {
-        if (rating20.HasValue)
-        {
-            if (rating20 > 100) rating20 = 100;
-            if (rating20 < 0) rating20 = 0;
-        }
-        await WatchlistSvc.UpdateRatingAsync(item, rating20);
-        if (rating20.HasValue)
-        {
-            showSavedIndicator = true;
-            StateHasChanged();
-            await Task.Delay(1500);
-            showSavedIndicator = false;
-            StateHasChanged();
-        }
+        if (r.HasValue) r = Math.Clamp(r.Value, 0, 100);
+        await WatchlistSvc.UpdateRatingAsync(item, r);
+        if (r.HasValue) { showSavedIndicator = true; StateHasChanged(); await Task.Delay(1500); showSavedIndicator = false; StateHasChanged(); }
     }
 
     private void ClearFilters()
     {
-        WatchlistSvc.SearchQuery = "";
-        WatchlistSvc.SelectedType = "All";
-        WatchlistSvc.SelectedGenre = "All";
-        WatchlistSvc.StartYear = "";
-        WatchlistSvc.EndYear = "";
-        WatchlistSvc.FilterMinRating20 = 0;
-        WatchlistSvc.FilterMaxRating20 = 100;
+        WatchlistSvc.SearchQuery = ""; WatchlistSvc.SelectedType = "All"; WatchlistSvc.SelectedGenre = "All";
+        WatchlistSvc.StartYear = ""; WatchlistSvc.EndYear = "";
+        WatchlistSvc.FilterMinRating20 = 0; WatchlistSvc.FilterMaxRating20 = 100;
     }
 
     private List<string> AvailableGenres => _availableGenres;
-
-    private string GetRatingColor(int val)
-    {
-        double hue = (val / 100.0) * 120;
-        return $"hsl({hue}, 70%, 45%)";
-    }
+    private string GetRatingColor(int val) { double hue = (val / 100.0) * 120; return $"hsl({hue},70%,45%)"; }
 
     private static string Get1337xSearchUrl(WatchlistItem item)
     {
-        var query = string.IsNullOrWhiteSpace(item.Year)
-            ? (item.Title ?? "").Trim()
-            : $"{item.Title?.Trim()} {item.Year?.Trim()}".Trim();
-        var encoded = System.Net.WebUtility.UrlEncode(query) ?? "";
-        return $"https://1337x.to/search/{encoded}/1/";
+        var q = string.IsNullOrWhiteSpace(item.Year) ? item.Title?.Trim() ?? "" : $"{item.Title?.Trim()} {item.Year?.Trim()}".Trim();
+        return $"https://1337x.to/search/{System.Net.WebUtility.UrlEncode(q)}/1/";
     }
 }
 
 <style>
-    .x-small { font-size: 0.75rem; }
-
-    .rating-box-indicator:focus-within {
-        border-color: #0d6efd !important;
-        border-style: solid !important;
-        transform: scale(1.05);
-        box-shadow: 0 4px 12px rgba(13, 110, 253, 0.2) !important;
+    /* Sidebar */
+    .filter-sidebar {
+        width: 260px;
+        flex-shrink: 0;
+        overflow-y: auto;
+        border-right: 1px solid rgba(0,0,0,0.08);
+        padding: 16px;
+        background: #fff;
+    }
+    .filter-label {
+        display: block;
+        font-size: 0.67rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #888;
+        margin-bottom: 6px;
     }
 
-    .fw-black { font-weight: 900; }
+    /* Scrollable content column */
+    .content-scroll {
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+        min-height: 0;
+        min-width: 0;
+    }
+
+    /* Row interactions */
+    .title-hover { transition: opacity 0.15s; }
+    .title-hover:hover { opacity: 0.6; }
+    .ext-link {
+        opacity: 0; width: 20px; height: 20px;
+        display: inline-flex; align-items: center; justify-content: center;
+        color: #888; font-size: 0.7rem; transition: opacity 0.15s;
+        text-decoration: none;
+    }
+    tr:hover .ext-link { opacity: 1; }
+
+    /* Rating box */
+    .rating-box {
+        width: 50px; height: 50px; border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        border: 2px dashed #dee2e6; background: #f8f9fa;
+        transition: border-color 0.2s, background 0.2s, transform 0.15s;
+    }
+    .rating-box:focus-within { transform: scale(1.08); border-style: solid; border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
+    .rating-box:not(.rating-empty) { border: none; }
+    .rating-input {
+        width: 50px; height: 50px; text-align: center; font-weight: 900;
+        font-size: 1.15rem; background: transparent; border: none; outline: none;
+        cursor: pointer; color: #555;
+    }
+    .rating-input.text-white { color: #fff !important; caret-color: #fff; }
+    input[type=number].rating-input::-webkit-inner-spin-button,
+    input[type=number].rating-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type=number].rating-input { -moz-appearance: textfield; }
 
     @@keyframes fadeOutUp {
-        0%   { opacity: 0; transform: translate(-50%, 0); }
-        20%  { opacity: 1; transform: translate(-50%, -4px); }
-        80%  { opacity: 1; transform: translate(-50%, -4px); }
-        100% { opacity: 0; transform: translate(-50%, -10px); }
+        0%   { opacity:0; transform:translate(-50%,0); }
+        20%  { opacity:1; transform:translate(-50%,-4px); }
+        80%  { opacity:1; transform:translate(-50%,-4px); }
+        100% { opacity:0; transform:translate(-50%,-10px); }
     }
+    .animate-fade-out { animation: fadeOutUp 1.5s ease-out forwards; }
 
-    .animate-fade-out {
-        animation: fadeOutUp 1.5s ease-out forwards;
-    }
-
-    tr.row-selected td {
-        background-color: rgba(13, 110, 253, 0.06) !important;
+    @@media (max-width: 640px) {
+        .filter-sidebar { width: 200px; }
     }
 </style>
