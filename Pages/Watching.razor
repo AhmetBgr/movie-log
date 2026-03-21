@@ -1,16 +1,36 @@
 @page "/watching"
 @using MyPrivateWatchlist.Models
+@using MyPrivateWatchlist.Components
+@using System.Runtime.InteropServices
 @inject MyPrivateWatchlist.Services.WatchlistService WatchlistSvc
 @implements IDisposable
 
 <PageTitle>Watching</PageTitle>
 
-<div class="container-fluid">
+<div class="container-fluid" style="padding-left: 4.5px; padding-right: 4.5px;">
+    <style>
+        @@media (max-width: 768px) {
+            .container-fluid {
+                padding-left: 2px !important;
+                padding-right: 2px !important;
+            }
+        }
+    </style>
     <div class="d-flex justify-content-start align-items-center mb-4 gap-2 border-bottom pb-3">
         <button class="btn btn-sm @(isEditing ? "btn-dark shadow" : "btn-outline-secondary") rounded-2 px-3 py-2 transition-all fw-medium" @onclick="ToggleEdit">
             <i class="bi @(isEditing ? "bi-check-lg" : "bi-pencil") me-1"></i> 
             @(isEditing ? "Done" : "Edit")
         </button>
+        <div class="btn-group shadow-sm" role="group" aria-label="Layout mode">
+            <button class="btn btn-sm @(showCardView ? "btn-dark" : "btn-outline-secondary") rounded-start-2 px-3 py-2 fw-medium transition-all"
+                    @onclick="() => showCardView = true">
+                <i class="bi bi-grid-3x3-gap me-1"></i> Cards
+            </button>
+            <button class="btn btn-sm @(!showCardView ? "btn-dark" : "btn-outline-secondary") rounded-end-2 px-3 py-2 fw-medium transition-all"
+                    @onclick="() => showCardView = false">
+                <i class="bi bi-table me-1"></i> Table
+            </button>
+        </div>
     </div>
 
     @if (!WatchlistSvc.WatchingItems.Any())
@@ -25,7 +45,29 @@
     {
         <div class="card shadow border-0 overflow-hidden rounded-2">
             <div class="card-body p-0 bg-white">
-                <table class="table table-hover align-middle mb-0 border-light">
+                
+                @if (showCardView)
+                {
+                    <!-- Card View -->
+                    <div class="p-3">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="mb-0 fw-bold">@WatchlistSvc.WatchingItems.Count() Watching</h5>
+                        </div>
+                        
+                        <div class="row row-cols-1 g-3">
+                            @foreach (var item in WatchlistSvc.WatchingItems)
+                            {
+                                <div class="col">
+                                    <MovieCard Item="item" ShowEditControls="@isEditing" ShowActionButtons="false" />
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <!-- Table View -->
+                    <table class="table table-hover align-middle mb-0 border-light">
                     <thead class="bg-light text-secondary fw-semibold">
                         <tr>
                             @if (isEditing)
@@ -160,39 +202,77 @@
                         }
                     </tbody>
                 </table>
+                }
             </div>
         </div>
     }
 </div>
 
 @code {
-        private bool isEditing = false;
-        private void ToggleEdit() => isEditing = !isEditing;
+    private bool isEditing = false;
+    private bool showCardView = false;
 
-        protected override void OnInitialized()
-        {
-            WatchlistSvc.OnStateChanged += StateHasChanged;
-        }
+    private void ToggleEdit() => isEditing = !isEditing;
 
-        public void Dispose()
-        {
-            WatchlistSvc.OnStateChanged -= StateHasChanged;
-        }
+    private async Task MoveToWatchlist(WatchlistItem item)
+    {
+        await WatchlistSvc.UpdateStatusAsync(item, WatchlistStatus.Pending);
+    }
 
-        private async Task MoveToWatchlist(WatchlistItem item)
-        {
-            await WatchlistSvc.UpdateStatusAsync(item, WatchlistStatus.Pending);
-        }
+    private async Task MarkAsWatched(WatchlistItem item)
+    {
+        await WatchlistSvc.UpdateStatusAsync(item, WatchlistStatus.Watched);
+    }
 
-        private async Task MarkAsWatched(WatchlistItem item)
+    private async Task ChangeEpisode(WatchlistItem item, int delta)
+    {
+        var newEpisode = (item.CurrentEpisode ?? 1) + delta;
+        if (newEpisode >= 1)
         {
-            await WatchlistSvc.UpdateStatusAsync(item, WatchlistStatus.Watched);
+            await WatchlistSvc.UpdateProgressAsync(item, item.CurrentSeason, newEpisode);
         }
+    }
 
-        private async Task RemoveFromLibrary(WatchlistItem item)
+    private async Task ChangeSeason(WatchlistItem item, int delta)
+    {
+        int newS = Math.Max(1, (item.CurrentSeason ?? 1) + delta);
+        await WatchlistSvc.UpdateProgressAsync(item, newS, item.CurrentEpisode);
+    }
+
+    private static string Get1337xSearchUrl(WatchlistItem item)
+    {
+        var query = string.IsNullOrWhiteSpace(item.Year)
+            ? (item.Title ?? "").Trim()
+            : $"{item.Title?.Trim()} {item.Year?.Trim()}".Trim();
+        var encoded = System.Net.WebUtility.UrlEncode(query) ?? "";
+        return $"https://1337x.to/search/{encoded}/1/";
+    }
+
+    protected override void OnInitialized()
+    {
+        WatchlistSvc.OnStateChanged += StateHasChanged;
+        
+        // Auto-enable card view on mobile
+        if (OperatingSystem.IsBrowser() && RuntimeInformation.IsOSPlatform(OSPlatform.Create("WEB")))
         {
-            await WatchlistSvc.RemoveFromWatchlistAsync(item);
+            var userAgent = System.Text.RegularExpressions.Regex.Match(Environment.GetEnvironmentVariable("HTTP_USER_AGENT") ?? "", 
+                "(Mobile|Android|iPhone|iPad)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            showCardView = userAgent.Success;
         }
+    }
+
+    public void Dispose()
+    {
+        WatchlistSvc.OnStateChanged -= StateHasChanged;
+    }
+}
+
+<style>
+    .btn-xs {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+</style>
 
         private async Task ChangeSeason(WatchlistItem item, int delta)
         {
@@ -214,4 +294,3 @@
             var encoded = System.Net.WebUtility.UrlEncode(query) ?? "";
             return $"https://1337x.to/search/{encoded}/1/";
         }
-}

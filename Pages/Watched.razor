@@ -1,11 +1,21 @@
 @page "/watched"
 @using MyPrivateWatchlist.Models
+@using MyPrivateWatchlist.Components
+@using System.Runtime.InteropServices
 @inject MyPrivateWatchlist.Services.WatchlistService WatchlistSvc
 @implements IDisposable
 
 <PageTitle>Watched History</PageTitle>
 
-<div class="container-fluid">
+<div class="container-fluid" style="padding-left: 4.5px; padding-right: 4.5px;">
+    <style>
+        @@media (max-width: 768px) {
+            .container-fluid {
+                padding-left: 2px !important;
+                padding-right: 2px !important;
+            }
+        }
+    </style>
     <div class="d-flex justify-content-start align-items-center mb-4 border-bottom pb-3 gap-2">
         <button class="btn btn-sm @(showFilters ? "btn-dark shadow" : "btn-outline-secondary") rounded-2 px-3 py-2 transition-all fw-medium position-relative" @onclick="ToggleFilters">
             <i class="bi @(showFilters ? "bi-x-lg" : "bi-funnel") me-1"></i>
@@ -15,8 +25,9 @@
                     + (WatchlistSvc.FilterMaxRating20 < 100 ? 1 : 0)
                     + (!string.IsNullOrEmpty(WatchlistSvc.StartYear) ? 1 : 0)
                     + (!string.IsNullOrEmpty(WatchlistSvc.EndYear) ? 1 : 0)
-                    + (WatchlistSvc.SelectedType != "All" ? 1 : 0)
-                    + (WatchlistSvc.SelectedGenre != "All" ? 1 : 0);
+                    + (!string.IsNullOrEmpty(WatchlistSvc.SelectedGenre) && WatchlistSvc.SelectedGenre != "All" ? 1 : 0)
+                    + (!string.IsNullOrEmpty(WatchlistSvc.SelectedType) && WatchlistSvc.SelectedType != "All" ? 1 : 0)
+                    + (!string.IsNullOrEmpty(WatchlistSvc.SearchQuery) ? 1 : 0);
             }
             @if (activeFilterCount > 0 && !showFilters)
             {
@@ -27,6 +38,16 @@
             <i class="bi @(isEditing ? "bi-check-lg" : "bi-pencil") me-1"></i> 
             @(isEditing ? "Done" : "Edit")
         </button>
+        <div class="btn-group shadow-sm" role="group" aria-label="Layout mode">
+            <button class="btn btn-sm @(showCardView ? "btn-dark" : "btn-outline-secondary") rounded-start-2 px-3 py-2 fw-medium transition-all"
+                    @onclick="() => showCardView = true">
+                <i class="bi bi-grid-3x3-gap me-1"></i> Cards
+            </button>
+            <button class="btn btn-sm @(!showCardView ? "btn-dark" : "btn-outline-secondary") rounded-end-2 px-3 py-2 fw-medium transition-all"
+                    @onclick="() => showCardView = false">
+                <i class="bi bi-table me-1"></i> Table
+            </button>
+        </div>
     </div>
 
     @if (!WatchlistSvc.Items.Any(i => i.Status == WatchlistStatus.Watched))
@@ -122,7 +143,37 @@
         <div class="@(showFilters ? "col-md-9" : "col-12")">
             <div class="card shadow-sm border-0 overflow-hidden rounded-2">
                 <div class="card-body p-0 bg-white" style="height: 85vh; overflow-y: auto;">
-                    <table class="table table-hover align-middle mb-0">
+                    
+                    @if (showCardView)
+                    {
+                        <!-- Card View -->
+                        <div class="p-3">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="mb-0 fw-bold">@WatchlistSvc.WatchedItems.Count() Watched Movies</h5>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-sm btn-outline-secondary" @onclick='() => WatchlistSvc.ToggleSort("Title")'>
+                                        <i class="bi bi-sort-alpha-down me-1"></i> Title
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-secondary" @onclick='() => WatchlistSvc.ToggleSort("Rating20")'>
+                                        <i class="bi bi-star me-1"></i> Rating
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="row row-cols-1 g-3">
+                                @foreach (var item in WatchlistSvc.WatchedItems)
+                                {
+                                    <div class="col">
+                                        <MovieCard Item="item" ShowEditControls="@isEditing" ShowActionButtons="false" />
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <!-- Table View -->
+                        <table class="table table-hover align-middle mb-0">
                         <thead class="bg-light text-secondary fw-semibold" style="position: sticky; top: 0; z-index: 1;">
                             <tr>
                                 @if (isEditing)
@@ -257,18 +308,18 @@
                         </Virtualize>
                     </tbody>
                 </table>
-                </div>
+                }
             </div>
         </div>
-
-
     </div>
-    }
+    </div>
+}
 </div>
 
 @code {
     private bool showFilters = false;
     private bool isEditing = false;
+    private bool showCardView = false;
     private bool showSavedIndicator = false;
     private void ToggleEdit() => isEditing = !isEditing;
     private List<WatchlistItem> _watchedItems = new();
@@ -284,6 +335,14 @@
     {
         WatchlistSvc.OnStateChanged += HandleStateChanged;
         SyncWatchedItems();
+        
+        // Auto-enable card view on mobile
+        if (OperatingSystem.IsBrowser() && RuntimeInformation.IsOSPlatform(OSPlatform.Create("WEB")))
+        {
+            var userAgent = System.Text.RegularExpressions.Regex.Match(Environment.GetEnvironmentVariable("HTTP_USER_AGENT") ?? "", 
+                "(Mobile|Android|iPhone|iPad)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            showCardView = userAgent.Success;
+        }
     }
 
     public void Dispose()
