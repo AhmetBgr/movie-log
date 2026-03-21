@@ -6,7 +6,13 @@
 @using MyPrivateWatchlist.Components
 
 <div class="page">
-    <main>
+
+    <!-- Desktop sidebar: visible sm and up -->
+    <div class="sidebar d-none d-sm-flex flex-column">
+        <NavMenu />
+    </div>
+
+    <main class="pb-sm-0" style="padding-bottom: 64px;">
         <div class="top-row px-3 px-md-4 d-flex justify-content-between align-items-center bg-white shadow-sm gap-3 sticky-top" style="height: 4rem; z-index: 100;">
             <div class="position-relative flex-grow-1" style="max-width: 600px;">
                 <form class="input-group shadow-sm rounded-pill overflow-hidden" @onsubmit="PerformSearch" @onsubmit:preventDefault="true">
@@ -72,9 +78,11 @@
         }
     </main>
 
-    <div class="sidebar">
-        <NavMenu />
+    <!-- Mobile bottom nav: visible below sm only -->
+    <div class="d-sm-none" style="position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;">
+        <MobileNav />
     </div>
+
 </div>
 
 @code {

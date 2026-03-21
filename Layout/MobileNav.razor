@@ -1,0 +1,30 @@
+@inject MyPrivateWatchlist.Services.WatchlistService WatchlistSvc
+
+<nav class="mobile-bottom-nav">
+    <NavLink class="mobile-nav-item" href="" Match="NavLinkMatch.All" title="Home">
+        <i class="bi bi-house-door-fill"></i>
+        <span>Home</span>
+    </NavLink>
+    <NavLink class="mobile-nav-item" href="watching" title="Watching">
+        <i class="bi bi-play-circle-fill"></i>
+        <span>Watching</span>
+    </NavLink>
+    <NavLink class="mobile-nav-item" href="watched" title="Watched">
+        <i class="bi bi-check2-all"></i>
+        <span>Watched</span>
+    </NavLink>
+    <NavLink class="mobile-nav-item" href="watchlist" title="Watchlist">
+        <i class="bi bi-list-nested"></i>
+        <span>Watchlist</span>
+    </NavLink>
+    <a class="mobile-nav-item" @onclick="WatchlistSvc.ShowRandomMovieAsync" style="cursor:pointer;" title="Random">
+        <i class="bi bi-dice-5-fill"></i>
+        <span>Random</span>
+    </a>
+    <NavLink class="mobile-nav-item" href="configure" title="Configure">
+        <i class="bi bi-gear-fill"></i>
+        <span>Configure</span>
+    </NavLink>
+</nav>
+
+@code {}
