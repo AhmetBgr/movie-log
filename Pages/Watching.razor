@@ -15,11 +15,46 @@
             }
         }
     </style>
-    <div class="d-flex justify-content-start align-items-center mb-4 gap-2 border-bottom pb-3">
+    <div class="d-flex justify-content-start align-items-center mb-4 gap-2 border-bottom pb-3 flex-wrap">
         <button class="btn btn-sm @(isEditing ? "btn-dark shadow" : "btn-outline-secondary") rounded-2 px-3 py-2 transition-all fw-medium" @onclick="ToggleEdit">
-            <i class="bi @(isEditing ? "bi-check-lg" : "bi-pencil") me-1"></i> 
+            <i class="bi @(isEditing ? "bi-check-lg" : "bi-pencil") me-1"></i>
             @(isEditing ? "Done" : "Edit")
         </button>
+
+        @if (isEditing)
+        {
+            <div class="d-flex align-items-center gap-2 ms-2 flex-wrap">
+                @if (_selectedIds.Count > 0)
+                {
+                    <span class="badge bg-dark rounded-pill px-3 py-2">@_selectedIds.Count selected</span>
+                    <button class="btn btn-sm btn-outline-secondary rounded-2 px-3 py-2 fw-medium"
+                            @onclick="BulkMoveToWatchlist">
+                        <i class="bi bi-list-nested me-1"></i> To Watchlist
+                    </button>
+                    <button class="btn btn-sm btn-outline-primary rounded-2 px-3 py-2 fw-medium"
+                            @onclick="BulkMarkWatched">
+                        <i class="bi bi-check-lg me-1"></i> Mark Watched
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger rounded-2 px-3 py-2 fw-medium"
+                            @onclick="BulkRemove">
+                        <i class="bi bi-trash3-fill me-1"></i> Remove
+                    </button>
+                }
+                else
+                {
+                    <span class="text-secondary small fst-italic">Select items to perform actions</span>
+                    <button class="btn btn-sm btn-outline-secondary rounded-2 px-3 py-2 fw-medium" disabled>
+                        <i class="bi bi-list-nested me-1"></i> To Watchlist
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary rounded-2 px-3 py-2 fw-medium" disabled>
+                        <i class="bi bi-check-lg me-1"></i> Mark Watched
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary rounded-2 px-3 py-2 fw-medium" disabled>
+                        <i class="bi bi-trash3-fill me-1"></i> Remove
+                    </button>
+                }
+            </div>
+        }
     </div>
 
     @if (!WatchlistSvc.WatchingItems.Any())
@@ -57,7 +92,13 @@
                     <tr>
                         @if (isEditing)
                         {
-                            <th scope="col" style="width: 1%; white-space: nowrap;" class="border-bottom py-3 px-3 text-center"></th>
+                            <th scope="col" style="width: 1%; white-space: nowrap;" class="border-bottom py-3 px-3 text-center">
+                                <input type="checkbox"
+                                       class="form-check-input shadow-none"
+                                       style="width: 18px; height: 18px; cursor: pointer;"
+                                       checked="@IsAllSelected"
+                                       @onchange="ToggleSelectAll" />
+                            </th>
                         }
                         <th scope="col" class="border-bottom py-3 px-3">Title</th>
                         <th scope="col" class="border-bottom py-3 px-3 text-center d-none d-md-table-cell" style="width: 20%;">Tracking</th>
@@ -76,33 +117,15 @@
                         </tr>
                     }
                     <Virtualize Items="@WatchlistSvc.WatchingItems.ToList()" Context="item" ItemSize="70" OverscanCount="5">
-                        <tr @key="item.ImdbId" class="position-relative">
+                        <tr @key="item.ImdbId" class="position-relative @(_selectedIds.Contains(item.ImdbId) ? "row-selected" : "")">
                             @if (isEditing)
                             {
-                                <td class="text-center px-1" style="width: 1%; white-space: nowrap;">
-                                        <div class="d-flex align-items-center justify-content-center gap-1">
-                                            <button class="btn btn-sm btn-light border-0 text-secondary bg-secondary bg-opacity-10 rounded-3 shadow-none p-1 d-inline-flex align-items-center justify-content-center" 
-                                                    style="width: 32px; height: 32px; transition: all 0.2s;"
-                                                    onmouseover="this.classList.replace('bg-opacity-10','bg-opacity-25')"
-                                                    onmouseout="this.classList.replace('bg-opacity-25','bg-opacity-10')"
-                                                    @onclick="() => MoveToWatchlist(item)" @onclick:stopPropagation="true" title="To Watchlist">
-                                                <i class="bi bi-list-nested fs-6"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-light border-0 text-primary bg-primary bg-opacity-10 rounded-3 shadow-none p-1 d-inline-flex align-items-center justify-content-center" 
-                                                    style="width: 32px; height: 32px; transition: all 0.2s;"
-                                                    onmouseover="this.classList.replace('bg-opacity-10','bg-opacity-25')"
-                                                    onmouseout="this.classList.replace('bg-opacity-25','bg-opacity-10')"
-                                                    @onclick="() => MarkAsWatched(item)" @onclick:stopPropagation="true" title="Mark as Watched">
-                                                <i class="bi bi-check-lg fs-5"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-light border-0 text-danger bg-danger bg-opacity-10 rounded-3 shadow-none p-1 d-inline-flex align-items-center justify-content-center ms-1" 
-                                                    style="width: 32px; height: 32px; transition: all 0.2s;"
-                                                    onmouseover="this.classList.replace('bg-opacity-10','bg-opacity-25')"
-                                                    onmouseout="this.classList.replace('bg-opacity-25','bg-opacity-10')"
-                                                    @onclick="() => WatchlistSvc.RemoveFromWatchlistAsync(item)" @onclick:stopPropagation="true" title="Remove from Library">
-                                                <i class="bi bi-trash3-fill fs-6"></i>
-                                            </button>
-                                        </div>
+                                <td class="text-center px-3" style="width: 1%; white-space: nowrap;" @onclick:stopPropagation="true">
+                                    <input type="checkbox"
+                                           class="form-check-input shadow-none"
+                                           style="width: 18px; height: 18px; cursor: pointer;"
+                                           checked="@_selectedIds.Contains(item.ImdbId)"
+                                           @onchange="() => ToggleSelect(item.ImdbId)" />
                                 </td>
                             }
                             <td style="cursor: pointer;" class="px-3" @onclick="() => WatchlistSvc.ShowDetailsAsync(item)">
@@ -124,7 +147,6 @@
                                 {
                                     <span class="text-secondary x-small opacity-75 d-block">@item.Director</span>
                                 }
-                                <!-- Tracking pill shown inline on mobile -->
                                 @if (item.TitleType.Contains("TV", StringComparison.OrdinalIgnoreCase))
                                 {
                                     <span class="d-md-none text-secondary x-small">S@(item.CurrentSeason) · E@(item.CurrentEpisode)</span>
@@ -143,7 +165,7 @@
                                             @if (isEditing)
                                             {
                                                 <button class="btn btn-xs btn-white border shadow-sm rounded-circle p-0 d-flex align-items-center justify-content-center me-1" 
-                                                        style="width: 22px; height: 22px;" @onclick="() => ChangeSeason(item, -1)">
+                                                        style="width: 22px; height: 22px;" @onclick="() => ChangeSeason(item, -1)" @onclick:stopPropagation="true">
                                                     <i class="bi bi-dash fs-6"></i>
                                                 </button>
                                             }
@@ -152,7 +174,7 @@
                                             @if (isEditing)
                                             {
                                                 <button class="btn btn-xs btn-white border shadow-sm rounded-circle p-0 d-flex align-items-center justify-content-center ms-1" 
-                                                        style="width: 22px; height: 22px;" @onclick="() => ChangeSeason(item, 1)">
+                                                        style="width: 22px; height: 22px;" @onclick="() => ChangeSeason(item, 1)" @onclick:stopPropagation="true">
                                                     <i class="bi bi-plus fs-6"></i>
                                                 </button>
                                             }
@@ -165,7 +187,7 @@
                                             @if (isEditing)
                                             {
                                                 <button class="btn btn-xs btn-white border shadow-sm rounded-circle p-0 d-flex align-items-center justify-content-center me-1" 
-                                                        style="width: 22px; height: 22px;" @onclick="() => ChangeEpisode(item, -1)">
+                                                        style="width: 22px; height: 22px;" @onclick="() => ChangeEpisode(item, -1)" @onclick:stopPropagation="true">
                                                     <i class="bi bi-dash fs-6"></i>
                                                 </button>
                                             }
@@ -174,7 +196,7 @@
                                             @if (isEditing)
                                             {
                                                 <button class="btn btn-xs btn-white border shadow-sm rounded-circle p-0 d-flex align-items-center justify-content-center ms-1" 
-                                                        style="width: 22px; height: 22px;" @onclick="() => ChangeEpisode(item, 1)">
+                                                        style="width: 22px; height: 22px;" @onclick="() => ChangeEpisode(item, 1)" @onclick:stopPropagation="true">
                                                     <i class="bi bi-plus fs-6"></i>
                                                 </button>
                                             }
@@ -210,8 +232,62 @@
 
 @code {
     private bool isEditing = false;
+    private HashSet<string> _selectedIds = new();
 
-    private void ToggleEdit() => isEditing = !isEditing;
+    private bool IsAllSelected
+    {
+        get
+        {
+            var items = WatchlistSvc.WatchingItems.ToList();
+            return items.Count > 0 && items.All(i => _selectedIds.Contains(i.ImdbId));
+        }
+    }
+
+    private void ToggleSelectAll()
+    {
+        var items = WatchlistSvc.WatchingItems.ToList();
+        if (IsAllSelected)
+            _selectedIds.Clear();
+        else
+            _selectedIds = items.Select(i => i.ImdbId).ToHashSet();
+    }
+
+    private void ToggleSelect(string imdbId)
+    {
+        if (!_selectedIds.Remove(imdbId))
+            _selectedIds.Add(imdbId);
+    }
+
+    private void ToggleEdit()
+    {
+        isEditing = !isEditing;
+        if (!isEditing)
+            _selectedIds.Clear();
+    }
+
+    private async Task BulkMoveToWatchlist()
+    {
+        var items = WatchlistSvc.WatchingItems.Where(i => _selectedIds.Contains(i.ImdbId)).ToList();
+        foreach (var item in items)
+            await WatchlistSvc.UpdateStatusAsync(item, WatchlistStatus.Pending);
+        _selectedIds.Clear();
+    }
+
+    private async Task BulkMarkWatched()
+    {
+        var items = WatchlistSvc.WatchingItems.Where(i => _selectedIds.Contains(i.ImdbId)).ToList();
+        foreach (var item in items)
+            await WatchlistSvc.UpdateStatusAsync(item, WatchlistStatus.Watched);
+        _selectedIds.Clear();
+    }
+
+    private async Task BulkRemove()
+    {
+        var items = WatchlistSvc.WatchingItems.Where(i => _selectedIds.Contains(i.ImdbId)).ToList();
+        foreach (var item in items)
+            await WatchlistSvc.RemoveFromWatchlistAsync(item);
+        _selectedIds.Clear();
+    }
 
     private async Task MoveToWatchlist(WatchlistItem item)
     {
@@ -249,12 +325,19 @@
 
     protected override void OnInitialized()
     {
-        WatchlistSvc.OnStateChanged += StateHasChanged;
+        WatchlistSvc.OnStateChanged += HandleStateChanged;
     }
 
     public void Dispose()
     {
-        WatchlistSvc.OnStateChanged -= StateHasChanged;
+        WatchlistSvc.OnStateChanged -= HandleStateChanged;
+    }
+
+    private void HandleStateChanged()
+    {
+        var currentIds = WatchlistSvc.WatchingItems.Select(i => i.ImdbId).ToHashSet();
+        _selectedIds.IntersectWith(currentIds);
+        StateHasChanged();
     }
 }
 
@@ -263,6 +346,9 @@
         font-size: 0.75rem;
         padding: 0.25rem 0.5rem;
     }
+    .x-small { font-size: 0.75rem; }
+
+    tr.row-selected td {
+        background-color: rgba(13, 110, 253, 0.06) !important;
+    }
 </style>
-
-

@@ -3,60 +3,23 @@
 
 @if (Item != null)
 {
-    <div class="card border-0 overflow-hidden movie-card" style="cursor: pointer;" @onclick="ShowDetails">
+    <div class="card border-0 overflow-hidden movie-card @(IsSelected ? "movie-card-selected" : "")" style="cursor: pointer;" @onclick="ShowDetails">
 
         <!-- Outer row: side panel + main content -->
         <div class="d-flex">
 
-            <!-- ── Side Panel (visible only in edit mode for library items) ── -->
-            @if (IsEditMode && IsInLibrary)
+            <!-- ── Side Panel: checkbox in edit mode ── -->
+            @if (IsEditMode)
             {
                 <div class="side-panel d-flex align-items-center justify-content-center"
-                     @onclick:stopPropagation="true">
-                    @switch (Item.Status)
-                    {
-                        case WatchlistStatus.Pending:
-                            <button class="btn btn-sm action-btn action-btn-success"
-                                    @onclick:stopPropagation="true" @onclick="() => SetStatus(WatchlistStatus.Watching)"
-                                    title="Start Watching">
-                                <i class="bi bi-play-fill fs-5"></i>
-                            </button>
-                            <button class="btn btn-sm action-btn action-btn-primary"
-                                    @onclick:stopPropagation="true" @onclick="() => SetStatus(WatchlistStatus.Watched)"
-                                    title="Mark as Watched">
-                                <i class="bi bi-check-lg fs-5"></i>
-                            </button>
-                            <button class="btn btn-sm action-btn action-btn-danger"
-                                    @onclick:stopPropagation="true" @onclick="RemoveFromLibrary"
-                                    title="Remove from library">
-                                <i class="bi bi-trash3-fill fs-5"></i>
-                            </button>
-                            break;
-                        case WatchlistStatus.Watching:
-                            <button class="btn btn-sm action-btn action-btn-primary"
-                                    @onclick:stopPropagation="true" @onclick="() => SetStatus(WatchlistStatus.Watched)"
-                                    title="Mark as Watched">
-                                <i class="bi bi-check-lg fs-5"></i>
-                            </button>
-                            <button class="btn btn-sm action-btn action-btn-danger"
-                                    @onclick:stopPropagation="true" @onclick="RemoveFromLibrary"
-                                    title="Remove from library">
-                                <i class="bi bi-trash3-fill fs-5"></i>
-                            </button>
-                            break;
-                        case WatchlistStatus.Watched:
-                            <button class="btn btn-sm action-btn action-btn-success"
-                                    @onclick:stopPropagation="true" @onclick="() => SetStatus(WatchlistStatus.Watching)"
-                                    title="Watch Again">
-                                <i class="bi bi-arrow-repeat fs-5"></i>
-                            </button>
-                            <button class="btn btn-sm action-btn action-btn-danger"
-                                    @onclick:stopPropagation="true" @onclick="RemoveFromLibrary"
-                                    title="Remove from library">
-                                <i class="bi bi-trash3-fill fs-5"></i>
-                            </button>
-                            break;
-                    }
+                     @onclick:stopPropagation="true"
+                     @onclick="@(async () => await OnToggleSelect.InvokeAsync())">
+                    <div class="card-checkbox @(IsSelected ? "card-checkbox-checked" : "")">
+                        @if (IsSelected)
+                        {
+                            <i class="bi bi-check-lg text-white" style="font-size: 0.85rem; line-height: 1;"></i>
+                        }
+                    </div>
                 </div>
             }
 
@@ -81,18 +44,6 @@
                                 <i class="bi bi-film fs-1 text-secondary opacity-25"></i>
                             }
                         </div>
-
-                        <!-- Add Button Overlay (edit mode, not yet in library) -->
-                        @if (IsEditMode && !IsInLibrary)
-                        {
-                            <div class="position-absolute top-50 start-50 translate-middle">
-                                <button class="btn btn-sm action-btn action-btn-primary"
-                                        @onclick:stopPropagation="true" @onclick="AddToWatchlist"
-                                        title="Add to watchlist">
-                                    <i class="bi bi-plus-lg fs-5"></i>
-                                </button>
-                            </div>
-                        }
                     </div>
 
                     <!-- Right Side: Data Column (Vertical Stack) -->
@@ -178,78 +129,17 @@
 }
 
 @code {
-    [Parameter]
-    public WatchlistItem? Item { get; set; }
-
-    [Parameter]
-    public bool ShowEditControls { get; set; } = false;
-
-    [Parameter]
-    public bool ShowActionButtons { get; set; } = false;
-
-    /// <summary>
-    /// When true, shows the side panel with action buttons (for Watchlist page).
-    /// Kept as a simple bool so Blazor can diff it in-place without recreating the component.
-    /// </summary>
-    [Parameter]
-    public bool IsEditMode { get; set; } = false;
-
-    /// <summary>
-    /// Legacy RenderFragment slot — kept for backward compatibility with Search page etc.
-    /// When IsEditMode is used instead, this stays null.
-    /// </summary>
-    [Parameter]
-    public RenderFragment? SidePanel { get; set; }
-
-    private bool IsInLibrary => WatchlistSvc.Items.Any(i => i.ImdbId == Item?.ImdbId && !string.IsNullOrEmpty(i.ImdbId));
+    [Parameter] public WatchlistItem? Item { get; set; }
+    [Parameter] public bool ShowEditControls { get; set; } = false;
+    [Parameter] public bool ShowActionButtons { get; set; } = false;
+    [Parameter] public bool IsEditMode { get; set; } = false;
+    [Parameter] public bool IsSelected { get; set; } = false;
+    [Parameter] public EventCallback OnToggleSelect { get; set; }
+    [Parameter] public RenderFragment? SidePanel { get; set; }
 
     private void ShowDetails()
     {
         if (Item != null) WatchlistSvc.ShowDetailsAsync(Item);
-    }
-
-    private void AddToWatchlist()
-    {
-        if (Item != null) WatchlistSvc.AddToWatchlistAsync(Item);
-    }
-
-    private void RemoveFromLibrary()
-    {
-        if (Item != null)
-        {
-            var libItem = WatchlistSvc.Items.FirstOrDefault(i => i.ImdbId == Item.ImdbId);
-            if (libItem != null) WatchlistSvc.RemoveFromWatchlistAsync(libItem);
-        }
-    }
-
-    private void SetStatus(WatchlistStatus status)
-    {
-        if (Item != null)
-        {
-            var libItem = WatchlistSvc.Items.FirstOrDefault(i => i.ImdbId == Item.ImdbId);
-            if (libItem == null)
-            {
-                var newItem = new WatchlistItem
-                {
-                    ImdbId = Item.ImdbId,
-                    Title = Item.Title,
-                    TitleType = Item.TitleType,
-                    Year = Item.Year,
-                    ParsedYear = Item.ParsedYear,
-                    Genres = Item.Genres,
-                    Director = Item.Director,
-                    Overview = Item.Overview,
-                    PosterPath = Item.PosterPath,
-                    Status = status,
-                    DateAdded = DateTime.Now
-                };
-                WatchlistSvc.AddToWatchlistAsync(newItem);
-            }
-            else
-            {
-                WatchlistSvc.UpdateStatusAsync(libItem, status);
-            }
-        }
     }
 
     private string GetRatingColor(int val)
@@ -260,7 +150,6 @@
 }
 
 <style>
-    /* ── Card shell ─────────────────────────────────────────── */
     .movie-card {
         background: #fff;
         border-radius: 10px !important;
@@ -271,8 +160,11 @@
         box-shadow: 0 4px 16px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.06) !important;
         transform: translateY(-2px);
     }
+    .movie-card-selected {
+        outline: 2px solid rgba(13, 110, 253, 0.5);
+        background-color: rgba(13, 110, 253, 0.03) !important;
+    }
 
-    /* ── Side panel ─────────────────────────────────────────── */
     .side-panel {
         width: 44px;
         flex-shrink: 0;
@@ -282,9 +174,34 @@
         flex-direction: column;
         gap: 6px;
         padding: 8px 4px;
+        cursor: pointer;
+        transition: background 0.15s;
+    }
+    .side-panel:hover {
+        background: #ececec;
     }
 
-    /* ── Poster never shrinks ───────────────────────────────── */
+    .card-checkbox {
+        width: 22px;
+        height: 22px;
+        border-radius: 6px;
+        border: 2px solid #bbb;
+        background: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.15s ease;
+        flex-shrink: 0;
+    }
+    .card-checkbox-checked {
+        background: #0d6efd;
+        border-color: #0d6efd;
+    }
+    .side-panel:hover .card-checkbox:not(.card-checkbox-checked) {
+        border-color: #0d6efd;
+        background: rgba(13, 110, 253, 0.08);
+    }
+
     .poster-wrap {
         flex-shrink: 0 !important;
         min-width: 96px !important;
@@ -303,24 +220,6 @@
         transform: scale(1.03);
     }
 
-    /* ── Action buttons ─────────────────────────────────────── */
-    .action-btn {
-        width: 34px;
-        height: 34px;
-        padding: 0;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border: none;
-        border-radius: 8px;
-        transition: transform 0.12s ease, opacity 0.12s ease;
-    }
-    .action-btn:hover { transform: scale(1.12); opacity: 0.92; }
-    .action-btn-success { background: #22c55e; color: #fff; }
-    .action-btn-primary  { background: #3b82f6; color: #fff; }
-    .action-btn-danger   { background: #ef4444; color: #fff; }
-
-    /* ── Rating badge ───────────────────────────────────────── */
     .rating-badge {
         display: inline-flex;
         align-items: center;
@@ -336,7 +235,6 @@
         box-shadow: 0 2px 6px rgba(0,0,0,0.18);
     }
 
-    /* ── Data column ────────────────────────────────────────── */
     .data-col {
         border-left: 1px solid rgba(0,0,0,0.05);
     }
@@ -352,7 +250,6 @@
         display: block;
     }
 
-    /* ── Type badge ─────────────────────────────────────────── */
     .type-badge {
         font-size: 0.65rem;
         font-weight: 600;
@@ -364,7 +261,6 @@
     .type-movie { background: #e8e8e8; color: #444; }
     .type-tv    { background: #dbeafe; color: #1d4ed8; }
 
-    /* ── Genre pills ────────────────────────────────────────── */
     .genre-pill {
         font-size: 0.65rem;
         font-weight: 500;
@@ -376,7 +272,6 @@
         white-space: nowrap;
     }
 
-    /* ── Overview strip ─────────────────────────────────────── */
     .overview-section {
         padding: 10px 14px 12px;
         border-top: 1px solid rgba(0,0,0,0.05);
@@ -389,7 +284,6 @@
         line-height: 1.55;
     }
 
-    /* ── Mobile ─────────────────────────────────────────────── */
     @@media (max-width: 768px) {
         .side-panel   { width: 36px; }
         .poster-bg    { min-height: 130px; }
@@ -400,6 +294,6 @@
         .overview-section { padding: 7px 10px 9px; }
         .overview-text    { font-size: 0.75rem; }
         .genre-pill   { font-size: 0.6rem; padding: 1px 6px; }
-        .action-btn   { width: 28px; height: 28px; }
+        .card-checkbox { width: 20px; height: 20px; }
     }
 </style>

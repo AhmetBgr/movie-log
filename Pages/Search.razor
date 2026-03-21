@@ -17,12 +17,48 @@
             }
         }
     </style>
-    <div class="d-flex align-items-center gap-3 mb-4 border-bottom pb-3">
+    <div class="d-flex align-items-center gap-2 mb-4 border-bottom pb-3 flex-wrap">
         <button class="btn btn-sm @(isEditing ? "btn-dark shadow" : "btn-outline-secondary") rounded-2 px-3 py-2 transition-all fw-medium" @onclick="ToggleEdit">
-            <i class="bi @(isEditing ? "bi-check-lg" : "bi-pencil") me-1"></i> 
+            <i class="bi @(isEditing ? "bi-check-lg" : "bi-pencil") me-1"></i>
             @(isEditing ? "Done" : "Edit")
         </button>
-        <h2 class="fw-bold text-dark mb-0">Search Results for "@Uri.UnescapeDataString(Query)"</h2>
+
+        @if (isEditing)
+        {
+            <div class="d-flex align-items-center gap-2 ms-1 flex-wrap">
+                @if (_selectedKeys.Count > 0)
+                {
+                    <span class="badge bg-dark rounded-pill px-3 py-2">@_selectedKeys.Count selected</span>
+                    <button class="btn btn-sm btn-outline-secondary rounded-2 px-3 py-2 fw-medium"
+                            @onclick="BulkAddToWatchlist">
+                        <i class="bi bi-plus-lg me-1"></i> Add to Watchlist
+                    </button>
+                    <button class="btn btn-sm btn-outline-success rounded-2 px-3 py-2 fw-medium"
+                            @onclick="BulkStartWatching">
+                        <i class="bi bi-play-fill me-1"></i> Start Watching
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger rounded-2 px-3 py-2 fw-medium"
+                            @onclick="BulkRemove">
+                        <i class="bi bi-trash3-fill me-1"></i> Remove
+                    </button>
+                }
+                else
+                {
+                    <span class="text-secondary small fst-italic">Select items to perform actions</span>
+                    <button class="btn btn-sm btn-outline-secondary rounded-2 px-3 py-2 fw-medium" disabled>
+                        <i class="bi bi-plus-lg me-1"></i> Add to Watchlist
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary rounded-2 px-3 py-2 fw-medium" disabled>
+                        <i class="bi bi-play-fill me-1"></i> Start Watching
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary rounded-2 px-3 py-2 fw-medium" disabled>
+                        <i class="bi bi-trash3-fill me-1"></i> Remove
+                    </button>
+                }
+            </div>
+        }
+
+        <h2 class="fw-bold text-dark mb-0 ms-2">Search Results for "@Uri.UnescapeDataString(Query)"</h2>
     </div>
 
     @if (isLoading)
@@ -63,7 +99,13 @@
                     <tr>
                         @if (isEditing)
                         {
-                            <th scope="col" style="width: 1%; white-space: nowrap; text-align: center;" class="border-bottom py-2 px-3"></th>
+                            <th scope="col" style="width: 1%; white-space: nowrap; text-align: center;" class="border-bottom py-2 px-3">
+                                <input type="checkbox"
+                                       class="form-check-input shadow-none"
+                                       style="width: 18px; height: 18px; cursor: pointer;"
+                                       checked="@IsAllSelected"
+                                       @onchange="ToggleSelectAll" />
+                            </th>
                         }
                         <th scope="col" style="width: 1%; white-space: nowrap; text-align: center;" class="border-bottom py-2 px-3">
                             <i class="bi bi-image fs-6 text-secondary"></i>
@@ -77,43 +119,17 @@
                 <tbody class="border-top-0">
                     @foreach (var item in SortedResults)
                     {
-                        <tr>
+                        var itemKey = $"{item.MediaType}-{item.Id}";
+                        var isSelected = _selectedKeys.Contains(itemKey);
+                        <tr class="@(isSelected ? "row-selected" : "")">
                             @if (isEditing)
                             {
-                                <td class="text-center px-1" style="width: 1%; white-space: nowrap;">
-                                    @{
-                                        var libItem = WatchlistSvc.Items.FirstOrDefault(i => i.Title.Equals(item.DisplayTitle, StringComparison.OrdinalIgnoreCase) && 
-                                                                                    (item.DisplayDate.Length >= 4 && i.Year.Contains(item.DisplayDate.Substring(0,4))));
-                                    }
-                                    <div class="d-flex align-items-center justify-content-center gap-1">
-                                        @if (libItem == null)
-                                        {
-                                            <button class="btn btn-sm btn-light border-0 text-success bg-success bg-opacity-10 rounded-3 shadow-none p-1 d-inline-flex align-items-center justify-content-center" 
-                                                    style="width: 32px; height: 32px; transition: all 0.2s;"
-                                                    onmouseover="this.classList.replace('bg-opacity-10','bg-opacity-25')"
-                                                    onmouseout="this.classList.replace('bg-opacity-25','bg-opacity-10')"
-                                                    @onclick="() => HandleStatusClick(item, WatchlistStatus.Watching)" @onclick:stopPropagation="true" title="Start Watching">
-                                                <i class="bi bi-play-fill fs-5"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-light border-0 text-primary bg-primary bg-opacity-10 rounded-3 shadow-none p-1 d-inline-flex align-items-center justify-content-center" 
-                                                    style="width: 32px; height: 32px; transition: all 0.2s;"
-                                                    onmouseover="this.classList.replace('bg-opacity-10','bg-opacity-25')"
-                                                    onmouseout="this.classList.replace('bg-opacity-25','bg-opacity-10')"
-                                                    @onclick="() => HandleStatusClick(item, WatchlistStatus.Pending)" @onclick:stopPropagation="true" title="Add to Watchlist">
-                                                <i class="bi bi-plus-lg fs-6"></i>
-                                            </button>
-                                        }
-                                        else
-                                        {
-                                            <button class="btn btn-sm btn-light border-0 text-danger bg-danger bg-opacity-10 rounded-3 shadow-none p-1 d-inline-flex align-items-center justify-content-center" 
-                                                    style="width: 32px; height: 32px; transition: all 0.2s;"
-                                                    onmouseover="this.classList.replace('bg-opacity-10','bg-opacity-25')"
-                                                    onmouseout="this.classList.replace('bg-opacity-25','bg-opacity-10')"
-                                                    @onclick="() => HandleRemoveClick(item)" @onclick:stopPropagation="true" title="Remove from Watchlist">
-                                                <i class="bi bi-trash3-fill fs-6"></i>
-                                            </button>
-                                        }
-                                    </div>
+                                <td class="text-center px-3" style="width: 1%; white-space: nowrap;" @onclick:stopPropagation="true">
+                                    <input type="checkbox"
+                                           class="form-check-input shadow-none"
+                                           style="width: 18px; height: 18px; cursor: pointer;"
+                                           checked="@isSelected"
+                                           @onchange="() => ToggleSelect(itemKey)" />
                                 </td>
                             }
                             <td style="width: 1%; white-space: nowrap; padding: 0.1rem;" class="text-center">
@@ -139,12 +155,10 @@
                                         <i class="bi bi-box-arrow-up-right"></i>
                                     </a>
                                 </div>
-                                <!-- Director shown inline on mobile -->
                                 <span class="d-lg-none text-secondary x-small opacity-75 d-block">
                                     @if (directorsMap.TryGetValue($"{item.MediaType}-{item.Id}", out var dirMobile))
                                     { @dirMobile }
                                 </span>
-                                <!-- Year + type shown inline on mobile -->
                                 <span class="d-md-none text-secondary x-small opacity-75">
                                     @(item.DisplayDate.Length >= 4 ? item.DisplayDate.Substring(0,4) : item.DisplayDate) · @(item.MediaType == "movie" ? "Movie" : "TV Series")
                                 </span>
@@ -191,6 +205,40 @@
     private string _searchSortColumn = "Year";
     private bool _searchSortDescending = true;
 
+    // Search uses "mediaType-id" as key since items may not have ImdbId yet
+    private HashSet<string> _selectedKeys = new();
+
+    private bool IsAllSelected
+    {
+        get
+        {
+            var visibleKeys = SortedResults.Select(r => $"{r.MediaType}-{r.Id}").ToList();
+            return visibleKeys.Count > 0 && visibleKeys.All(k => _selectedKeys.Contains(k));
+        }
+    }
+
+    private void ToggleSelectAll()
+    {
+        var visibleKeys = SortedResults.Select(r => $"{r.MediaType}-{r.Id}").ToList();
+        if (IsAllSelected)
+            foreach (var k in visibleKeys) _selectedKeys.Remove(k);
+        else
+            foreach (var k in visibleKeys) _selectedKeys.Add(k);
+    }
+
+    private void ToggleSelect(string key)
+    {
+        if (!_selectedKeys.Remove(key))
+            _selectedKeys.Add(key);
+    }
+
+    private void ToggleEdit()
+    {
+        isEditing = !isEditing;
+        if (!isEditing)
+            _selectedKeys.Clear();
+    }
+
     private IEnumerable<TmdbSearchResultItem> SortedResults => results == null
         ? Enumerable.Empty<TmdbSearchResultItem>()
         : (_searchSortColumn switch
@@ -209,7 +257,49 @@
         else { _searchSortColumn = column; _searchSortDescending = column == "Year"; }
     }
 
-    private void ToggleEdit() => isEditing = !isEditing;
+    private async Task BulkAddToWatchlist()
+    {
+        var selectedItems = SortedResults.Where(r => _selectedKeys.Contains($"{r.MediaType}-{r.Id}")).ToList();
+        foreach (var item in selectedItems)
+        {
+            var libItem = FindLibraryItem(item);
+            if (libItem == null)
+                await HandleStatusClick(item, WatchlistStatus.Pending);
+        }
+        _selectedKeys.Clear();
+        StateHasChanged();
+    }
+
+    private async Task BulkStartWatching()
+    {
+        var selectedItems = SortedResults.Where(r => _selectedKeys.Contains($"{r.MediaType}-{r.Id}")).ToList();
+        foreach (var item in selectedItems)
+        {
+            await HandleStatusClick(item, WatchlistStatus.Watching);
+        }
+        _selectedKeys.Clear();
+        StateHasChanged();
+    }
+
+    private async Task BulkRemove()
+    {
+        var selectedItems = SortedResults.Where(r => _selectedKeys.Contains($"{r.MediaType}-{r.Id}")).ToList();
+        foreach (var item in selectedItems)
+        {
+            var libItem = FindLibraryItem(item);
+            if (libItem != null)
+                await WatchlistSvc.RemoveFromWatchlistAsync(libItem);
+        }
+        _selectedKeys.Clear();
+        StateHasChanged();
+    }
+
+    private WatchlistItem? FindLibraryItem(TmdbSearchResultItem item)
+    {
+        return WatchlistSvc.Items.FirstOrDefault(i =>
+            i.Title.Equals(item.DisplayTitle, StringComparison.OrdinalIgnoreCase) &&
+            (item.DisplayDate.Length >= 4 && i.Year.Contains(item.DisplayDate.Substring(0, 4))));
+    }
 
     protected override async Task OnParametersSetAsync()
     {
@@ -219,6 +309,8 @@
         cts = new CancellationTokenSource();
         directorsMap.Clear();
         _directorRefreshCounter = 0;
+        _selectedKeys.Clear();
+        isEditing = false;
 
         isLoading = true;
         results = null;
@@ -278,7 +370,6 @@
             
             try
             {
-                // Small delay to avoid hammering API too hard
                 await Task.Delay(100, token);
             }
             catch (OperationCanceledException)
@@ -294,18 +385,12 @@
     {
         cts?.Cancel();
         cts?.Dispose();
-    }
-
-    private bool IsAlreadyInWatchlist(TmdbSearchResultItem item)
-    {
-        return WatchlistSvc.IsInWatchlistFuzzy(item.DisplayTitle, 
-            item.DisplayDate.Length >= 4 ? item.DisplayDate.Substring(0, 4) : null);
+        WatchlistSvc.OnStateChanged -= StateHasChanged;
     }
 
     private async Task HandleStatusClick(TmdbSearchResultItem item, WatchlistStatus status)
     {
-        var libItem = WatchlistSvc.Items.FirstOrDefault(i => i.Title.Equals(item.DisplayTitle, StringComparison.OrdinalIgnoreCase) && 
-                                                         (item.DisplayDate.Length >= 4 && i.Year.Contains(item.DisplayDate.Substring(0,4))));
+        var libItem = FindLibraryItem(item);
         
         if (libItem == null)
         {
@@ -335,16 +420,6 @@
         }
     }
 
-    private async Task HandleRemoveClick(TmdbSearchResultItem item)
-    {
-        var wlItem = WatchlistSvc.Items.FirstOrDefault(i => i.Title.Equals(item.DisplayTitle, StringComparison.OrdinalIgnoreCase) && 
-                                                         (item.DisplayDate.Length >= 4 && i.Year.Contains(item.DisplayDate.Substring(0,4))));
-        if (wlItem != null)
-        {
-            await WatchlistSvc.RemoveFromWatchlistAsync(wlItem);
-        }
-    }
-
     private static string Get1337xSearchUrl(TmdbSearchResultItem item)
     {
         var year = item.DisplayDate.Length >= 4 ? item.DisplayDate.Substring(0, 4) : "";
@@ -354,3 +429,11 @@
         return $"https://1337x.to/search/{encoded}/1/";
     }
 }
+
+<style>
+    .x-small { font-size: 0.75rem; }
+
+    tr.row-selected td {
+        background-color: rgba(13, 110, 253, 0.06) !important;
+    }
+</style>

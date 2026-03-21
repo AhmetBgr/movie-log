@@ -58,6 +58,41 @@
                 @(isEditing ? "Done" : "Edit")
             </button>
 
+            @if (isEditing)
+            {
+                <div class="d-flex align-items-center gap-2 ms-1 flex-wrap">
+                    @if (_selectedIds.Count > 0)
+                    {
+                        <span class="badge bg-dark rounded-pill px-3 py-2">@_selectedIds.Count selected</span>
+                        <button class="btn btn-sm btn-outline-success rounded-2 px-3 py-2 fw-medium"
+                                @onclick="BulkStartWatching">
+                            <i class="bi bi-play-fill me-1"></i> Start Watching
+                        </button>
+                        <button class="btn btn-sm btn-outline-primary rounded-2 px-3 py-2 fw-medium"
+                                @onclick="BulkMarkWatched">
+                            <i class="bi bi-check-lg me-1"></i> Mark Watched
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger rounded-2 px-3 py-2 fw-medium"
+                                @onclick="BulkRemove">
+                            <i class="bi bi-trash3-fill me-1"></i> Remove
+                        </button>
+                    }
+                    else
+                    {
+                        <span class="text-secondary small fst-italic">Select items to perform actions</span>
+                        <button class="btn btn-sm btn-outline-secondary rounded-2 px-3 py-2 fw-medium" disabled>
+                            <i class="bi bi-play-fill me-1"></i> Start Watching
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary rounded-2 px-3 py-2 fw-medium" disabled>
+                            <i class="bi bi-check-lg me-1"></i> Mark Watched
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary rounded-2 px-3 py-2 fw-medium" disabled>
+                            <i class="bi bi-trash3-fill me-1"></i> Remove
+                        </button>
+                    }
+                </div>
+            }
+
             <!-- View toggle: table / card -->
             <div class="btn-group ms-auto" role="group">
                 <button class="btn btn-sm @(!isCardView ? "btn-dark" : "btn-outline-secondary") rounded-start-2"
@@ -172,11 +207,17 @@
                         {
                             <!-- ── TABLE VIEW ─────────────────────────────────── -->
                             <table class="table table-hover align-middle mb-0">
-                                <thead class="bg-light text-secondary fw-semibold" style="position: sticky; top: 0; z-index: 1;">
+                                <thead class="bg-light text-secondary fw-semibold" style="position: sticky; top: 0; z-index: 2;">
                                     <tr>
                                         @if (isEditing)
                                         {
-                                            <th style="width: 1%; white-space: nowrap;" class="py-3 px-3"></th>
+                                            <th style="width: 1%; white-space: nowrap; text-align: center;" class="py-3 px-3">
+                                                <input type="checkbox"
+                                                       class="form-check-input shadow-none"
+                                                       style="width: 18px; height: 18px; cursor: pointer;"
+                                                       checked="@IsAllSelected"
+                                                       @onchange="ToggleSelectAll" />
+                                            </th>
                                         }
                                         <th style="width: 56px;" class="py-3 px-2"></th>
                                         <th class="py-3 px-3">Title</th>
@@ -195,85 +236,16 @@
                                         </tr>
                                     }
                                     <Virtualize Items="_filteredItems" Context="item" ItemSize="72" OverscanCount="5">
-                                        <tr @key="item.ImdbId" style="cursor: pointer;" @onclick="() => WatchlistSvc.ShowDetailsAsync(item)">
+                                        <tr @key="item.ImdbId" style="cursor: pointer;" class="@(_selectedIds.Contains(item.ImdbId) ? "row-selected" : "")" @onclick="() => WatchlistSvc.ShowDetailsAsync(item)">
 
                                             @if (isEditing)
                                             {
-                                                <td class="text-center px-1" style="width: 1%; white-space: nowrap;">
-                                                    <div class="d-flex align-items-center justify-content-center gap-1">
-                                                        @switch (item.Status)
-                                                        {
-                                                            case WatchlistStatus.Pending:
-                                                                <button class="btn btn-sm btn-light border-0 text-success bg-success bg-opacity-10 rounded-3 shadow-none p-1 d-inline-flex align-items-center justify-content-center"
-                                                                        style="width: 32px; height: 32px; transition: all 0.2s;"
-                                                                        onmouseover="this.classList.replace('bg-opacity-10','bg-opacity-25')"
-                                                                        onmouseout="this.classList.replace('bg-opacity-25','bg-opacity-10')"
-                                                                        @onclick:stopPropagation="true"
-                                                                        @onclick="() => WatchlistSvc.UpdateStatusAsync(item, WatchlistStatus.Watching)"
-                                                                        title="Start Watching">
-                                                                    <i class="bi bi-play-fill fs-6"></i>
-                                                                </button>
-                                                                <button class="btn btn-sm btn-light border-0 text-primary bg-primary bg-opacity-10 rounded-3 shadow-none p-1 d-inline-flex align-items-center justify-content-center"
-                                                                        style="width: 32px; height: 32px; transition: all 0.2s;"
-                                                                        onmouseover="this.classList.replace('bg-opacity-10','bg-opacity-25')"
-                                                                        onmouseout="this.classList.replace('bg-opacity-25','bg-opacity-10')"
-                                                                        @onclick:stopPropagation="true"
-                                                                        @onclick="() => WatchlistSvc.UpdateStatusAsync(item, WatchlistStatus.Watched)"
-                                                                        title="Mark as Watched">
-                                                                    <i class="bi bi-check-lg fs-6"></i>
-                                                                </button>
-                                                                <button class="btn btn-sm btn-light border-0 text-danger bg-danger bg-opacity-10 rounded-3 shadow-none p-1 d-inline-flex align-items-center justify-content-center"
-                                                                        style="width: 32px; height: 32px; transition: all 0.2s;"
-                                                                        onmouseover="this.classList.replace('bg-opacity-10','bg-opacity-25')"
-                                                                        onmouseout="this.classList.replace('bg-opacity-25','bg-opacity-10')"
-                                                                        @onclick:stopPropagation="true"
-                                                                        @onclick="() => WatchlistSvc.RemoveFromWatchlistAsync(item)"
-                                                                        title="Remove from library">
-                                                                    <i class="bi bi-trash3-fill fs-6"></i>
-                                                                </button>
-                                                                break;
-                                                            case WatchlistStatus.Watching:
-                                                                <button class="btn btn-sm btn-light border-0 text-primary bg-primary bg-opacity-10 rounded-3 shadow-none p-1 d-inline-flex align-items-center justify-content-center"
-                                                                        style="width: 32px; height: 32px; transition: all 0.2s;"
-                                                                        onmouseover="this.classList.replace('bg-opacity-10','bg-opacity-25')"
-                                                                        onmouseout="this.classList.replace('bg-opacity-25','bg-opacity-10')"
-                                                                        @onclick:stopPropagation="true"
-                                                                        @onclick="() => WatchlistSvc.UpdateStatusAsync(item, WatchlistStatus.Watched)"
-                                                                        title="Mark as Watched">
-                                                                    <i class="bi bi-check-lg fs-6"></i>
-                                                                </button>
-                                                                <button class="btn btn-sm btn-light border-0 text-danger bg-danger bg-opacity-10 rounded-3 shadow-none p-1 d-inline-flex align-items-center justify-content-center"
-                                                                        style="width: 32px; height: 32px; transition: all 0.2s;"
-                                                                        onmouseover="this.classList.replace('bg-opacity-10','bg-opacity-25')"
-                                                                        onmouseout="this.classList.replace('bg-opacity-25','bg-opacity-10')"
-                                                                        @onclick:stopPropagation="true"
-                                                                        @onclick="() => WatchlistSvc.RemoveFromWatchlistAsync(item)"
-                                                                        title="Remove from library">
-                                                                    <i class="bi bi-trash3-fill fs-6"></i>
-                                                                </button>
-                                                                break;
-                                                            case WatchlistStatus.Watched:
-                                                                <button class="btn btn-sm btn-light border-0 text-success bg-success bg-opacity-10 rounded-3 shadow-none p-1 d-inline-flex align-items-center justify-content-center"
-                                                                        style="width: 32px; height: 32px; transition: all 0.2s;"
-                                                                        onmouseover="this.classList.replace('bg-opacity-10','bg-opacity-25')"
-                                                                        onmouseout="this.classList.replace('bg-opacity-25','bg-opacity-10')"
-                                                                        @onclick:stopPropagation="true"
-                                                                        @onclick="() => WatchlistSvc.UpdateStatusAsync(item, WatchlistStatus.Watching)"
-                                                                        title="Watch Again">
-                                                                    <i class="bi bi-arrow-repeat fs-6"></i>
-                                                                </button>
-                                                                <button class="btn btn-sm btn-light border-0 text-danger bg-danger bg-opacity-10 rounded-3 shadow-none p-1 d-inline-flex align-items-center justify-content-center"
-                                                                        style="width: 32px; height: 32px; transition: all 0.2s;"
-                                                                        onmouseover="this.classList.replace('bg-opacity-10','bg-opacity-25')"
-                                                                        onmouseout="this.classList.replace('bg-opacity-25','bg-opacity-10')"
-                                                                        @onclick:stopPropagation="true"
-                                                                        @onclick="() => WatchlistSvc.RemoveFromWatchlistAsync(item)"
-                                                                        title="Remove from library">
-                                                                    <i class="bi bi-trash3-fill fs-6"></i>
-                                                                </button>
-                                                                break;
-                                                        }
-                                                    </div>
+                                                <td class="text-center px-3" style="width: 1%; white-space: nowrap;" @onclick:stopPropagation="true">
+                                                    <input type="checkbox"
+                                                           class="form-check-input shadow-none"
+                                                           style="width: 18px; height: 18px; cursor: pointer;"
+                                                           checked="@_selectedIds.Contains(item.ImdbId)"
+                                                           @onchange="() => ToggleSelect(item.ImdbId)" />
                                                 </td>
                                             }
 
@@ -350,7 +322,11 @@
                                     @foreach (var item in _filteredItems)
                                     {
                                         <div class="col">
-                                            <MovieCard Item="item" IsEditMode="@isEditing" ShowActionButtons="true" />
+                                            <MovieCard Item="item"
+                                                       IsEditMode="@isEditing"
+                                                       IsSelected="@_selectedIds.Contains(item.ImdbId)"
+                                                       OnToggleSelect="@(() => ToggleSelect(item.ImdbId))"
+                                                       ShowActionButtons="true" />
                                         </div>
                                     }
                                 </div>
@@ -367,9 +343,33 @@
 @code {
     private bool isEditing = false;
     private bool showFilters = false;
-    private bool isCardView = false; // table is default
+    private bool isCardView = false;
+    private HashSet<string> _selectedIds = new();
     private List<WatchlistItem> _filteredItems = new();
     private List<string> _availableGenres = new();
+
+    private bool IsAllSelected => _filteredItems.Count > 0 && _filteredItems.All(i => _selectedIds.Contains(i.ImdbId));
+
+    private void ToggleSelectAll()
+    {
+        if (IsAllSelected)
+            _selectedIds.Clear();
+        else
+            _selectedIds = _filteredItems.Select(i => i.ImdbId).ToHashSet();
+    }
+
+    private void ToggleSelect(string imdbId)
+    {
+        if (!_selectedIds.Remove(imdbId))
+            _selectedIds.Add(imdbId);
+    }
+
+    private void ToggleEdit()
+    {
+        isEditing = !isEditing;
+        if (!isEditing)
+            _selectedIds.Clear();
+    }
 
     protected override void OnInitialized()
     {
@@ -385,6 +385,7 @@
     private void HandleStateChanged()
     {
         SyncItems();
+        _selectedIds.IntersectWith(_filteredItems.Select(i => i.ImdbId).ToHashSet());
         StateHasChanged();
     }
 
@@ -400,7 +401,30 @@
             .ToList();
     }
 
-    private void ToggleEdit() => isEditing = !isEditing;
+    private async Task BulkStartWatching()
+    {
+        var items = _filteredItems.Where(i => _selectedIds.Contains(i.ImdbId)).ToList();
+        foreach (var item in items)
+            await WatchlistSvc.UpdateStatusAsync(item, WatchlistStatus.Watching);
+        _selectedIds.Clear();
+    }
+
+    private async Task BulkMarkWatched()
+    {
+        var items = _filteredItems.Where(i => _selectedIds.Contains(i.ImdbId)).ToList();
+        foreach (var item in items)
+            await WatchlistSvc.UpdateStatusAsync(item, WatchlistStatus.Watched);
+        _selectedIds.Clear();
+    }
+
+    private async Task BulkRemove()
+    {
+        var items = _filteredItems.Where(i => _selectedIds.Contains(i.ImdbId)).ToList();
+        foreach (var item in items)
+            await WatchlistSvc.RemoveFromWatchlistAsync(item);
+        _selectedIds.Clear();
+    }
+
     private void ToggleFilters() => showFilters = !showFilters;
     private void ToggleView() => isCardView = !isCardView;
 
@@ -472,5 +496,9 @@
         border-radius: 20px;
         padding: 1px 7px;
         white-space: nowrap;
+    }
+
+    tr.row-selected td {
+        background-color: rgba(13, 110, 253, 0.06) !important;
     }
 </style>
