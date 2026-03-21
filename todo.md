@@ -49,3 +49,4 @@
 - [ ] try to improve load time
 - [ ] consider removing pwa
 - [ ] x button next to search text to quick deletion
+- [ ] fix site not loading on mobile firefox
