@@ -105,7 +105,8 @@
             <!-- Filter sidebar -->
             @if (showFilters)
             {
-                <div class="filter-sidebar">
+                <div class="filter-sidebar" @ontouchstart="OnFilterTouchStart" @ontouchend="OnFilterTouchEnd">
+                    <div class="filter-drag-handle d-sm-none"><span></span></div>
                     <h6 class="fw-bold mb-3">Refine List</h6>
                     <div class="mb-3">
                         <label class="filter-label">Search</label>
@@ -257,6 +258,8 @@
 @code {
     private bool isEditing = false;
     private bool showFilters = false;
+    private double _touchStartX;
+    private double _touchEndX;
     private bool isCardView = false;
     private HashSet<string> _selectedIds = new();
     private List<WatchlistItem> _filteredItems = new();
@@ -274,6 +277,16 @@
     private void ToggleSelectAll() { if (IsAllSelected) _selectedIds.Clear(); else _selectedIds = _filteredItems.Select(i => i.ImdbId).ToHashSet(); }
     private void ToggleSelect(string id) { if (!_selectedIds.Remove(id)) _selectedIds.Add(id); }
     private void ToggleEdit() { isEditing = !isEditing; if (!isEditing) _selectedIds.Clear(); }
+    private void OnFilterTouchStart(TouchEventArgs e) => _touchStartX = e.Touches[0].ClientX;
+    private void OnFilterTouchEnd(TouchEventArgs e)
+    {
+        _touchEndX = e.ChangedTouches[0].ClientX;
+        if (_touchStartX - _touchEndX > 50) // swipe left to close
+        {
+            showFilters = false;
+            StateHasChanged();
+        }
+    }
     private void ToggleFilters() => showFilters = !showFilters;
 
     protected override void OnInitialized() { WatchlistSvc.OnStateChanged += HandleStateChanged; SyncItems(); }

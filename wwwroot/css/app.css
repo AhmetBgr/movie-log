@@ -594,6 +594,22 @@ tr.row-selected td {
         flex-shrink: 0;
     }
 
+    /* Swipe-to-close drag handle */
+    .filter-drag-handle {
+        display: flex;
+        justify-content: flex-end;
+        padding: 4px 8px 0 0;
+        margin-bottom: 4px;
+        cursor: grab;
+    }
+    .filter-drag-handle span {
+        display: block;
+        width: 4px;
+        height: 36px;
+        border-radius: 2px;
+        background: rgba(0,0,0,0.18);
+    }
+
     /* Table/card area fills remaining height below the filter panel */
     .content-scroll {
         flex: 1;

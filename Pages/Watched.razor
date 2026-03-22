@@ -122,7 +122,8 @@
             <!-- Filter sidebar -->
             @if (showFilters)
             {
-                <div class="filter-sidebar">
+                <div class="filter-sidebar" @ontouchstart="OnFilterTouchStart" @ontouchend="OnFilterTouchEnd">
+                    <div class="filter-drag-handle d-sm-none"><span></span></div>
                     <h6 class="fw-bold mb-3">Refine History</h6>
 
                     <div class="mb-3">
@@ -347,6 +348,8 @@
 
 @code {
     private bool showFilters = false;
+    private double _touchStartX;
+    private double _touchEndX;
     private bool isEditing = false;
     private bool isCardView = false;
     private bool showSavedIndicator = false;
@@ -365,6 +368,16 @@
     private bool IsAllSelected => _watchedItems.Count > 0 && _watchedItems.All(i => _selectedIds.Contains(i.ImdbId));
     private void ToggleSelectAll() { if (IsAllSelected) _selectedIds.Clear(); else _selectedIds = _watchedItems.Select(i => i.ImdbId).ToHashSet(); }
     private void ToggleSelect(string id) { if (!_selectedIds.Remove(id)) _selectedIds.Add(id); }
+    private void OnFilterTouchStart(TouchEventArgs e) => _touchStartX = e.Touches[0].ClientX;
+    private void OnFilterTouchEnd(TouchEventArgs e)
+    {
+        _touchEndX = e.ChangedTouches[0].ClientX;
+        if (_touchStartX - _touchEndX > 50) // swipe left to close
+        {
+            showFilters = false;
+            StateHasChanged();
+        }
+    }
     private void ToggleFilters() => showFilters = !showFilters;
     private void ToggleEdit() { isEditing = !isEditing; if (!isEditing) _selectedIds.Clear(); }
 
