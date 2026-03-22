@@ -33,6 +33,16 @@
             <span class="tb-label">Added</span>
         </button>
 
+        <div class="tb-divider"></div>
+
+        <!-- View toggle -->
+        <button class="tb-btn @(!isCardView ? "active" : "")" @onclick="() => isCardView = false" title="Table view">
+            <i class="bi bi-list-ul"></i>
+        </button>
+        <button class="tb-btn @(isCardView ? "active" : "")" @onclick="() => isCardView = true" title="Card view">
+            <i class="bi bi-grid-3x2-gap"></i>
+        </button>
+
         <div class="tb-spacer"></div>
         <span class="text-secondary d-none d-sm-inline" style="font-size:0.76rem;white-space:nowrap;padding-right:4px;">@WatchlistSvc.WatchingItems.Count() items</span>
     </div>
@@ -82,83 +92,132 @@
     else
     {
         <div class="page-content scroll-y">
-            <div class="table-wrap">
-            <table class="table table-hover align-middle mb-0">
-                <tbody>
-                    <Virtualize Items="@WatchlistSvc.WatchingItems.ToList()" Context="item" ItemSize="70" OverscanCount="5">
-                        <tr @key="item.ImdbId" class="@(_selectedIds.Contains(item.ImdbId) ? "row-selected" : "")">
-                            @if (isEditing)
-                            {
-                                <td class="px-1 text-center" style="width:0.1%;white-space:nowrap;" @onclick:stopPropagation="true">
-                                    <input type="checkbox" class="form-check-input shadow-none" style="width:25px;height:25px;cursor:pointer;"
-                                           checked="@_selectedIds.Contains(item.ImdbId)"
-                                           @onchange="() => ToggleSelect(item.ImdbId)" />
-                                </td>
-                            }
-                            <td class="px-2 py-1" style="width:52px;">
-                                <div class="poster-thumb">
-                                    @if (!string.IsNullOrEmpty(item.FullPosterUrl) && !item.FullPosterUrl.Contains("data:image/png;base64"))
-                                    {
-                                        <img src="@item.FullPosterUrl" alt="@item.Title" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
-                                        <div class="poster-fallback" style="display:none;"><i class="bi bi-film"></i></div>
-                                    }
-                                    else { <div class="poster-fallback"><i class="bi bi-film"></i></div> }
-                                </div>
-                            </td>
-                            <td class="px-3" style="cursor:pointer;" @onclick="() => WatchlistSvc.ShowDetailsAsync(item)">
-                                <div class="d-flex align-items-center gap-2">
-                                    <span class="fw-bold text-dark title-hover">@item.Title</span>
-                                    <a class="ext-link" href="@Get1337xSearchUrl(item)" target="_blank" rel="noopener noreferrer"
-                                       title="Search on 1337x" @onclick:stopPropagation="true">
-                                        <i class="bi bi-box-arrow-up-right"></i>
-                                    </a>
-                                </div>
-                                @if (!string.IsNullOrEmpty(item.Director))
+            @if (!isCardView)
+            {
+                <!-- TABLE VIEW -->
+                <div class="table-wrap">
+                <table class="table table-hover align-middle mb-0">
+                    <tbody>
+                        <Virtualize Items="@WatchlistSvc.WatchingItems.ToList()" Context="item" ItemSize="70" OverscanCount="5">
+                            <tr @key="item.ImdbId" class="@(_selectedIds.Contains(item.ImdbId) ? "row-selected" : "")">
+                                @if (isEditing)
                                 {
-                                    <span class="text-secondary d-block" style="font-size:0.73rem;opacity:0.75;">@item.Director</span>
+                                    <td class="px-3 text-center" style="width:1%;white-space:nowrap;" @onclick:stopPropagation="true">
+                                        <input type="checkbox" class="form-check-input shadow-none" style="width:17px;height:17px;cursor:pointer;"
+                                               checked="@_selectedIds.Contains(item.ImdbId)"
+                                               @onchange="() => ToggleSelect(item.ImdbId)" />
+                                    </td>
                                 }
-                                <span class="row-meta">@item.Year · Added @item.DateAdded.ToString("MMM dd, yyyy")</span>
-                                @if (item.TitleType.Contains("TV", StringComparison.OrdinalIgnoreCase))
-                                    { <span class="d-md-none text-secondary" style="font-size:0.72rem;">S@(item.CurrentSeason) · E@(item.CurrentEpisode)</span> }
-                            </td>
-                            <td class="px-3 text-center d-none d-md-table-cell">
-                                @if (item.TitleType.Contains("TV", StringComparison.OrdinalIgnoreCase))
-                                {
-                                    <div class="d-inline-flex align-items-center bg-light rounded-pill px-2 py-1 border shadow-sm tracking-pill">
-                                        <div class="d-flex align-items-center px-1">
-                                            @if (isEditing) { <button class="track-btn" @onclick="() => ChangeSeason(item,-1)" @onclick:stopPropagation="true"><i class="bi bi-dash"></i></button> }
-                                            <span class="text-secondary small fw-bold mx-1">S</span>
-                                            <span class="fw-bolder text-dark" style="min-width:18px;">@item.CurrentSeason</span>
-                                            @if (isEditing) { <button class="track-btn" @onclick="() => ChangeSeason(item,1)" @onclick:stopPropagation="true"><i class="bi bi-plus"></i></button> }
-                                        </div>
-                                        <div class="vr mx-1 opacity-10" style="height:16px;"></div>
-                                        <div class="d-flex align-items-center px-1">
-                                            @if (isEditing) { <button class="track-btn" @onclick="() => ChangeEpisode(item,-1)" @onclick:stopPropagation="true"><i class="bi bi-dash"></i></button> }
-                                            <span class="text-secondary small fw-bold mx-1">E</span>
-                                            <span class="fw-bolder text-dark" style="min-width:18px;">@item.CurrentEpisode</span>
-                                            @if (isEditing) { <button class="track-btn" @onclick="() => ChangeEpisode(item,1)" @onclick:stopPropagation="true"><i class="bi bi-plus"></i></button> }
-                                        </div>
+                                <td class="px-2 py-1" style="width:52px;">
+                                    <div class="poster-thumb">
+                                        @if (!string.IsNullOrEmpty(item.FullPosterUrl) && !item.FullPosterUrl.Contains("data:image/png;base64"))
+                                        {
+                                            <img src="@item.FullPosterUrl" alt="@item.Title" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+                                            <div class="poster-fallback" style="display:none;"><i class="bi bi-film"></i></div>
+                                        }
+                                        else { <div class="poster-fallback"><i class="bi bi-film"></i></div> }
                                     </div>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-light text-secondary fw-normal border px-3 py-2 rounded-pill">Feature Movie</span>
-                                }
-                            </td>
-                            <td class="d-none d-md-table-cell">
-                                <span class="badge rounded-pill @(item.TitleType.Equals("Movie", StringComparison.OrdinalIgnoreCase) ? "bg-secondary text-white" : "bg-light text-dark border")">@item.TitleType</span>
-                            </td>
-                        </tr>
-                    </Virtualize>
-                </tbody>
-            </table>
-            </div>
+                                </td>
+                                <td class="px-3" style="cursor:pointer;" @onclick="() => WatchlistSvc.ShowDetailsAsync(item)">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="fw-bold text-dark title-hover">@item.Title</span>
+                                        <a class="ext-link" href="@Get1337xSearchUrl(item)" target="_blank" rel="noopener noreferrer"
+                                           title="Search on 1337x" @onclick:stopPropagation="true">
+                                            <i class="bi bi-box-arrow-up-right"></i>
+                                        </a>
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(item.Director))
+                                    {
+                                        <span class="text-secondary d-block" style="font-size:0.73rem;opacity:0.75;">@item.Director</span>
+                                    }
+                                    <span class="row-meta">@item.Year · Added @item.DateAdded.ToString("MMM dd, yyyy")</span>
+                                    @if (item.TitleType.Contains("TV", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        @if (isEditing)
+                                        {
+                                            <div class="d-md-none mt-1" @onclick:stopPropagation="true">
+                                                <div class="d-inline-flex align-items-center bg-light rounded-pill px-2 py-1 border shadow-sm tracking-pill">
+                                                    <div class="d-flex align-items-center px-1">
+                                                        <button class="track-btn" @onclick="() => ChangeSeason(item,-1)" @onclick:stopPropagation="true"><i class="bi bi-dash"></i></button>
+                                                        <span class="text-secondary small fw-bold mx-1">S</span>
+                                                        <span class="fw-bolder text-dark" style="min-width:18px;">@item.CurrentSeason</span>
+                                                        <button class="track-btn" @onclick="() => ChangeSeason(item,1)" @onclick:stopPropagation="true"><i class="bi bi-plus"></i></button>
+                                                    </div>
+                                                    <div class="vr mx-1 opacity-10" style="height:16px;"></div>
+                                                    <div class="d-flex align-items-center px-1">
+                                                        <button class="track-btn" @onclick="() => ChangeEpisode(item,-1)" @onclick:stopPropagation="true"><i class="bi bi-dash"></i></button>
+                                                        <span class="text-secondary small fw-bold mx-1">E</span>
+                                                        <span class="fw-bolder text-dark" style="min-width:18px;">@item.CurrentEpisode</span>
+                                                        <button class="track-btn" @onclick="() => ChangeEpisode(item,1)" @onclick:stopPropagation="true"><i class="bi bi-plus"></i></button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <span class="d-md-none text-secondary" style="font-size:0.72rem;">S@(item.CurrentSeason) · E@(item.CurrentEpisode)</span>
+                                        }
+                                    }
+                                </td>
+                                <td class="px-3 text-center d-none d-md-table-cell">
+                                    @if (item.TitleType.Contains("TV", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <div class="d-inline-flex align-items-center bg-light rounded-pill px-2 py-1 border shadow-sm tracking-pill">
+                                            <div class="d-flex align-items-center px-1">
+                                                @if (isEditing) { <button class="track-btn" @onclick="() => ChangeSeason(item,-1)" @onclick:stopPropagation="true"><i class="bi bi-dash"></i></button> }
+                                                <span class="text-secondary small fw-bold mx-1">S</span>
+                                                <span class="fw-bolder text-dark" style="min-width:18px;">@item.CurrentSeason</span>
+                                                @if (isEditing) { <button class="track-btn" @onclick="() => ChangeSeason(item,1)" @onclick:stopPropagation="true"><i class="bi bi-plus"></i></button> }
+                                            </div>
+                                            <div class="vr mx-1 opacity-10" style="height:16px;"></div>
+                                            <div class="d-flex align-items-center px-1">
+                                                @if (isEditing) { <button class="track-btn" @onclick="() => ChangeEpisode(item,-1)" @onclick:stopPropagation="true"><i class="bi bi-dash"></i></button> }
+                                                <span class="text-secondary small fw-bold mx-1">E</span>
+                                                <span class="fw-bolder text-dark" style="min-width:18px;">@item.CurrentEpisode</span>
+                                                @if (isEditing) { <button class="track-btn" @onclick="() => ChangeEpisode(item,1)" @onclick:stopPropagation="true"><i class="bi bi-plus"></i></button> }
+                                            </div>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-light text-secondary fw-normal border px-3 py-2 rounded-pill">Feature Movie</span>
+                                    }
+                                </td>
+                                <td class="d-none d-md-table-cell">
+                                    <span class="badge rounded-pill @(item.TitleType.Equals("Movie", StringComparison.OrdinalIgnoreCase) ? "bg-secondary text-white" : "bg-light text-dark border")">@item.TitleType</span>
+                                </td>
+                            </tr>
+                        </Virtualize>
+                    </tbody>
+                </table>
+                </div>
+            }
+            else
+            {
+                <!-- CARD VIEW -->
+                <div class="table-wrap table-wrap--wide p-3">
+                    <div class="row row-cols-1 g-3">
+                        @foreach (var item in WatchlistSvc.WatchingItems)
+                        {
+                            <div class="col">
+                                <MovieCard Item="item"
+                                           IsEditMode="@isEditing"
+                                           IsSelected="@_selectedIds.Contains(item.ImdbId)"
+                                           OnToggleSelect="@(() => ToggleSelect(item.ImdbId))"
+                                           ShowActionButtons="true" />
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
         </div>
     }
+
 </div>
 
 @code {
     private bool isEditing = false;
+    private bool isCardView = false;
     private HashSet<string> _selectedIds = new();
 
     private bool IsAllSelected { get { var items = WatchlistSvc.WatchingItems.ToList(); return items.Count > 0 && items.All(i => _selectedIds.Contains(i.ImdbId)); } }
