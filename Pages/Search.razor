@@ -102,8 +102,8 @@
                         <tr class="@(isSelected ? "row-selected" : "")">
                             @if (isEditing)
                             {
-                                <td class="px-3 text-center" style="width:1%;white-space:nowrap;" @onclick:stopPropagation="true">
-                                    <input type="checkbox" class="form-check-input shadow-none" style="width:17px;height:17px;cursor:pointer;"
+                                <td class="px-1 text-center" style="width:0.1%;white-space:nowrap;" @onclick:stopPropagation="true">
+                                    <input type="checkbox" class="form-check-input shadow-none" style="width:25px;height:25px;cursor:pointer;"
                                            checked="@isSelected" @onchange="() => ToggleSelect(itemKey)" />
                                 </td>
                             }

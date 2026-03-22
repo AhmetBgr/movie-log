@@ -180,8 +180,8 @@
                                 <tr @key="item.ImdbId" style="cursor:pointer;" class="@(_selectedIds.Contains(item.ImdbId) ? "row-selected" : "")" @onclick="() => WatchlistSvc.ShowDetailsAsync(item)">
                                     @if (isEditing)
                                     {
-                                        <td class="px-3 text-center" style="width:1%;white-space:nowrap;" @onclick:stopPropagation="true">
-                                            <input type="checkbox" class="form-check-input shadow-none" style="width:17px;height:17px;cursor:pointer;"
+                                        <td class="px-1 text-center" style="width:0.1%;white-space:nowrap;" @onclick:stopPropagation="true">
+                                            <input type="checkbox" class="form-check-input shadow-none" style="width:25px;height:25px;cursor:pointer;"
                                                    checked="@_selectedIds.Contains(item.ImdbId)"
                                                    @onchange="() => ToggleSelect(item.ImdbId)" />
                                         </td>
@@ -256,7 +256,7 @@
 
 @code {
     private bool isEditing = false;
-    private bool showFilters = true;
+    private bool showFilters = false;
     private bool isCardView = false;
     private HashSet<string> _selectedIds = new();
     private List<WatchlistItem> _filteredItems = new();
@@ -277,6 +277,14 @@
     private void ToggleFilters() => showFilters = !showFilters;
 
     protected override void OnInitialized() { WatchlistSvc.OnStateChanged += HandleStateChanged; SyncItems(); }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var width = await JS.InvokeAsync<int>("eval", "window.innerWidth");
+            if (width >= 768) { showFilters = true; StateHasChanged(); }
+        }
+    }
     public void Dispose() => WatchlistSvc.OnStateChanged -= HandleStateChanged;
     private void HandleStateChanged() { SyncItems(); _selectedIds.IntersectWith(_filteredItems.Select(i => i.ImdbId).ToHashSet()); StateHasChanged(); }
 
@@ -309,7 +317,7 @@
 
 <style>
     .filter-sidebar {
-        width: 374px; flex-shrink: 0; overflow-y: auto;
+        width: 300px; flex-shrink: 0; overflow-y: auto;
         border-right: 1px solid rgba(0,0,0,0.08); padding: 16px; background: #fff;
     }
     .filter-label { display:block; font-size:0.67rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#888; margin-bottom:6px; }

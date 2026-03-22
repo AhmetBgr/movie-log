@@ -2,6 +2,7 @@
 @using MyPrivateWatchlist.Models
 @using MyPrivateWatchlist.Components
 @inject MyPrivateWatchlist.Services.WatchlistService WatchlistSvc
+@inject IJSRuntime JS
 @implements IDisposable
 
 <PageTitle>Watched History</PageTitle>
@@ -197,8 +198,8 @@
                             <tr @key="item.ImdbId" class="@(_selectedIds.Contains(item.ImdbId) ? "row-selected" : "")">
                                 @if (isEditing)
                                 {
-                                    <td class="px-3 text-center" style="width:1%;white-space:nowrap;" @onclick:stopPropagation="true">
-                                        <input type="checkbox" class="form-check-input shadow-none" style="width:17px;height:17px;cursor:pointer;"
+                                    <td class="px-1 text-center" style="width:0.1%;white-space:nowrap;" @onclick:stopPropagation="true">
+                                        <input type="checkbox" class="form-check-input shadow-none" style="width:25px;height:25px;cursor:pointer;"
                                                checked="@_selectedIds.Contains(item.ImdbId)"
                                                @onchange="() => ToggleSelect(item.ImdbId)" />
                                     </td>
@@ -345,7 +346,7 @@
 </div>
 
 @code {
-    private bool showFilters = true;
+    private bool showFilters = false;
     private bool isEditing = false;
     private bool isCardView = false;
     private bool showSavedIndicator = false;
@@ -368,6 +369,14 @@
     private void ToggleEdit() { isEditing = !isEditing; if (!isEditing) _selectedIds.Clear(); }
 
     protected override void OnInitialized() { WatchlistSvc.OnStateChanged += HandleStateChanged; SyncItems(); }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var width = await JS.InvokeAsync<int>("eval", "window.innerWidth");
+            if (width >= 768) { showFilters = true; StateHasChanged(); }
+        }
+    }
     public void Dispose() => WatchlistSvc.OnStateChanged -= HandleStateChanged;
 
     private void HandleStateChanged()
@@ -433,7 +442,7 @@
 <style>
     /* Sidebar */
     .filter-sidebar {
-        width: 374px;
+        width: 300px;
         flex-shrink: 0;
         overflow-y: auto;
         border-right: 1px solid rgba(0,0,0,0.08);
