@@ -334,12 +334,19 @@
         NavManager.LocationChanged += HandleLocationChanged;
         _wasModalOpen = WatchlistSvc.IsModalOpen;
         _ = WatchlistSvc.InitializeAsync();
-        _dotNetRef = DotNetObjectReference.Create(this);
-        await JS.InvokeVoidAsync("registerUpdateCallback", _dotNetRef);
     }
 
     private bool _wasModalOpen;
     private bool _isClosingFromNav = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _dotNetRef = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("registerUpdateCallback", _dotNetRef);
+        }
+    }
 
     private void HandleWatchlistStateChanged()
     {
@@ -351,7 +358,7 @@
         else if (!WatchlistSvc.IsModalOpen && _wasModalOpen)
         {
             if (NavManager.Uri.Contains("#details") && !_isClosingFromNav)
-                _ = JS.InvokeVoidAsync("history.back");
+                _ = JS.InvokeVoidAsync("uiHelpers.historyBack");
         }
         _wasModalOpen = WatchlistSvc.IsModalOpen;
         _ = InvokeAsync(StateHasChanged);
