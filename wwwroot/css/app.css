@@ -602,6 +602,11 @@ tr.row-selected td {
     }
 }
 
+/* ── Tracking pill: shrink dynamically if title cell is narrow ─ */
+@container (max-width: 210px) { .tracking-pill { transform: scale(0.85); } }
+@container (max-width: 170px) { .tracking-pill { transform: scale(0.70); } }
+@container (max-width: 130px) { .tracking-pill { transform: scale(0.55); } }
+
 /* ── Toolbar desktop: max-width + wrap if needed ───────────── */
 @@media (min-width: 768px) {
     .toolbar-primary,
