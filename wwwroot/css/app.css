@@ -505,30 +505,127 @@ tr.row-selected td {
     background-color: rgba(99, 102, 241, 0.07) !important;
 }
 
-/* ── Mobile adjustments ─────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════
+   MOBILE  (< 768px)
+   ══════════════════════════════════════════════════════════════ */
 @@media (max-width: 767px) {
+
+    /* Shell height accounts for fixed bottom nav */
     .page-shell {
-        height: calc(100vh - 67px - 56px); /* subtract bottom nav too */
+        height: calc(100vh - 67px - 56px);
     }
 
-    .tb-btn {
+    /* ── Toolbar: wrap into two rows ───────────────────────── */
+    .toolbar-primary {
+        flex-wrap: wrap;
+        overflow-x: visible;          /* no horizontal scroll — wrap instead */
+        overflow-y: visible;
+        min-height: unset;
+        padding: 4px 8px;
+        gap: 0;
+        row-gap: 0;
+    }
+
+    /* Row 1: primary controls (Filters, Edit, Done, view-toggle, spacer, count) */
+    .tb-row-primary {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        min-height: 40px;
+        gap: 2px;
+    }
+
+    /* Row 2: sort buttons */
+    .tb-row-sort {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        min-height: 36px;
+        gap: 2px;
+        border-top: 1px solid #f0f0f0;
+        padding-top: 2px;
+        padding-bottom: 2px;
+        overflow-x: auto;
+        scrollbar-width: none;
+    }
+    .tb-row-sort::-webkit-scrollbar { display: none; }
+
+    /* Buttons in row 2 are a little smaller */
+    .tb-row-sort .tb-btn {
+        font-size: 0.76rem;
+        padding: 3px 8px;
+    }
+
+    /* Always show labels on mobile (rows give enough room) */
+    .tb-label { display: inline; }
+
+    /* ── Action bar: wrap freely ───────────────────────────── */
+    .toolbar-actions {
+        flex-wrap: wrap;
+        overflow-x: visible;
+        overflow-y: visible;
+        min-height: unset;
         padding: 5px 8px;
-        font-size: 0.78rem;
         gap: 4px;
+        row-gap: 4px;
     }
 
-    /* Hide text labels on very small screens, icon only */
-    .tb-label {
-        display: none;
+    /* ── Filter panel: stacks above content on mobile ──────── */
+    .page-content {
+        flex-direction: column;
     }
 
-    /* But keep labels for primary action buttons (Edit, Filters) */
-    .tb-btn:not(.tb-btn-sort):not(.tb-btn-success):not(.tb-btn-primary):not(.tb-btn-danger) .tb-label {
-        display: inline;
+    .filter-sidebar {
+        width: 100% !important;
+        border-right: none !important;
+        border-bottom: 1px solid rgba(0,0,0,0.08) !important;
+        max-height: 45vh;
+        overflow-y: auto;
+        flex-shrink: 0;
+    }
+
+    /* Table/card area fills remaining height below the filter panel */
+    .content-scroll {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
     }
 }
 
-@@media (min-width: 400px) and (max-width: 767px) {
-    /* Show labels on wider phones */
-    .tb-label { display: inline; }
+/* ── Table max-width ────────────────────────────────────────── */
+.content-scroll {
+    max-width: unset; /* reset any page-local override */
+}
+.content-scroll > table {
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+}
+.page-content.scroll-y > table {
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* ── Table max-width wrapper ────────────────────────────────── */
+.table-wrap {
+    max-width: 900px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+/* Remove the two-tone stripe on even rows inside table-wrap
+   since we no longer have a header to anchor the eye */
+.table-wrap .table tbody tr:nth-child(even) > td {
+    background-color: transparent !important;
+}
+
+/* ── Row meta line (year · date added, shown below title) ───── */
+.row-meta {
+    display: block;
+    font-size: 0.71rem;
+    color: #999;
+    margin-top: 2px;
+    line-height: 1.3;
 }

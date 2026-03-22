@@ -44,6 +44,10 @@
     @if (isEditing)
     {
         <div class="toolbar-actions @(_selectedKeys.Count > 0 ? "has-selection" : "")">
+            <input type="checkbox" class="form-check-input shadow-none flex-shrink-0"
+                   style="width:17px;height:17px;cursor:pointer;margin-right:6px;"
+                   checked="@IsAllSelected" @onchange="ToggleSelectAll"
+                   title="Select all" />
             @if (_selectedKeys.Count > 0)
             {
                 <span class="sel-badge">@_selectedKeys.Count selected</span>
@@ -88,23 +92,8 @@
     else if (results != null)
     {
         <div class="page-content scroll-y">
-            <table class="table table-hover align-middle mb-0 sticky-thead">
-                <thead class="text-secondary fw-semibold">
-                    <tr>
-                        @if (isEditing)
-                        {
-                            <th class="py-2 px-3" style="width:1%;white-space:nowrap;text-align:center;">
-                                <input type="checkbox" class="form-check-input shadow-none" style="width:17px;height:17px;cursor:pointer;"
-                                       checked="@IsAllSelected" @onchange="ToggleSelectAll" />
-                            </th>
-                        }
-                        <th class="py-2 px-3" style="width:1%;white-space:nowrap;text-align:center;"><i class="bi bi-image opacity-40"></i></th>
-                        <th class="py-2 px-3">Title</th>
-                        <th class="py-2 px-3 d-none d-lg-table-cell" style="width:22%;">Director</th>
-                        <th class="py-2 d-none d-md-table-cell" style="width:10%;">Year</th>
-                        <th class="py-2 d-none d-md-table-cell" style="width:13%;">Type</th>
-                    </tr>
-                </thead>
+            <div class="table-wrap">
+            <table class="table table-hover align-middle mb-0">
                 <tbody>
                     @foreach (var item in SortedResults)
                     {
@@ -139,18 +128,13 @@
                                 <span class="d-lg-none text-secondary d-block" style="font-size:0.72rem;opacity:0.75;">
                                     @if (directorsMap.TryGetValue($"{item.MediaType}-{item.Id}", out var dirMobile)) { @dirMobile }
                                 </span>
-                                <span class="d-md-none text-secondary" style="font-size:0.72rem;opacity:0.75;">
-                                    @(item.DisplayDate.Length >= 4 ? item.DisplayDate.Substring(0,4) : item.DisplayDate) · @(item.MediaType == "movie" ? "Movie" : "TV")
-                                </span>
+                                <span class="row-meta">@(item.DisplayDate.Length >= 4 ? item.DisplayDate.Substring(0,4) : item.DisplayDate)</span>
                             </td>
                             <td class="text-secondary small px-3 d-none d-lg-table-cell">
                                 @if (directorsMap.TryGetValue($"{item.MediaType}-{item.Id}", out var director))
                                     { @director }
                                 else
                                     { <span class="spinner-border spinner-border-sm opacity-25" role="status"></span> }
-                            </td>
-                            <td class="text-secondary fw-medium d-none d-md-table-cell">
-                                @(item.DisplayDate.Length >= 4 ? item.DisplayDate.Substring(0,4) : item.DisplayDate)
                             </td>
                             <td class="d-none d-md-table-cell">
                                 <span class="badge rounded-pill @(item.MediaType == "movie" ? "bg-secondary text-white" : "bg-light text-dark border")">
@@ -161,6 +145,7 @@
                     }
                 </tbody>
             </table>
+            </div>
         </div>
     }
     else

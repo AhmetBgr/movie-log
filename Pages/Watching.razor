@@ -41,6 +41,10 @@
     @if (isEditing)
     {
         <div class="toolbar-actions @(_selectedIds.Count > 0 ? "has-selection" : "")">
+            <input type="checkbox" class="form-check-input shadow-none flex-shrink-0"
+                   style="width:17px;height:17px;cursor:pointer;margin-right:6px;"
+                   checked="@IsAllSelected" @onchange="ToggleSelectAll"
+                   title="Select all" />
             @if (_selectedIds.Count > 0)
             {
                 <span class="sel-badge">@_selectedIds.Count selected</span>
@@ -78,23 +82,8 @@
     else
     {
         <div class="page-content scroll-y">
-            <table class="table table-hover align-middle mb-0 sticky-thead">
-                <thead class="text-secondary fw-semibold">
-                    <tr>
-                        @if (isEditing)
-                        {
-                            <th class="py-2 px-3" style="width:1%;white-space:nowrap;text-align:center;">
-                                <input type="checkbox" class="form-check-input shadow-none" style="width:17px;height:17px;cursor:pointer;"
-                                       checked="@IsAllSelected" @onchange="ToggleSelectAll" />
-                            </th>
-                        }
-                        <th class="py-2 px-3">Title</th>
-                        <th class="py-2 px-3 text-center d-none d-md-table-cell" style="width:22%;">Tracking</th>
-                        <th class="py-2 d-none d-lg-table-cell" style="width:10%;">Year</th>
-                        <th class="py-2 d-none d-lg-table-cell" style="width:12%;">Added</th>
-                        <th class="py-2 d-none d-md-table-cell" style="width:13%;">Type</th>
-                    </tr>
-                </thead>
+            <div class="table-wrap">
+            <table class="table table-hover align-middle mb-0">
                 <tbody>
                     <Virtualize Items="@WatchlistSvc.WatchingItems.ToList()" Context="item" ItemSize="70" OverscanCount="5">
                         <tr @key="item.ImdbId" class="@(_selectedIds.Contains(item.ImdbId) ? "row-selected" : "")">
@@ -106,6 +95,16 @@
                                            @onchange="() => ToggleSelect(item.ImdbId)" />
                                 </td>
                             }
+                            <td class="px-2 py-1" style="width:52px;">
+                                <div class="poster-thumb">
+                                    @if (!string.IsNullOrEmpty(item.FullPosterUrl) && !item.FullPosterUrl.Contains("data:image/png;base64"))
+                                    {
+                                        <img src="@item.FullPosterUrl" alt="@item.Title" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+                                        <div class="poster-fallback" style="display:none;"><i class="bi bi-film"></i></div>
+                                    }
+                                    else { <div class="poster-fallback"><i class="bi bi-film"></i></div> }
+                                </div>
+                            </td>
                             <td class="px-3" style="cursor:pointer;" @onclick="() => WatchlistSvc.ShowDetailsAsync(item)">
                                 <div class="d-flex align-items-center gap-2">
                                     <span class="fw-bold text-dark title-hover">@item.Title</span>
@@ -118,10 +117,9 @@
                                 {
                                     <span class="text-secondary d-block" style="font-size:0.73rem;opacity:0.75;">@item.Director</span>
                                 }
+                                <span class="row-meta">@item.Year · Added @item.DateAdded.ToString("MMM dd, yyyy")</span>
                                 @if (item.TitleType.Contains("TV", StringComparison.OrdinalIgnoreCase))
                                     { <span class="d-md-none text-secondary" style="font-size:0.72rem;">S@(item.CurrentSeason) · E@(item.CurrentEpisode)</span> }
-                                else
-                                    { <span class="d-md-none text-secondary" style="font-size:0.72rem;">@item.Year · Movie</span> }
                             </td>
                             <td class="px-3 text-center d-none d-md-table-cell">
                                 @if (item.TitleType.Contains("TV", StringComparison.OrdinalIgnoreCase))
@@ -147,8 +145,6 @@
                                     <span class="badge bg-light text-secondary fw-normal border px-3 py-2 rounded-pill">Feature Movie</span>
                                 }
                             </td>
-                            <td class="text-secondary fw-medium d-none d-lg-table-cell">@item.Year</td>
-                            <td class="text-secondary small d-none d-lg-table-cell">@item.DateAdded.ToString("MMM dd")</td>
                             <td class="d-none d-md-table-cell">
                                 <span class="badge rounded-pill @(item.TitleType.Equals("Movie", StringComparison.OrdinalIgnoreCase) ? "bg-secondary text-white" : "bg-light text-dark border")">@item.TitleType</span>
                             </td>
@@ -156,6 +152,7 @@
                     </Virtualize>
                 </tbody>
             </table>
+            </div>
         </div>
     }
 </div>
@@ -192,6 +189,9 @@
     .title-hover:hover { opacity: 0.6; }
     .ext-link { opacity: 0; width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; color: #888; font-size: 0.72rem; transition: opacity 0.15s; text-decoration: none; }
     tr:hover .ext-link { opacity: 1; }
+    .poster-thumb { width: 40px; height: 60px; border-radius: 4px; overflow: hidden; background: #f0f0f0; flex-shrink: 0; }
+    .poster-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .poster-fallback { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #ccc; font-size: 1rem; }
     .track-btn { width: 22px; height: 22px; padding: 0; border: 1px solid rgba(0,0,0,0.15); background: #fff; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; font-size: 0.85rem; transition: background 0.12s; }
     .track-btn:hover { background: #f0f0f0; }
 </style>
