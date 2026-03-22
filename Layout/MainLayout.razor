@@ -14,6 +14,16 @@
 
     <main class="pb-sm-0">
 
+        <!-- ── Update banner ──────────────────────────────── -->
+        @if (_showUpdateBanner)
+        {
+            <div class="update-banner">
+                <span class="update-banner-text"><i class="bi bi-arrow-clockwise me-2"></i>A new version is available.</span>
+                <button class="update-banner-btn" @onclick="ApplyUpdate">Update now</button>
+                <button class="update-banner-dismiss" @onclick="() => _showUpdateBanner = false" title="Dismiss"><i class="bi bi-x"></i></button>
+            </div>
+        }
+
         <!-- Search bar — always fixed to top -->
         <div class="search-bar-wrap">
             <div class="search-bar-inner">
@@ -244,10 +254,64 @@
     .search-history-remove:hover {
         color: #e53935;
     }
+    /* ── Update banner ─────────────────────────────────────── */
+    .update-banner {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 9999;
+        background: #1a1a2e;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        padding: 6px 16px;
+        font-size: 0.82rem;
+        font-weight: 500;
+        min-height: 36px;
+    }
+
+    .update-banner-text {
+        opacity: 0.9;
+    }
+
+    .update-banner-btn {
+        background: #fff;
+        color: #1a1a2e;
+        border: none;
+        border-radius: 999px;
+        padding: 3px 14px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: opacity 0.15s;
+        white-space: nowrap;
+    }
+
+    .update-banner-btn:hover { opacity: 0.85; }
+
+    .update-banner-dismiss {
+        background: none;
+        border: none;
+        color: rgba(255,255,255,0.6);
+        font-size: 1rem;
+        cursor: pointer;
+        padding: 0 2px;
+        line-height: 1;
+        margin-left: 4px;
+        transition: color 0.15s;
+    }
+
+    .update-banner-dismiss:hover { color: #fff; }
+
 </style>
 
 @code {
     private string SearchText = "";
+    private bool _showUpdateBanner = false;
+    private DotNetObjectReference<MainLayout>? _dotNetRef;
     private bool isSearchFocused = false;
 
     private async Task HandleBlur()
@@ -270,6 +334,8 @@
         NavManager.LocationChanged += HandleLocationChanged;
         _wasModalOpen = WatchlistSvc.IsModalOpen;
         _ = WatchlistSvc.InitializeAsync();
+        _dotNetRef = DotNetObjectReference.Create(this);
+        await JS.InvokeVoidAsync("registerUpdateCallback", _dotNetRef);
     }
 
     private bool _wasModalOpen;
@@ -301,10 +367,23 @@
         }
     }
 
+    [Microsoft.JSInterop.JSInvokable]
+    public void OnUpdateAvailable()
+    {
+        _showUpdateBanner = true;
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private async Task ApplyUpdate()
+    {
+        await JS.InvokeVoidAsync("applyUpdate");
+    }
+
     public void Dispose()
     {
         WatchlistSvc.OnStateChanged -= HandleWatchlistStateChanged;
         NavManager.LocationChanged -= HandleLocationChanged;
+        _dotNetRef?.Dispose();
     }
 
     private void PerformSearch()
