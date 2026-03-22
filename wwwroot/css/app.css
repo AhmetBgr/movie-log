@@ -1,3 +1,13 @@
+/* ── Hide scrollbars on mobile only ────────────────────────────── */
+@media (max-width: 767px) {
+    * { scrollbar-width: none; -ms-overflow-style: none; }
+    *::-webkit-scrollbar { display: none; }
+}
+@media (min-width: 768px) {
+    * { scrollbar-width: auto; -ms-overflow-style: auto; }
+    *::-webkit-scrollbar { display: unset; }
+}
+
 :root {
     --primary: #6366f1;
     --primary-dark: #4338ca;
@@ -590,15 +600,6 @@ tr.row-selected td {
         min-height: 0;
         overflow-y: auto;
         overflow-x: hidden;
-    }
-
-    /* ── Hide all scrollbars on mobile ─────────────────────── */
-    * {
-        scrollbar-width: none;        /* Firefox */
-        -ms-overflow-style: none;     /* IE / Edge legacy */
-    }
-    *::-webkit-scrollbar {
-        display: none;                /* Chrome / Safari / WebKit */
     }
 }
 
