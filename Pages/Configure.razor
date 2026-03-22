@@ -304,6 +304,29 @@
                 var genres = ReadByAliases(csv, normalizedHeaderToActual, aliasSet.GenreAliases);
                 string? posterPath = null;
 
+                // If type is missing, try to infer it from any URL present in the row
+                string? urlHint = null;
+                if (string.IsNullOrWhiteSpace(type))
+                {
+                    // Check the id field first — Letterboxd exports a full URL as the id column
+                    if (!string.IsNullOrWhiteSpace(id) && id.Contains("://"))
+                        urlHint = id;
+
+                    // Otherwise scan every cell for any URL containing type path segments
+                    if (urlHint == null)
+                    {
+                        foreach (var header in headers)
+                        {
+                            var cell = csv.GetField(header);
+                            if (!string.IsNullOrWhiteSpace(cell) && cell.Contains("://"))
+                            {
+                                urlHint = cell;
+                                break;
+                            }
+                        }
+                    }
+                }
+
                 if (string.IsNullOrEmpty(title)) {
                     importErrorCount++;
                     continue;
@@ -322,7 +345,7 @@
                 {
                     if (!string.IsNullOrWhiteSpace(tmdbIdRaw) && int.TryParse(new string(tmdbIdRaw.Where(char.IsDigit).ToArray()), out var tmdbId))
                     {
-                        var mediaType = InferMediaType(type);
+                        var mediaType = InferMediaType(type, urlHint);
                         var tmdbMovie = await WatchlistSvc.GetTmdbDetailsByIdAsync(tmdbId, mediaType);
                         finalImdbId = NormalizeImdbId(tmdbMovie?.ImdbId);
                     }
@@ -381,7 +404,7 @@
                     mergedItems.Add(new WatchlistItem {
                         ImdbId = normalizedImdbId,
                         Title = title.Trim(),
-                        TitleType = type?.Trim() ?? "Movie",
+                        TitleType = InferTitleType(type, urlHint),
                         Year = year?.Trim() ?? "",
                         Director = directors?.Trim() ?? "",
                         Genres = genres?.Trim() ?? "",
@@ -442,15 +465,42 @@
         return value.ToLowerInvariant();
     }
 
-    private static string InferMediaType(string? type)
+    private static string InferTitleType(string? type, string? urlHint = null)
     {
-        if (string.IsNullOrWhiteSpace(type))
-            return "movie";
+        // 1. Use explicit type field if present
+        if (!string.IsNullOrWhiteSpace(type))
+        {
+            var t = type.ToLowerInvariant();
+            if (t.Contains("tv") || t.Contains("show") || t.Contains("series") || t.Contains("episode") || t.Contains("mini"))
+                return "TV Series";
+            if (t.Contains("short"))
+                return "Short";
+            if (t.Contains("documentary"))
+                return "Documentary";
+            return "Movie";
+        }
 
-        var t = type.ToLowerInvariant();
-        if (t.Contains("tv") || t.Contains("show") || t.Contains("series") || t.Contains("episode"))
-            return "tv";
-        return "movie";
+        // 2. Try to infer from URL path segments
+        if (!string.IsNullOrWhiteSpace(urlHint))
+        {
+            var u = urlHint.ToLowerInvariant();
+            // TV indicators in URL
+            if (u.Contains("/tv/") || u.Contains("/show/") || u.Contains("/shows/") ||
+                u.Contains("/series/") || u.Contains("/episode/") || u.Contains("/tvseries"))
+                return "TV Series";
+            // Movie indicators in URL
+            if (u.Contains("/movie/") || u.Contains("/movies/") || u.Contains("/film/") || u.Contains("/films/"))
+                return "Movie";
+        }
+
+        // 3. Default fallback
+        return "Movie";
+    }
+
+    private static string InferMediaType(string? type, string? urlHint = null)
+    {
+        var titleType = InferTitleType(type, urlHint);
+        return titleType == "TV Series" ? "tv" : "movie";
     }
 
     private sealed class ImportAliasSet
