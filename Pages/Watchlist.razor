@@ -233,7 +233,7 @@
                     {
                         <p class="text-center text-secondary opacity-50 fst-italic py-5">No movies match your filters.</p>
                     }
-                    <div class="p-3">
+                    <div class="table-wrap table-wrap--wide p-3">
                         <div class="row row-cols-1 g-3">
                             @foreach (var item in _filteredItems)
                             {
@@ -256,7 +256,7 @@
 
 @code {
     private bool isEditing = false;
-    private bool showFilters = false;
+    private bool showFilters = true;
     private bool isCardView = false;
     private HashSet<string> _selectedIds = new();
     private List<WatchlistItem> _filteredItems = new();
@@ -309,7 +309,7 @@
 
 <style>
     .filter-sidebar {
-        width: 260px; flex-shrink: 0; overflow-y: auto;
+        width: 374px; flex-shrink: 0; overflow-y: auto;
         border-right: 1px solid rgba(0,0,0,0.08); padding: 16px; background: #fff;
     }
     .filter-label { display:block; font-size:0.67rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#888; margin-bottom:6px; }

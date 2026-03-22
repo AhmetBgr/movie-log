@@ -29,7 +29,15 @@ body {
     overflow: hidden;
 }
 
-h1, h2, h3, h4, h5, h6, .card-title, .fw-bold, .nav-link {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.card-title,
+.fw-bold,
+.nav-link {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
 }
 
@@ -147,9 +155,11 @@ a.text-danger:hover,
 ::-webkit-scrollbar {
     width: 16px;
 }
+
 ::-webkit-scrollbar-track {
     background: #f1f1f1;
 }
+
 ::-webkit-scrollbar-thumb {
     background: #bbb;
     border-radius: 8px;
@@ -206,7 +216,8 @@ code {
 }
 
 /* --- Sidebar Overrides --- */
-.sidebar.d-none.d-sm-flex, .sidebar:not(.mobile-bottom-nav) {
+.sidebar.d-none.d-sm-flex,
+.sidebar:not(.mobile-bottom-nav) {
     background-color: var(--sidebar-bg) !important;
 }
 
@@ -233,11 +244,13 @@ code {
 }
 
 .table-hover tbody tr:hover {
-    background-color: #f1f5f9 !important; /* Slate 100 */
+    background-color: #f1f5f9 !important;
+    /* Slate 100 */
 }
 
 .table thead th {
-    background-color: #f8fafc !important; /* Slate 50 */
+    background-color: #f8fafc !important;
+    /* Slate 50 */
     color: var(--secondary) !important;
     text-transform: uppercase;
     font-size: 0.75rem;
@@ -264,13 +277,14 @@ tr:hover .show-on-row-hover {
 }
 
 /* --- Row Striping --- */
-.table tbody tr:nth-child(even) > td {
+.table tbody tr:nth-child(even)>td {
     background-color: rgba(0, 0, 0, 0.05) !important;
 }
 
 .show-on-row-hover:focus {
     opacity: 1;
 }
+
 /* --- Tracking Pill Hover (+/- buttons) --- */
 .show-on-pill-hover {
     opacity: 0;
@@ -311,16 +325,18 @@ tr:hover .show-on-row-hover {
 .mob-item:hover,
 .mob-item:focus,
 .mob-item.active {
-    color: rgba(255,255,255,0.65) !important;
+    color: rgba(255, 255, 255, 0.65) !important;
     background-image: none !important;
     border: none !important;
     margin: 0 !important;
 }
+
 .mob-item.active,
 .mob-item:hover {
     color: #fff !important;
-    background-color: rgba(255,255,255,0.15) !important;
+    background-color: rgba(255, 255, 255, 0.15) !important;
 }
+
 .mob-item i {
     font-size: 1.3rem !important;
     margin: 0 !important;
@@ -329,6 +345,7 @@ tr:hover .show-on-row-hover {
     height: auto !important;
     background-image: none !important;
 }
+
 .mob-item span {
     font-size: 0.55rem !important;
     color: inherit !important;
@@ -349,7 +366,8 @@ article.content:has(.page-shell) {
 .page-shell {
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 67px); /* 67px = search bar height */
+    height: calc(100vh - 67px);
+    /* 67px = search bar height */
     overflow: hidden;
 }
 
@@ -371,8 +389,11 @@ article.content:has(.page-shell) {
     position: relative;
     z-index: 10;
 }
+
 .toolbar-primary::-webkit-scrollbar,
-.toolbar-actions::-webkit-scrollbar { display: none; }
+.toolbar-actions::-webkit-scrollbar {
+    display: none;
+}
 
 .toolbar-primary {
     box-shadow: 0 1px 0 #e8eaed;
@@ -386,6 +407,7 @@ article.content:has(.page-shell) {
     transition: background 0.2s, border-color 0.2s;
     gap: 4px;
 }
+
 .toolbar-actions.has-selection {
     background: #eef2ff;
     border-bottom-color: #818cf8;
@@ -409,18 +431,25 @@ article.content:has(.page-shell) {
     flex-shrink: 0;
     line-height: 1.3;
 }
+
 .tb-btn:hover {
     background: #f1f3f4;
     color: #111;
 }
-.tb-btn:active { background: #e8eaed; }
+
+.tb-btn:active {
+    background: #e8eaed;
+}
 
 .tb-btn.active {
     background: #1a1a2e;
     color: #fff;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
-.tb-btn.active:hover { background: #2d2d4a; }
+
+.tb-btn.active:hover {
+    background: #2d2d4a;
+}
 
 /* Sort buttons — lighter active state */
 .tb-btn.tb-btn-sort.sorted {
@@ -428,20 +457,48 @@ article.content:has(.page-shell) {
     color: #111;
     font-weight: 600;
 }
-.tb-btn.tb-btn-sort.sorted:hover { background: #dde1e7; }
+
+.tb-btn.tb-btn-sort.sorted:hover {
+    background: #dde1e7;
+}
 
 /* Action buttons */
-.tb-btn.tb-btn-success { color: #15803d; }
-.tb-btn.tb-btn-success:hover { background: #dcfce7; }
-.tb-btn.tb-btn-primary { color: #1d4ed8; }
-.tb-btn.tb-btn-primary:hover { background: #dbeafe; }
-.tb-btn.tb-btn-danger  { color: #dc2626; }
-.tb-btn.tb-btn-danger:hover  { background: #fee2e2; }
+.tb-btn.tb-btn-success {
+    color: #15803d;
+}
+
+.tb-btn.tb-btn-success:hover {
+    background: #dcfce7;
+}
+
+.tb-btn.tb-btn-primary {
+    color: #1d4ed8;
+}
+
+.tb-btn.tb-btn-primary:hover {
+    background: #dbeafe;
+}
+
+.tb-btn.tb-btn-danger {
+    color: #dc2626;
+}
+
+.tb-btn.tb-btn-danger:hover {
+    background: #fee2e2;
+}
 
 /* Live = has selection — add subtle fill */
-.tb-btn.live.tb-btn-success { background: #f0fdf4; }
-.tb-btn.live.tb-btn-primary { background: #eff6ff; }
-.tb-btn.live.tb-btn-danger  { background: #fff1f2; }
+.tb-btn.live.tb-btn-success {
+    background: #f0fdf4;
+}
+
+.tb-btn.live.tb-btn-primary {
+    background: #eff6ff;
+}
+
+.tb-btn.live.tb-btn-danger {
+    background: #fff1f2;
+}
 
 /* Selection badge */
 .sel-badge {
@@ -455,6 +512,7 @@ article.content:has(.page-shell) {
     margin-right: 4px;
     flex-shrink: 0;
 }
+
 .sel-hint {
     font-size: 0.78rem;
     color: #888;
@@ -471,7 +529,10 @@ article.content:has(.page-shell) {
     flex-shrink: 0;
     margin: 0 4px;
 }
-.tb-spacer { flex: 1; }
+
+.tb-spacer {
+    flex: 1;
+}
 
 /* Icon only on small screens */
 .tb-label {
@@ -518,7 +579,8 @@ tr.row-selected td {
     /* ── Toolbar: wrap into two rows ───────────────────────── */
     .toolbar-primary {
         flex-wrap: wrap;
-        overflow-x: visible;          /* no horizontal scroll — wrap instead */
+        overflow-x: visible;
+        /* no horizontal scroll — wrap instead */
         overflow-y: visible;
         min-height: unset;
         padding: 4px 8px;
@@ -548,7 +610,10 @@ tr.row-selected td {
         overflow-x: auto;
         scrollbar-width: none;
     }
-    .tb-row-sort::-webkit-scrollbar { display: none; }
+
+    .tb-row-sort::-webkit-scrollbar {
+        display: none;
+    }
 
     /* Buttons in row 2 are a little smaller */
     .tb-row-sort .tb-btn {
@@ -557,7 +622,9 @@ tr.row-selected td {
     }
 
     /* Always show labels on mobile (rows give enough room) */
-    .tb-label { display: inline; }
+    .tb-label {
+        display: inline;
+    }
 
     /* ── Action bar: wrap freely ───────────────────────────── */
     .toolbar-actions {
@@ -578,7 +645,7 @@ tr.row-selected td {
     .filter-sidebar {
         width: 100% !important;
         border-right: none !important;
-        border-bottom: 1px solid rgba(0,0,0,0.08) !important;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
         max-height: 45vh;
         overflow-y: auto;
         flex-shrink: 0;
@@ -595,14 +662,17 @@ tr.row-selected td {
 
 /* ── Table max-width ────────────────────────────────────────── */
 .content-scroll {
-    max-width: unset; /* reset any page-local override */
+    max-width: unset;
+    /* reset any page-local override */
 }
-.content-scroll > table {
+
+.content-scroll>table {
     max-width: 1200px;
     margin-left: auto;
     margin-right: auto;
 }
-.page-content.scroll-y > table {
+
+.page-content.scroll-y>table {
     max-width: 1200px;
     margin-left: auto;
     margin-right: auto;
@@ -615,9 +685,13 @@ tr.row-selected td {
     width: 100%;
 }
 
+.table-wrap--wide {
+    max-width: 900px;
+}
+
 /* Remove the two-tone stripe on even rows inside table-wrap
    since we no longer have a header to anchor the eye */
-.table-wrap .table tbody tr:nth-child(even) > td {
+.table-wrap .table tbody tr:nth-child(even)>td {
     background-color: transparent !important;
 }
 

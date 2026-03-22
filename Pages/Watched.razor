@@ -63,6 +63,16 @@
                 <span class="tb-label">Added</span>
             </button>
 
+            <div class="tb-divider"></div>
+
+            <!-- View toggle -->
+            <button class="tb-btn @(!isCardView ? "active" : "")" @onclick="() => isCardView = false" title="Table view">
+                <i class="bi bi-list-ul"></i>
+            </button>
+            <button class="tb-btn @(isCardView ? "active" : "")" @onclick="() => isCardView = true" title="Card view">
+                <i class="bi bi-grid-3x2-gap"></i>
+            </button>
+
             <div class="tb-spacer"></div>
             <span class="text-secondary d-none d-sm-inline" style="font-size:0.76rem;white-space:nowrap;padding-right:4px;">@_watchedItems.Count items</span>
         </div>
@@ -171,9 +181,12 @@
                 </div>
             }
 
-            <!-- Table -->
+            <!-- Main: table or card -->
             <div class="content-scroll">
-                <div class="table-wrap">
+                @if (!isCardView)
+                {
+                    <!-- TABLE VIEW -->
+                    <div class="table-wrap">
                 <table class="table table-hover align-middle mb-0">
                     <tbody>
                         @if (!_watchedItems.Any())
@@ -239,7 +252,92 @@
                         </Virtualize>
                     </tbody>
                 </table>
-                </div>
+                    </div>
+                }
+                else
+                {
+                    <!-- CARD VIEW -->
+                    @if (!_watchedItems.Any())
+                    {
+                        <p class="text-center text-secondary opacity-50 fst-italic py-5">No movies match your filters.</p>
+                    }
+                    <div class="table-wrap table-wrap--wide p-3">
+                        <div class="row row-cols-1 g-3">
+                            @foreach (var item in _watchedItems)
+                            {
+                                <div class="col">
+                                    <div class="card border-0 overflow-hidden movie-card-w @(_selectedIds.Contains(item.ImdbId) ? "movie-card-selected" : "")"
+                                         style="cursor:pointer;" @onclick="() => WatchlistSvc.ShowDetailsAsync(item)">
+                                        <div class="d-flex">
+                                            @if (isEditing)
+                                            {
+                                                <div class="side-panel-w d-flex align-items-center justify-content-center"
+                                                     @onclick:stopPropagation="true"
+                                                     @onclick="() => ToggleSelect(item.ImdbId)">
+                                                    <div class="card-cb @(_selectedIds.Contains(item.ImdbId) ? "card-cb-on" : "")">
+                                                        @if (_selectedIds.Contains(item.ImdbId))
+                                                        { <i class="bi bi-check-lg text-white" style="font-size:0.85rem;line-height:1;"></i> }
+                                                    </div>
+                                                </div>
+                                            }
+                                            <!-- Poster -->
+                                            <div style="width:80px;flex-shrink:0;overflow:hidden;background:#f0f0f0;">
+                                                @if (!string.IsNullOrEmpty(item.FullPosterUrl) && !item.FullPosterUrl.Contains("data:image/png;base64"))
+                                                {
+                                                    <img src="@item.FullPosterUrl" alt="@item.Title"
+                                                         style="width:100%;height:100%;object-fit:cover;display:block;min-height:110px;"
+                                                         onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+                                                    <div style="display:none;width:100%;min-height:110px;align-items:center;justify-content:center;color:#ccc;font-size:1.4rem;"><i class="bi bi-film"></i></div>
+                                                }
+                                                else
+                                                {
+                                                    <div style="width:100%;min-height:110px;display:flex;align-items:center;justify-content:center;color:#ccc;font-size:1.4rem;"><i class="bi bi-film"></i></div>
+                                                }
+                                            </div>
+                                            <!-- Info -->
+                                            <div class="flex-grow-1 px-3 py-2 position-relative">
+                                                @if (item.Rating20.HasValue)
+                                                {
+                                                    <div class="position-absolute top-0 end-0 m-2">
+                                                        <span class="rating-badge-w" style="background:@GetRatingColor(item.Rating20.Value);">@item.UserRating</span>
+                                                    </div>
+                                                }
+                                                <div class="fw-bold" style="font-size:0.9rem;color:#111;padding-right:@(item.Rating20.HasValue ? "46px" : "4px");">@item.Title</div>
+                                                <div class="row-meta">@item.Year &middot; @item.DateAdded.ToString("MMM dd, yyyy")</div>
+                                                @if (!string.IsNullOrEmpty(item.Director))
+                                                {
+                                                    <div class="row-meta"><i class="bi bi-person me-1 opacity-40"></i>@item.Director</div>
+                                                }
+                                                @if (!string.IsNullOrEmpty(item.TitleType))
+                                                {
+                                                    <span class="badge mt-1 @(item.TitleType.Contains("TV", StringComparison.OrdinalIgnoreCase) ? "bg-light text-dark border" : "bg-secondary text-white")" style="font-size:0.65rem;">@item.TitleType</span>
+                                                }
+                                                <!-- Inline rating editor -->
+                                                <div class="d-flex align-items-center gap-2 mt-2" @onclick:stopPropagation="true">
+                                                    <div class="rating-box-sm @(item.Rating20 == null ? "rating-empty" : "")"
+                                                         style="@(item.Rating20 != null ? $"background:{GetRatingColor(item.Rating20.Value)};" : "")">
+                                                        <input type="number" class="rating-input-sm @(item.Rating20 == null ? "" : "text-white")"
+                                                               min="0" max="100" placeholder="–"
+                                                               value="@item.Rating20"
+                                                               @onchange="(e) => UpdateRating20(item, string.IsNullOrEmpty(e.Value?.ToString()) ? null : int.Parse(e.Value.ToString()!))" />
+                                                    </div>
+                                                    <span class="text-secondary" style="font-size:0.68rem;">/ 100</span>
+                                                    @if (isEditing && item.Rating20 != null)
+                                                    {
+                                                        <button class="btn btn-link btn-sm p-0 text-secondary opacity-40" style="text-decoration:none;"
+                                                                @onclick="() => UpdateRating20(item, null)">
+                                                            <i class="bi bi-x-circle"></i>
+                                                        </button>
+                                                    }
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
             </div>
 
         </div>
@@ -247,8 +345,9 @@
 </div>
 
 @code {
-    private bool showFilters = false;
+    private bool showFilters = true;
     private bool isEditing = false;
+    private bool isCardView = false;
     private bool showSavedIndicator = false;
     private HashSet<string> _selectedIds = new();
     private List<WatchlistItem> _watchedItems = new();
@@ -334,7 +433,7 @@
 <style>
     /* Sidebar */
     .filter-sidebar {
-        width: 260px;
+        width: 374px;
         flex-shrink: 0;
         overflow-y: auto;
         border-right: 1px solid rgba(0,0,0,0.08);
@@ -401,6 +500,64 @@
         100% { opacity:0; transform:translate(-50%,-10px); }
     }
     .animate-fade-out { animation: fadeOutUp 1.5s ease-out forwards; }
+
+    /* Rating box (card view — smaller) */
+    .rating-box-sm {
+        width: 38px; height: 38px; border-radius: 8px;
+        display: flex; align-items: center; justify-content: center;
+        border: 2px dashed #dee2e6; background: #f8f9fa;
+        transition: border-color 0.2s, background 0.2s, transform 0.15s;
+    }
+    .rating-box-sm:focus-within { transform: scale(1.08); border-style: solid; border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
+    .rating-box-sm:not(.rating-empty) { border: none; }
+    .rating-input-sm {
+        width: 38px; height: 38px; text-align: center; font-weight: 900;
+        font-size: 0.9rem; background: transparent; border: none; outline: none;
+        cursor: pointer; color: #555;
+    }
+    .rating-input-sm.text-white { color: #fff !important; caret-color: #fff; }
+    input[type=number].rating-input-sm::-webkit-inner-spin-button,
+    input[type=number].rating-input-sm::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type=number].rating-input-sm { -moz-appearance: textfield; }
+
+    /* Card view styles */
+    .movie-card-w {
+        background: #fff;
+        border-radius: 10px !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.07), 0 2px 8px rgba(0,0,0,0.05);
+        transition: box-shadow 0.05s ease, transform 0.05s ease;
+    }
+    .movie-card-w:hover {
+        box-shadow: 0 4px 16px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.06) !important;
+        transform: translateY(-2px);
+    }
+    .movie-card-selected {
+        outline: 2px solid rgba(13, 110, 253, 0.5);
+        background-color: rgba(13, 110, 253, 0.03) !important;
+    }
+    .side-panel-w {
+        width: 44px; flex-shrink: 0;
+        border-right: 1px solid rgba(0,0,0,0.06);
+        background: #f7f7f7;
+        border-radius: 10px 0 0 10px;
+        cursor: pointer;
+        transition: background 0.15s;
+    }
+    .side-panel-w:hover { background: #ececec; }
+    .card-cb {
+        width: 22px; height: 22px; border-radius: 6px;
+        border: 2px solid #bbb; background: #fff;
+        display: flex; align-items: center; justify-content: center;
+        transition: all 0.15s ease;
+    }
+    .card-cb-on { background: #0d6efd; border-color: #0d6efd; }
+    .rating-badge-w {
+        display: inline-flex; align-items: center; justify-content: center;
+        min-width: 34px; height: 34px; padding: 0 7px;
+        border-radius: 8px; color: #fff;
+        font-size: 0.75rem; font-weight: 800;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+    }
 
     /* Mobile handled by app.css */
 </style>
