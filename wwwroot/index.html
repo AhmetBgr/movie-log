@@ -23,26 +23,32 @@
     <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png" />
     <script type="importmap"></script>
 </head>
-<script>
-    window.localStorageFunctions = {
-        setItem: function (key, value) {
-            localStorage.setItem(key, value);
-        },
-        getItem: function (key) {
-            return localStorage.getItem(key);
-        },
-        removeItem: function (key) {
-            localStorage.removeItem(key);
-        }
-    };
-    window.uiHelpers = {
-        isDesktop: function () {
-            return window.innerWidth >= 768;
-        }
-    };
-</script>
-
 <body>
+    <script>
+        window.localStorageFunctions = {
+            setItem: function (key, value) {
+                localStorage.setItem(key, value);
+            },
+            getItem: function (key) {
+                return localStorage.getItem(key);
+            },
+            removeItem: function (key) {
+                localStorage.removeItem(key);
+            }
+        };
+        window.uiHelpers = {
+            isDesktop: function () {
+                return window.innerWidth >= 768;
+            },
+            historyBack: function () {
+                history.back();
+            },
+            confirm: function (msg) {
+                return window.confirm(msg);
+            }
+        };
+    </script>
+
     <div id="app">
         <svg class="loading-progress">
             <circle r="40%" cx="50%" cy="50%" />
