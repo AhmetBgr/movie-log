@@ -137,9 +137,9 @@
     [Parameter] public EventCallback OnToggleSelect { get; set; }
     [Parameter] public RenderFragment? SidePanel { get; set; }
 
-    private void ShowDetails()
+    private async Task ShowDetails()
     {
-        if (Item != null) WatchlistSvc.ShowDetailsAsync(Item);
+        if (Item != null) await WatchlistSvc.ShowDetailsAsync(Item);
     }
 
     private string GetRatingColor(int val)

@@ -13,6 +13,7 @@ public class WatchlistService
     private readonly IJSRuntime _js;
     private readonly Dictionary<string, TmdbMovie> _movieCache = new();
     private readonly Dictionary<string, TmdbMovie> _movieDetailsByIdCache = new();
+    private Dictionary<string, WatchlistItemDetails> _detailsStore = new();
     private Dictionary<int, string> _genreMap = new();
     private CancellationTokenSource? _saveDebounceCts;
     private CancellationTokenSource? _searchDebounceCts;
@@ -290,45 +291,97 @@ public class WatchlistService
 
     private async Task InitializeCoreAsync()
     {
+        var _sw = System.Diagnostics.Stopwatch.StartNew();
+        var _lap = System.Diagnostics.Stopwatch.StartNew();
+        void LogStep(string label)
+        {
+            Console.WriteLine($"[INIT] {label,-45} {_lap.ElapsedMilliseconds,6} ms   (total: {_sw.ElapsedMilliseconds} ms)");
+            _lap.Restart();
+        }
+
+        Console.WriteLine("[INIT] ── Loading started ──────────────────────────────");
         try
         {
             _ratingSystem = await _storage.GetAsync<RatingSystem>("rating_system");
-            var saved = await _storage.GetListAsync<WatchlistItem>("my_movie_list");
-            if (saved != null) 
+            LogStep("GetAsync: rating_system");
+
+            var savedSlim = await _storage.GetCompressedListAsync<WatchlistItemSlim>("my_movie_list_slim");
+            LogStep($"GetCompressedListAsync: my_movie_list_slim ({savedSlim?.Count ?? 0} items)");
+
+            var savedDetails = await _storage.GetCompressedAsync<Dictionary<string, WatchlistItemDetails>>("my_movie_details");
+            _detailsStore = savedDetails ?? new();
+            LogStep($"GetCompressedAsync: my_movie_details ({_detailsStore.Count} entries)");
+
+            if (savedSlim != null && savedSlim.Count > 0)
             {
-                foreach (var item in saved)
+                Items = savedSlim.Select(s =>
                 {
+                    _detailsStore.TryGetValue(s.ImdbId, out var det);
+                    var item = new WatchlistItem
+                    {
+                        ImdbId        = s.ImdbId,
+                        Title         = s.Title,
+                        TitleType     = s.TitleType,
+                        Year          = s.Year,
+                        Genres        = s.Genres,
+                        Director      = s.Director,
+                        PosterPath    = s.PosterPath,
+                        ParsedYear    = s.ParsedYear,
+                        Status        = s.Status,
+                        CurrentSeason = s.CurrentSeason,
+                        CurrentEpisode= s.CurrentEpisode,
+                        DateAdded     = s.DateAdded,
+                        UserRating    = s.UserRating,
+                        Rating20      = s.Rating20,
+                        OriginalTitle = det?.OriginalTitle,
+                        Overview      = det?.Overview,
+                        VoteAverage   = det?.VoteAverage,
+                    };
+                    // ParsedYear migration
                     if (item.ParsedYear == 0 && !string.IsNullOrEmpty(item.Year))
                     {
                         var yearDigits = new string(item.Year.TakeWhile(char.IsDigit).ToArray());
                         int.TryParse(yearDigits, out int parsed);
                         item.ParsedYear = parsed;
                     }
-
-                    // Data Migration: UserRating (1-10) -> Rating20 (2-20)
+                    // UserRating migration
                     if (item.Rating20 == null && item.UserRating != null)
-                    {
                         item.Rating20 = item.UserRating * 2;
-                    }
-                }
-                Items = saved;
+                    return item;
+                }).ToList();
+                LogStep("Reconstruct Items from slim + details");
             }
 
             RefreshCalculatedLists();
+            LogStep("RefreshCalculatedLists");
+
             OnStateChanged?.Invoke();
+            LogStep("OnStateChanged (first render)");
+
             StartGenreMapLoadIfNeeded();
+            LogStep("StartGenreMapLoadIfNeeded (fire-and-forget)");
+
             _fetchPreference = await _storage.GetAsync<DataFetchPreference>("fetch_preference");
-            _enableSearchHistory = await _storage.GetAsync<bool?>("enable_search_history") ?? false;
+            LogStep("GetAsync: fetch_preference");
+
+            _enableSearchHistory = await _storage.GetAsync<bool>("enable_search_history");
+            LogStep("GetAsync: enable_search_history");
+
             SearchHistory = await _storage.GetAsync<List<string>>("search_history") ?? new();
+            LogStep("GetAsync: search_history");
+
             _ = BackgroundHydrationLoop();
+            LogStep("BackgroundHydrationLoop (fire-and-forget)");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Initialization error: {ex.Message}");
+            Console.WriteLine($"[INIT] ERROR: {ex.Message}");
         }
         finally
         {
             IsInitializing = false;
+            _sw.Stop();
+            Console.WriteLine($"[INIT] ── Total init time: {_sw.ElapsedMilliseconds} ms ─────────────────");
             OnStateChanged?.Invoke();
         }
     }
@@ -392,7 +445,7 @@ public class WatchlistService
         _saveDebounceCts?.Cancel();
         _saveDebounceCts?.Dispose();
         _saveDebounceCts = null;
-        await _storage.SaveListAsync("my_movie_list", Items);
+        await PersistAsync();
     }
 
     private void ScheduleSave()
@@ -409,7 +462,7 @@ public class WatchlistService
         try
         {
             await Task.Delay(1000, token);
-            await _storage.SaveListAsync("my_movie_list", Items);
+            await PersistAsync();
         }
         catch (OperationCanceledException)
         {
@@ -720,8 +773,48 @@ public class WatchlistService
     public async Task ClearAllDataAsync()
     {
         Items.Clear();
-        await _storage.SaveListAsync("my_movie_list", Items);
+        _detailsStore.Clear();
+        await PersistAsync();
         NotifyStateChanged();
+    }
+
+    private async Task PersistAsync()
+    {
+        var slim = Items.Select(i => new WatchlistItemSlim
+        {
+            ImdbId         = i.ImdbId,
+            Title          = i.Title,
+            TitleType      = i.TitleType,
+            Year           = i.Year,
+            Genres         = i.Genres,
+            Director       = i.Director,
+            PosterPath     = i.PosterPath,
+            ParsedYear     = i.ParsedYear,
+            Status         = i.Status,
+            CurrentSeason  = i.CurrentSeason,
+            CurrentEpisode = i.CurrentEpisode,
+            DateAdded      = i.DateAdded,
+            UserRating     = i.UserRating,
+            Rating20       = i.Rating20,
+        }).ToList();
+
+        // Merge any runtime-populated detail fields back into the details store
+        foreach (var item in Items)
+        {
+            if (!string.IsNullOrEmpty(item.Overview) || item.VoteAverage.HasValue || !string.IsNullOrEmpty(item.OriginalTitle))
+            {
+                _detailsStore[item.ImdbId] = new WatchlistItemDetails
+                {
+                    ImdbId       = item.ImdbId,
+                    OriginalTitle= item.OriginalTitle,
+                    Overview     = item.Overview,
+                    VoteAverage  = item.VoteAverage,
+                };
+            }
+        }
+
+        await _storage.SaveCompressedListAsync("my_movie_list_slim", slim);
+        await _storage.SaveCompressedAsync("my_movie_details", _detailsStore);
     }
 
     public async Task UpdateRatingAsync(WatchlistItem item, int? rating100)

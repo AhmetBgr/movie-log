@@ -254,3 +254,38 @@ public class TmdbVideo
     [JsonPropertyName("type")]
     public string Type { get; set; } = "";
 }
+// ── Split storage DTOs ───────────────────────────────────────────────────────
+
+/// <summary>
+/// Slim record stored in the hot "my_movie_list_slim" key.
+/// Contains everything needed to render lists, filters, and sorting.
+/// </summary>
+public class WatchlistItemSlim
+{
+    public string ImdbId { get; set; } = null!;
+    public string Title { get; set; } = null!;
+    public string TitleType { get; set; } = null!;
+    public string Year { get; set; } = null!;
+    public string Genres { get; set; } = null!;
+    public string? Director { get; set; }
+    public string? PosterPath { get; set; }
+    public int ParsedYear { get; set; }
+    public WatchlistStatus Status { get; set; } = WatchlistStatus.Pending;
+    public int? CurrentSeason { get; set; }
+    public int? CurrentEpisode { get; set; }
+    public DateTime DateAdded { get; set; } = DateTime.Now;
+    public int? UserRating { get; set; }
+    public int? Rating20 { get; set; }
+}
+
+/// <summary>
+/// Heavy details stored in the cold "my_movie_details" key.
+/// Only loaded when a modal is opened.
+/// </summary>
+public class WatchlistItemDetails
+{
+    public string ImdbId { get; set; } = null!;
+    public string? OriginalTitle { get; set; }
+    public string? Overview { get; set; }
+    public double? VoteAverage { get; set; }
+}
