@@ -19,6 +19,11 @@
 
         <div class="tb-divider"></div>
 
+        <button class="tb-btn tb-btn-sort @(_searchSortColumn == "Relevance" ? "sorted" : "")"
+                @onclick='() => ToggleSearchSort("Relevance")'>
+            <i class="bi bi-stars"></i>
+            <span class="tb-label">Relevance</span>
+        </button>
         <button class="tb-btn tb-btn-sort @(_searchSortColumn == "Title" ? "sorted" : "")"
                 @onclick='() => ToggleSearchSort("Title")'>
             <i class="bi @(_searchSortColumn == "Title"
@@ -102,8 +107,8 @@
                         <tr class="@(isSelected ? "row-selected" : "")">
                             @if (isEditing)
                             {
-                                <td class="px-1 text-center" style="width:0.1%;white-space:nowrap;" @onclick:stopPropagation="true">
-                                    <input type="checkbox" class="form-check-input shadow-none" style="width:25px;height:25px;cursor:pointer;"
+                                <td class="px-3 text-center" style="width:1%;white-space:nowrap;" @onclick:stopPropagation="true">
+                                    <input type="checkbox" class="form-check-input shadow-none" style="width:17px;height:17px;cursor:pointer;"
                                            checked="@isSelected" @onchange="() => ToggleSelect(itemKey)" />
                                 </td>
                             }
@@ -170,7 +175,7 @@
     private Dictionary<string, string> directorsMap = new();
     private CancellationTokenSource? cts;
     private int _directorRefreshCounter = 0;
-    private string _searchSortColumn = "Year";
+    private string _searchSortColumn = "Relevance";
     private bool _searchSortDescending = true;
     private HashSet<string> _selectedKeys = new();
 
@@ -193,6 +198,7 @@
         ? Enumerable.Empty<TmdbSearchResultItem>()
         : (_searchSortColumn switch
         {
+            "Relevance" => results.Where(r => r.MediaType == "movie" || r.MediaType == "tv"),
             "Title" => _searchSortDescending
                 ? results.Where(r => r.MediaType == "movie" || r.MediaType == "tv").OrderByDescending(r => r.DisplayTitle)
                 : results.Where(r => r.MediaType == "movie" || r.MediaType == "tv").OrderBy(r => r.DisplayTitle),
@@ -201,7 +207,7 @@
                 : results.Where(r => r.MediaType == "movie" || r.MediaType == "tv").OrderBy(r => r.DisplayDate)
         });
 
-    private void ToggleSearchSort(string col) { if (_searchSortColumn == col) _searchSortDescending = !_searchSortDescending; else { _searchSortColumn = col; _searchSortDescending = col == "Year"; } }
+    private void ToggleSearchSort(string col) { if (_searchSortColumn == col) { if (col != "Relevance") _searchSortDescending = !_searchSortDescending; } else { _searchSortColumn = col; _searchSortDescending = col == "Year"; } }
 
     private async Task BulkAddToWatchlist()
     {
