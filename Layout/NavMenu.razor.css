@@ -4,13 +4,13 @@
 }
 
 .top-row {
-    min-height: 3.5rem;
-    background-color: rgba(0,0,0,0.4);
+    display: none;
 }
 
 .navbar-brand {
     font-size: 1.1rem;
     color: white;
+    display: none;
 }
 
 .nav-item {
@@ -44,6 +44,6 @@
 }
 
 .nav-scrollable {
-    height: calc(100vh - 3.5rem);
+    height: 100vh;
     overflow-y: auto;
 }
