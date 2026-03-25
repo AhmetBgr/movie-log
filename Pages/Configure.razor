@@ -4,6 +4,7 @@
 @inject HttpClient Http
 @inject IConfiguration Config
 @inject MyPrivateWatchlist.Services.WatchlistService WatchlistSvc
+@inject MyPrivateWatchlist.Services.GistSyncService GistSync
 @inject IJSRuntime JS
 
 <PageTitle>Configure & Data</PageTitle>
@@ -185,6 +186,87 @@
             </div>
         </div>
 
+        <!-- Library Sync Help -->
+        <div class="col-12">
+            <div class="card shadow-sm border-0 rounded-3">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-success bg-opacity-10 text-success p-2 rounded-3 me-3">
+                            <i class="bi bi-cloud-arrow-up-fill fs-4"></i>
+                        </div>
+                        <h5 class="card-title mb-0 fw-bold">Library Sync (GitHub Gist)</h5>
+                    </div>
+
+                    <p class="text-secondary small mb-3">
+                        Sync lets you use one shared library across devices (mobile + desktop) by saving your list to a <strong>Secret Gist</strong>.
+                    </p>
+
+                    <ol class="small text-secondary mb-3 ps-3">
+                        <li>Create a <strong>Secret Gist</strong> on GitHub with a file named <code>watchlist.json</code>. GitHub does not allow empty content, so put <code>[]</code> as the initial file content.</li>
+                        <li>Copy the Gist ID from the gist URL (the long id after <code>/gists/...</code>).</li>
+                        <li>Create a GitHub Personal Access Token with <strong>Gist</strong> permission (minimum required scope). See quick steps below.</li>
+                        <li>Enter <strong>Gist ID</strong> and <strong>PAT</strong> in the form below and press <strong>Save Sync Settings</strong>.</li>
+                        <li>Use <strong>Load from Gist</strong> to import remote data and <strong>Save to Gist</strong> to push your current library.</li>
+                    </ol>
+
+                    <div class="bg-light border rounded-3 p-3 mb-3">
+                        <div class="small fw-bold text-dark mb-2">PAT quick setup (GitHub)</div>
+                        <ol class="small text-secondary mb-0 ps-3">
+                            <li>GitHub → <strong>Settings</strong> → <strong>Developer settings</strong> → <strong>Personal access tokens</strong>.</li>
+                            <li>Choose <strong>Tokens (classic)</strong> or fine-grained token with gist access.</li>
+                            <li>Set an expiration date (recommended), then grant <strong>Gist</strong> access.</li>
+                            <li>Generate token and copy it immediately (GitHub shows it once).</li>
+                            <li>Paste token into this page's sync settings and save.</li>
+                        </ol>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-secondary text-uppercase">Gist ID</label>
+                            <input class="form-control bg-light border-0 py-2"
+                                   placeholder="e.g. 1a2b3c4d5e6f..."
+                                   @bind="gistId" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-secondary text-uppercase">GitHub PAT (gist scope)</label>
+                            <input type="password"
+                                   class="form-control bg-light border-0 py-2"
+                                   placeholder="ghp_..."
+                                   @bind="gistPat" />
+                        </div>
+                    </div>
+
+                    <div class="d-flex flex-wrap gap-2 mb-2">
+                        <button class="btn btn-outline-dark btn-sm rounded-pill px-3" @onclick="SaveGistSettingsAsync" disabled="@syncBusy">
+                            <i class="bi bi-save me-1"></i>Save Sync Settings
+                        </button>
+                        <button class="btn btn-outline-primary btn-sm rounded-pill px-3" @onclick="LoadLibraryFromGistAsync" disabled="@syncBusy">
+                            <i class="bi bi-cloud-download me-1"></i>Load from Gist
+                        </button>
+                        <button class="btn btn-outline-success btn-sm rounded-pill px-3" @onclick="SaveLibraryToGistAsync" disabled="@syncBusy">
+                            <i class="bi bi-cloud-upload me-1"></i>Save to Gist
+                        </button>
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(gistStatusMessage))
+                    {
+                        <div class="alert @(gistStatusIsError ? "alert-danger" : "alert-success") border-0 py-2 px-3 mb-2 small">
+                            @gistStatusMessage
+                        </div>
+                    }
+
+                    <div class="alert alert-warning border-0 py-2 px-3 mb-2 small">
+                        <i class="bi bi-shield-lock me-2"></i>
+                        Your PAT is sensitive. Keep it private and rotate/revoke it from GitHub if compromised.
+                    </div>
+
+                    <div class="text-muted x-small">
+                        Sync credentials are stored locally in your browser's localStorage on this device and are not hardcoded in the app. You should be able to configure sync entirely from the Configure page/UI without opening code.
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Danger Zone -->
         <div class="col-12 mt-4">
             <div class="card shadow-sm border-danger border-opacity-25 rounded-3 bg-danger bg-opacity-10">
@@ -210,10 +292,108 @@
 
 @code {
     private string statusMessage = "";
+    private string gistId = "";
+    private string gistPat = "";
+    private string gistStatusMessage = "";
+    private bool gistStatusIsError = false;
+    private bool syncBusy = false;
     private bool importAsWatched = false;
     private string selectedImportSource = "Auto";
     private int importProgress = 0;
     private int importTotal = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var saved = await GistSync.GetSettingsAsync();
+        gistId = saved.GistId;
+        gistPat = saved.PersonalAccessToken;
+    }
+
+    private async Task SaveGistSettingsAsync()
+    {
+        try
+        {
+            syncBusy = true;
+            gistStatusMessage = "";
+            gistStatusIsError = false;
+
+            await GistSync.SaveSettingsAsync(new GistSettings
+            {
+                GistId = gistId,
+                PersonalAccessToken = gistPat
+            });
+
+            gistStatusMessage = "Sync settings saved locally.";
+        }
+        catch (Exception ex)
+        {
+            gistStatusIsError = true;
+            gistStatusMessage = $"Error saving settings: {ex.Message}";
+        }
+        finally
+        {
+            syncBusy = false;
+        }
+    }
+
+    private async Task LoadLibraryFromGistAsync()
+    {
+        try
+        {
+            syncBusy = true;
+            gistStatusMessage = "";
+            gistStatusIsError = false;
+
+            await GistSync.SaveSettingsAsync(new GistSettings
+            {
+                GistId = gistId,
+                PersonalAccessToken = gistPat
+            });
+
+            var remoteItems = await GistSync.LoadFromGistAsync();
+            await WatchlistSvc.UpdateListAsync(remoteItems);
+
+            gistStatusMessage = $"Loaded {remoteItems.Count} items from gist.";
+        }
+        catch (Exception ex)
+        {
+            gistStatusIsError = true;
+            gistStatusMessage = $"Load failed: {ex.Message}";
+        }
+        finally
+        {
+            syncBusy = false;
+        }
+    }
+
+    private async Task SaveLibraryToGistAsync()
+    {
+        try
+        {
+            syncBusy = true;
+            gistStatusMessage = "";
+            gistStatusIsError = false;
+
+            await GistSync.SaveSettingsAsync(new GistSettings
+            {
+                GistId = gistId,
+                PersonalAccessToken = gistPat
+            });
+
+            await GistSync.SaveToGistAsync(WatchlistSvc.Items.ToList());
+
+            gistStatusMessage = $"Saved {WatchlistSvc.Items.Count} items to gist.";
+        }
+        catch (Exception ex)
+        {
+            gistStatusIsError = true;
+            gistStatusMessage = $"Save failed: {ex.Message}";
+        }
+        finally
+        {
+            syncBusy = false;
+        }
+    }
 
     private async Task ClearLibrary()
     {
@@ -581,4 +761,3 @@
     .transition-all { transition: all 0.2s ease-in-out; }
     .x-small { font-size: 0.75rem; }
 </style>
-
