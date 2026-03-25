@@ -17,6 +17,12 @@ public class AutoSyncService : IDisposable
     private bool _applyingRemote;
     private bool _isPushing;
     private string? _lastSyncedHash;
+    private int _consecutivePullFailures;
+
+    public DateTimeOffset? LastSyncAt { get; private set; }
+    public string LastSyncDirection { get; private set; } = "Never";
+    public string? LastError { get; private set; }
+    public event Action? OnStatusChanged;
 
     private static readonly JsonSerializerOptions HashJsonOptions = new(JsonSerializerDefaults.Web);
 
@@ -35,6 +41,8 @@ public class AutoSyncService : IDisposable
         }
 
         _watchlistSvc.OnStateChanged += HandleWatchlistStateChanged;
+        await WaitForWatchlistReadyAsync();
+        await RunStartupSyncByModeAsync();
         await RestartPullLoopAsync();
     }
 
@@ -66,6 +74,7 @@ public class AutoSyncService : IDisposable
     private async Task DebounceAutoPushAsync()
     {
         var settings = await _gistSyncSvc.GetSettingsAsync();
+        if (settings.AutoSyncPaused) return;
         if (!IsPushEnabled(settings)) return;
         if (!HasCredentials(settings)) return;
 
@@ -101,10 +110,16 @@ public class AutoSyncService : IDisposable
             token.ThrowIfCancellationRequested();
             await _gistSyncSvc.SaveToGistAsync(items);
             _lastSyncedHash = hash;
+            LastSyncAt = DateTimeOffset.Now;
+            LastSyncDirection = "Push";
+            LastError = null;
+            NotifyStatusChanged();
         }
         catch (Exception ex)
         {
             Console.WriteLine($"[AutoSync] Auto-push failed: {ex.Message}");
+            LastError = ex.Message;
+            NotifyStatusChanged();
         }
         finally
         {
@@ -122,7 +137,7 @@ public class AutoSyncService : IDisposable
             try
             {
                 var settings = await _gistSyncSvc.GetSettingsAsync();
-                if (IsPullEnabled(settings) && HasCredentials(settings) && !_watchlistSvc.IsInitializing)
+                if (!settings.AutoSyncPaused && IsPullEnabled(settings) && HasCredentials(settings) && !_watchlistSvc.IsInitializing)
                 {
                     await TryAutoPullAsync();
                 }
@@ -137,7 +152,11 @@ public class AutoSyncService : IDisposable
             catch (Exception ex)
             {
                 Console.WriteLine($"[AutoSync] Pull loop error: {ex.Message}");
-                try { await Task.Delay(TimeSpan.FromSeconds(20), token); } catch (OperationCanceledException) { break; }
+                _consecutivePullFailures++;
+                LastError = ex.Message;
+                NotifyStatusChanged();
+                var backoffSeconds = Math.Min(300, (int)Math.Pow(2, Math.Min(_consecutivePullFailures, 6)) * 5);
+                try { await Task.Delay(TimeSpan.FromSeconds(backoffSeconds), token); } catch (OperationCanceledException) { break; }
             }
         }
     }
@@ -153,22 +172,69 @@ public class AutoSyncService : IDisposable
             if (remoteHash == localHash)
             {
                 _lastSyncedHash = localHash;
+                LastSyncAt = DateTimeOffset.Now;
+                LastSyncDirection = "Pull (no changes)";
+                LastError = null;
+                _consecutivePullFailures = 0;
+                NotifyStatusChanged();
                 return;
             }
 
             _applyingRemote = true;
             await _watchlistSvc.UpdateListAsync(remoteItems);
             _lastSyncedHash = remoteHash;
+            LastSyncAt = DateTimeOffset.Now;
+            LastSyncDirection = "Pull";
+            LastError = null;
+            _consecutivePullFailures = 0;
+            NotifyStatusChanged();
         }
         catch (Exception ex)
         {
             Console.WriteLine($"[AutoSync] Auto-pull failed: {ex.Message}");
+            _consecutivePullFailures++;
+            LastError = ex.Message;
+            NotifyStatusChanged();
         }
         finally
         {
             _applyingRemote = false;
         }
     }
+
+    private async Task RunStartupSyncByModeAsync()
+    {
+        try
+        {
+            var settings = await _gistSyncSvc.GetSettingsAsync();
+            if (settings.AutoSyncPaused) return;
+            if (!HasCredentials(settings)) return;
+
+            // Recommended startup behavior: pull-first for pull-capable modes.
+            if (IsPullEnabled(settings))
+            {
+                await TryAutoPullAsync();
+            }
+            // AutoPush intentionally does not push on startup to avoid clobbering remote.
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+            NotifyStatusChanged();
+        }
+    }
+
+    private async Task WaitForWatchlistReadyAsync()
+    {
+        var attempts = 0;
+        while (_watchlistSvc.IsInitializing && attempts < 120)
+        {
+            await Task.Delay(250);
+            attempts++;
+        }
+    }
+
+    private void NotifyStatusChanged() => OnStatusChanged?.Invoke();
 
     private static bool HasCredentials(GistSettings settings)
         => !string.IsNullOrWhiteSpace(settings.GistId) && !string.IsNullOrWhiteSpace(settings.PersonalAccessToken);

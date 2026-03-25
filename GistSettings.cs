@@ -14,4 +14,5 @@ public class GistSettings
     public string PersonalAccessToken { get; set; } = "";
     public GistAutoSyncMode AutoSyncMode { get; set; } = GistAutoSyncMode.Disabled;
     public int AutoPullIntervalMinutes { get; set; } = 5;
+    public bool AutoSyncPaused { get; set; } = false;
 }

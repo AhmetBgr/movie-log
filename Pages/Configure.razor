@@ -7,6 +7,7 @@
 @inject MyPrivateWatchlist.Services.GistSyncService GistSync
 @inject MyPrivateWatchlist.Services.AutoSyncService AutoSync
 @inject IJSRuntime JS
+@implements IDisposable
 
 <PageTitle>Configure & Data</PageTitle>
 
@@ -252,6 +253,12 @@
                                    class="form-control bg-light border-0 py-2"
                                    @bind="gistAutoPullIntervalMinutes" />
                         </div>
+                        <div class="col-md-6 d-flex align-items-end">
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" id="pauseAutoSync" @bind="gistAutoSyncPaused">
+                                <label class="form-check-label small fw-bold text-secondary" for="pauseAutoSync">Pause Auto Sync</label>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="d-flex flex-wrap gap-2 mb-2">
@@ -272,6 +279,16 @@
                             @gistStatusMessage
                         </div>
                     }
+
+                    <div class="bg-light border rounded-3 p-3 mb-2">
+                        <div class="small fw-bold text-dark mb-2">Auto Sync Status</div>
+                        <div class="small text-secondary">Last sync: @(autoSyncLastAt ?? "Never")</div>
+                        <div class="small text-secondary">Direction: @autoSyncDirection</div>
+                        @if (!string.IsNullOrWhiteSpace(autoSyncLastError))
+                        {
+                            <div class="small text-danger mt-1">Last error: @autoSyncLastError</div>
+                        }
+                    </div>
 
                     <div class="alert alert-warning border-0 py-2 px-3 mb-2 small">
                         <i class="bi bi-shield-lock me-2"></i>
@@ -314,9 +331,13 @@
     private string gistPat = "";
     private GistAutoSyncMode gistAutoSyncMode = GistAutoSyncMode.Disabled;
     private int gistAutoPullIntervalMinutes = 5;
+    private bool gistAutoSyncPaused = false;
     private string gistStatusMessage = "";
     private bool gistStatusIsError = false;
     private bool syncBusy = false;
+    private string? autoSyncLastAt = null;
+    private string autoSyncDirection = "Never";
+    private string? autoSyncLastError = null;
     private bool importAsWatched = false;
     private string selectedImportSource = "Auto";
     private int importProgress = 0;
@@ -329,6 +350,9 @@
         gistPat = saved.PersonalAccessToken;
         gistAutoSyncMode = saved.AutoSyncMode;
         gistAutoPullIntervalMinutes = Math.Max(1, saved.AutoPullIntervalMinutes);
+        gistAutoSyncPaused = saved.AutoSyncPaused;
+        AutoSync.OnStatusChanged += HandleAutoSyncStatusChanged;
+        RefreshAutoSyncStatus();
     }
 
     private async Task SaveGistSettingsAsync()
@@ -344,9 +368,11 @@
                 GistId = gistId,
                 PersonalAccessToken = gistPat,
                 AutoSyncMode = gistAutoSyncMode,
-                AutoPullIntervalMinutes = gistAutoPullIntervalMinutes
+                AutoPullIntervalMinutes = gistAutoPullIntervalMinutes,
+                AutoSyncPaused = gistAutoSyncPaused
             });
             await AutoSync.RestartPullLoopAsync();
+            RefreshAutoSyncStatus();
 
             gistStatusMessage = "Sync settings saved locally.";
         }
@@ -374,9 +400,11 @@
                 GistId = gistId,
                 PersonalAccessToken = gistPat,
                 AutoSyncMode = gistAutoSyncMode,
-                AutoPullIntervalMinutes = gistAutoPullIntervalMinutes
+                AutoPullIntervalMinutes = gistAutoPullIntervalMinutes,
+                AutoSyncPaused = gistAutoSyncPaused
             });
             await AutoSync.RestartPullLoopAsync();
+            RefreshAutoSyncStatus();
 
             var remoteItems = await GistSync.LoadFromGistAsync();
             await WatchlistSvc.UpdateListAsync(remoteItems);
@@ -407,9 +435,11 @@
                 GistId = gistId,
                 PersonalAccessToken = gistPat,
                 AutoSyncMode = gistAutoSyncMode,
-                AutoPullIntervalMinutes = gistAutoPullIntervalMinutes
+                AutoPullIntervalMinutes = gistAutoPullIntervalMinutes,
+                AutoSyncPaused = gistAutoSyncPaused
             });
             await AutoSync.RestartPullLoopAsync();
+            RefreshAutoSyncStatus();
 
             await GistSync.SaveToGistAsync(WatchlistSvc.Items.ToList());
 
@@ -435,6 +465,24 @@
             statusMessage = "Library cleared successfully.";
             StateHasChanged();
         }
+    }
+
+    private void HandleAutoSyncStatusChanged()
+    {
+        RefreshAutoSyncStatus();
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void RefreshAutoSyncStatus()
+    {
+        autoSyncLastAt = AutoSync.LastSyncAt?.ToLocalTime().ToString("MMM dd, yyyy HH:mm:ss");
+        autoSyncDirection = AutoSync.LastSyncDirection;
+        autoSyncLastError = AutoSync.LastError;
+    }
+
+    public void Dispose()
+    {
+        AutoSync.OnStatusChanged -= HandleAutoSyncStatusChanged;
     }
 
     private async Task HandleFileSelected(InputFileChangeEventArgs e)
