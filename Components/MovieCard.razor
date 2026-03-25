@@ -3,7 +3,10 @@
 
 @if (Item != null)
 {
-    <div class="card border-0 overflow-hidden movie-card @(IsSelected ? "movie-card-selected" : "")" style="cursor: pointer;" @onclick="ShowDetails">
+    <div class="card border-0 overflow-hidden movie-card @(IsSelected ? "movie-card-selected" : "")"
+         data-holdselect-id="@Item.ImdbId"
+         style="cursor: pointer;"
+         @onclick="ShowDetails">
 
         <!-- Outer row: side panel + main content -->
         <div class="d-flex">
@@ -139,7 +142,9 @@
 
     private async Task ShowDetails()
     {
-        if (Item != null) await WatchlistSvc.ShowDetailsAsync(Item);
+        if (Item == null) return;
+        if (IsEditMode) await OnToggleSelect.InvokeAsync();
+        else await WatchlistSvc.ShowDetailsAsync(Item);
     }
 
     private string GetRatingColor(int val)

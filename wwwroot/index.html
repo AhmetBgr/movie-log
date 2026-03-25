@@ -62,6 +62,12 @@
             _holdMs: 300,
             _moveThresholdPx: 10,
             _interactiveSelector: "a,button,input,select,textarea,label,[contenteditable='true']",
+            _resolveHoldId: function (target) {
+                if (!target || !target.closest) return null;
+                var hit = target.closest("[data-holdselect-id], tr[data-imdbid]");
+                if (!hit) return null;
+                return hit.getAttribute("data-holdselect-id") || hit.getAttribute("data-imdbid");
+            },
             _clearTimer: function () {
                 if (this._timer) {
                     clearTimeout(this._timer);
@@ -97,13 +103,12 @@
                     if (e.button !== 0) return;
                     if (!e.target) return;
                     if (e.target.closest(self._interactiveSelector)) return;
-
-                    var tr = e.target.closest("tr[data-imdbid]");
-                    if (!tr) return;
+                    var holdId = self._resolveHoldId(e.target);
+                    if (!holdId) return;
 
                     self._startX = e.clientX;
                     self._startY = e.clientY;
-                    self._scheduleHold(tr.getAttribute("data-imdbid"));
+                    self._scheduleHold(holdId);
                 }, { passive: true });
 
                 document.addEventListener("pointermove", function (e) {
@@ -125,17 +130,16 @@
 
                 document.addEventListener("contextmenu", function (e) {
                     if (!self._holdFired) return;
-                    var tr = e.target && e.target.closest ? e.target.closest("tr[data-imdbid]") : null;
-                    if (tr && tr.getAttribute("data-imdbid") === self._targetRowId) {
+                    var holdId = self._resolveHoldId(e.target);
+                    if (holdId && holdId === self._targetRowId) {
                         e.preventDefault();
                     }
                 });
 
                 document.addEventListener("click", function (e) {
                     if (Date.now() > self._suppressClickUntil) return;
-                    var tr = e.target && e.target.closest ? e.target.closest("tr[data-imdbid]") : null;
-                    if (!tr) return;
-                    if (tr.getAttribute("data-imdbid") !== self._suppressClickRowId) return;
+                    var holdId = self._resolveHoldId(e.target);
+                    if (!holdId || holdId !== self._suppressClickRowId) return;
                     e.preventDefault();
                     e.stopPropagation();
                 }, true);

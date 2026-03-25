@@ -369,6 +369,7 @@ article.content:has(.page-shell) {
     flex-shrink: 0;
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 2px;
     padding: 0 10px;
     background: #fff;
@@ -482,6 +483,7 @@ article.content:has(.page-shell) {
     margin: 0 4px;
 }
 .tb-spacer { flex: 1; }
+.toolbar-primary .tb-spacer { display: none; }
 
 /* Icon only on small screens */
 .tb-label {
@@ -518,7 +520,7 @@ tr.row-selected td {
 /* ══════════════════════════════════════════════════════════════
    MOBILE  (< 768px)
    ══════════════════════════════════════════════════════════════ */
-@@media (max-width: 767px) {
+@media (max-width: 767px) {
 
     /* Shell height accounts for fixed bottom nav */
     .page-shell {
@@ -526,14 +528,17 @@ tr.row-selected td {
     }
 
     /* ── Toolbar: wrap into two rows ───────────────────────── */
-    .toolbar-primary {
-        flex-wrap: wrap;
-        overflow-x: visible;          /* no horizontal scroll — wrap instead */
-        overflow-y: visible;
+    .toolbar-primary,
+    .toolbar-actions {
+        justify-content: flex-start;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
         min-height: unset;
-        padding: 4px 8px;
-        gap: 0;
-        row-gap: 0;
+        padding: 5px 10px;
+        gap: 4px;
+        scroll-padding-left: 10px;
+        scroll-padding-right: 10px;
     }
 
     /* Row 1: primary controls (Filters, Edit, Done, view-toggle, spacer, count) */
@@ -570,14 +575,9 @@ tr.row-selected td {
     .tb-label { display: inline; }
 
     /* ── Action bar: wrap freely ───────────────────────────── */
-    .toolbar-actions {
-        flex-wrap: wrap;
-        overflow-x: visible;
-        overflow-y: visible;
-        min-height: unset;
-        padding: 5px 8px;
-        gap: 4px;
-        row-gap: 4px;
+    .toolbar-primary .tb-spacer,
+    .toolbar-actions .tb-spacer {
+        display: none;
     }
 
     /* ── Filter panel: stacks above content on mobile ──────── */
@@ -625,22 +625,17 @@ tr.row-selected td {
 @container (max-width: 130px) { .tracking-pill { transform: scale(0.55); } }
 
 /* ── Toolbar desktop: max-width + wrap if needed ───────────── */
-@@media (min-width: 768px) {
+@media (min-width: 768px) {
     .toolbar-primary,
     .toolbar-actions {
         max-width: 900px;
         margin-left: auto;
         margin-right: auto;
-        justify-content: center;
         overflow-x: visible;
         flex-wrap: wrap;
         row-gap: 2px;
         padding-top: 4px;
         padding-bottom: 4px;
-    }
-
-    .toolbar-primary .tb-spacer {
-        display: none;
     }
 }
 

@@ -269,6 +269,7 @@
                             {
                                 <div class="col">
                                     <div class="card border-0 overflow-hidden movie-card-w @(_selectedIds.Contains(item.ImdbId) ? "movie-card-selected" : "")"
+                                         data-holdselect-id="@item.ImdbId"
                                          style="cursor:pointer;" @onclick="() => HandleRowClick(item)">
                                         <div class="d-flex">
                                             @if (isEditing)

@@ -55,9 +55,6 @@
                 <span class="tb-label">Added</span>
             </button>
 
-            <div class="tb-spacer"></div>
-            <span class="text-secondary d-none d-sm-inline" style="font-size:0.76rem;white-space:nowrap;">@_filteredItems.Count items</span>
-
             <!-- View toggle -->
             <div class="tb-divider"></div>
             <button class="tb-btn @(!isCardView ? "active" : "")" @onclick="() => isCardView = false" title="Table view">
@@ -66,6 +63,9 @@
             <button class="tb-btn @(isCardView ? "active" : "")" @onclick="() => isCardView = true" title="Card view">
                 <i class="bi bi-card-list"></i>
             </button>
+
+            <div class="tb-spacer"></div>
+            <span class="text-secondary d-none d-sm-inline" style="font-size:0.76rem;white-space:nowrap;padding-right:4px;">@_filteredItems.Count items</span>
         </div>
 
         <!-- ── Action bar ──────────────────────────────────────── -->

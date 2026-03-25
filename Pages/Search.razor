@@ -3,6 +3,7 @@
 @using MyPrivateWatchlist.Components
 @inject HttpClient Http
 @inject IConfiguration Config
+@inject IJSRuntime JS
 @inject MyPrivateWatchlist.Services.WatchlistService WatchlistSvc
 @implements IDisposable
 
@@ -104,7 +105,7 @@
                     {
                         var itemKey = $"{item.MediaType}-{item.Id}";
                         var isSelected = _selectedKeys.Contains(itemKey);
-                        <tr class="@(isSelected ? "row-selected" : "")">
+                        <tr class="@(isSelected ? "row-selected" : "")" data-imdbid="@itemKey">
                             @if (isEditing)
                             {
                                 <td class="px-3 text-center" style="width:1%;white-space:nowrap;" @onclick:stopPropagation="true">
@@ -116,7 +117,7 @@
                                 <img src="@(string.IsNullOrEmpty(item.PosterPath) ? "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" : $"https://image.tmdb.org/t/p/w92{item.PosterPath}")"
                                      class="rounded shadow-sm" style="width:56px;height:84px;object-fit:cover;border:1px solid rgba(0,0,0,0.05);" alt="Thumbnail" />
                             </td>
-                            <td class="px-3" style="cursor:pointer;" @onclick="() => WatchlistSvc.ShowDetailsAsync(item)">
+                            <td class="px-3" style="cursor:pointer;" @onclick="() => HandleRowClick(item, itemKey)">
                                 <div class="d-flex align-items-center gap-2 flex-wrap">
                                     <span class="fw-bold text-dark title-hover">
                                         @item.DisplayTitle
@@ -171,6 +172,7 @@
 
     private bool isEditing = false;
     private bool isLoading = false;
+    private DotNetObjectReference<Search>? _holdRef;
     private List<TmdbSearchResultItem>? results;
     private Dictionary<string, string> directorsMap = new();
     private CancellationTokenSource? cts;
@@ -193,6 +195,34 @@
 
     private void ToggleSelect(string key) { if (!_selectedKeys.Remove(key)) _selectedKeys.Add(key); }
     private void ToggleEdit() { isEditing = !isEditing; if (!isEditing) _selectedKeys.Clear(); }
+
+    private void HandleRowClick(TmdbSearchResultItem item, string itemKey)
+    {
+        if (isEditing) ToggleSelect(itemKey);
+        else _ = WatchlistSvc.ShowDetailsAsync(item);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                _holdRef = DotNetObjectReference.Create(this);
+                await JS.InvokeVoidAsync("holdSelect.init", _holdRef);
+            }
+            catch { }
+        }
+    }
+
+    [Microsoft.JSInterop.JSInvokable]
+    public void OnHoldSelect(string rowKey)
+    {
+        if (string.IsNullOrWhiteSpace(rowKey)) return;
+        if (!isEditing) isEditing = true;
+        _selectedKeys.Add(rowKey);
+        StateHasChanged();
+    }
 
     private IEnumerable<TmdbSearchResultItem> SortedResults => results == null
         ? Enumerable.Empty<TmdbSearchResultItem>()
@@ -272,7 +302,13 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    public void Dispose() { cts?.Cancel(); cts?.Dispose(); WatchlistSvc.OnStateChanged -= StateHasChanged; }
+    public void Dispose()
+    {
+        cts?.Cancel();
+        cts?.Dispose();
+        _holdRef?.Dispose();
+        WatchlistSvc.OnStateChanged -= StateHasChanged;
+    }
 
     private async Task HandleStatusClick(TmdbSearchResultItem item, WatchlistStatus status)
     {
