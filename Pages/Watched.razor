@@ -196,7 +196,7 @@
                             <tr><td colspan="6" class="py-5 text-center text-secondary fst-italic opacity-50">No movies match your filters.</td></tr>
                         }
                         <Virtualize Items="_watchedItems" Context="item" ItemSize="72" OverscanCount="5">
-                            <tr @key="item.ImdbId" class="@(_selectedIds.Contains(item.ImdbId) ? "row-selected" : "")">
+                            <tr @key="item.ImdbId" data-imdbid="@item.ImdbId" class="@(_selectedIds.Contains(item.ImdbId) ? "row-selected" : "")">
                                 @if (isEditing)
                                 {
                                     <td class="px-3 text-center" style="width:1%;white-space:nowrap;" @onclick:stopPropagation="true">
@@ -215,7 +215,7 @@
                                         else { <div class="poster-fallback"><i class="bi bi-film"></i></div> }
                                     </div>
                                 </td>
-                                <td class="px-3" style="cursor:pointer;" @onclick="() => WatchlistSvc.ShowDetailsAsync(item)">
+                                <td class="px-3" style="cursor:pointer;" @onclick="() => HandleRowClick(item)">
                                     <div class="d-flex align-items-center gap-2">
                                         <span class="fw-bold text-dark title-hover">@item.Title</span>
                                         <a class="ext-link" href="@Get1337xSearchUrl(item)" target="_blank" rel="noopener noreferrer"
@@ -269,7 +269,7 @@
                             {
                                 <div class="col">
                                     <div class="card border-0 overflow-hidden movie-card-w @(_selectedIds.Contains(item.ImdbId) ? "movie-card-selected" : "")"
-                                         style="cursor:pointer;" @onclick="() => WatchlistSvc.ShowDetailsAsync(item)">
+                                         style="cursor:pointer;" @onclick="() => HandleRowClick(item)">
                                         <div class="d-flex">
                                             @if (isEditing)
                                             {
@@ -351,6 +351,7 @@
     private double _touchStartX;
     private double _touchEndX;
     private bool isEditing = false;
+    private DotNetObjectReference<Watched>? _holdRef;
     private bool isCardView = false;
     private bool showSavedIndicator = false;
     private HashSet<string> _selectedIds = new();
@@ -386,11 +387,28 @@
     {
         if (firstRender)
         {
+            try { _holdRef = DotNetObjectReference.Create(this); await JS.InvokeVoidAsync("holdSelect.init", _holdRef); } catch {}
+
             var isDesktop = await JS.InvokeAsync<bool>("uiHelpers.isDesktop");
             if (isDesktop) { showFilters = true; StateHasChanged(); }
         }
     }
-    public void Dispose() => WatchlistSvc.OnStateChanged -= HandleStateChanged;
+
+    private void HandleRowClick(WatchlistItem item)
+    {
+        if (isEditing) ToggleSelect(item.ImdbId);
+        else _ = WatchlistSvc.ShowDetailsAsync(item);
+    }
+
+    [Microsoft.JSInterop.JSInvokable]
+    public void OnHoldSelect(string imdbId)
+    {
+        if (!isEditing) isEditing = true;
+        _selectedIds.Add(imdbId);
+        StateHasChanged();
+    }
+
+        public void Dispose() { WatchlistSvc.OnStateChanged -= HandleStateChanged; _holdRef?.Dispose(); }
 
     private void HandleStateChanged()
     {

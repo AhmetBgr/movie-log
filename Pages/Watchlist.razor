@@ -178,7 +178,7 @@
                                 <tr><td colspan="6" class="py-5 text-center text-secondary fst-italic opacity-50">No movies match your filters.</td></tr>
                             }
                             <Virtualize Items="_filteredItems" Context="item" ItemSize="72" OverscanCount="5">
-                                <tr @key="item.ImdbId" style="cursor:pointer;" class="@(_selectedIds.Contains(item.ImdbId) ? "row-selected" : "")" @onclick="() => WatchlistSvc.ShowDetailsAsync(item)">
+                                <tr @key="item.ImdbId" data-imdbid="@item.ImdbId" style="cursor:pointer;" class="@(_selectedIds.Contains(item.ImdbId) ? "row-selected" : "")" @onclick="() => HandleRowClick(item)">
                                     @if (isEditing)
                                     {
                                         <td class="px-3 text-center" style="width:1%;white-space:nowrap;" @onclick:stopPropagation="true">
@@ -257,6 +257,7 @@
 
 @code {
     private bool isEditing = false;
+    private DotNetObjectReference<Watchlist>? _holdRef;
     private bool showFilters = false;
     private double _touchStartX;
     private double _touchEndX;
@@ -294,11 +295,28 @@
     {
         if (firstRender)
         {
+            try { _holdRef = DotNetObjectReference.Create(this); await JS.InvokeVoidAsync("holdSelect.init", _holdRef); } catch {}
+
             var isDesktop = await JS.InvokeAsync<bool>("uiHelpers.isDesktop");
             if (isDesktop) { showFilters = true; StateHasChanged(); }
         }
     }
-    public void Dispose() => WatchlistSvc.OnStateChanged -= HandleStateChanged;
+
+    private void HandleRowClick(WatchlistItem item)
+    {
+        if (isEditing) ToggleSelect(item.ImdbId);
+        else _ = WatchlistSvc.ShowDetailsAsync(item);
+    }
+
+    [Microsoft.JSInterop.JSInvokable]
+    public void OnHoldSelect(string imdbId)
+    {
+        if (!isEditing) isEditing = true;
+        _selectedIds.Add(imdbId);
+        StateHasChanged();
+    }
+
+        public void Dispose() { WatchlistSvc.OnStateChanged -= HandleStateChanged; _holdRef?.Dispose(); }
     private void HandleStateChanged() { SyncItems(); _selectedIds.IntersectWith(_filteredItems.Select(i => i.ImdbId).ToHashSet()); StateHasChanged(); }
 
     private void SyncItems()

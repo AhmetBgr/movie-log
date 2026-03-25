@@ -2,6 +2,7 @@
 @using MyPrivateWatchlist.Models
 @using MyPrivateWatchlist.Components
 @inject MyPrivateWatchlist.Services.WatchlistService WatchlistSvc
+@inject IJSRuntime JS
 @implements IDisposable
 
 <PageTitle>Watching</PageTitle>
@@ -99,7 +100,7 @@
                 <table class="table table-hover align-middle mb-0">
                     <tbody>
                         <Virtualize Items="@WatchlistSvc.WatchingItems.ToList()" Context="item" ItemSize="70" OverscanCount="5">
-                            <tr @key="item.ImdbId" class="@(_selectedIds.Contains(item.ImdbId) ? "row-selected" : "")">
+                            <tr @key="item.ImdbId" data-imdbid="@item.ImdbId" class="@(_selectedIds.Contains(item.ImdbId) ? "row-selected" : "")">
                                 @if (isEditing)
                                 {
                                     <td class="px-3 text-center" style="width:1%;white-space:nowrap;" @onclick:stopPropagation="true">
@@ -118,7 +119,7 @@
                                         else { <div class="poster-fallback"><i class="bi bi-film"></i></div> }
                                     </div>
                                 </td>
-                                <td class="px-3" style="cursor:pointer;" @onclick="() => WatchlistSvc.ShowDetailsAsync(item)">
+                                <td class="px-3" style="cursor:pointer;" @onclick="() => HandleRowClick(item)">
                                     <div class="d-flex align-items-center gap-2">
                                         <span class="fw-bold text-dark title-hover">@item.Title</span>
                                         <a class="ext-link" href="@Get1337xSearchUrl(item)" target="_blank" rel="noopener noreferrer"
@@ -217,6 +218,7 @@
 
 @code {
     private bool isEditing = false;
+    private DotNetObjectReference<Watching>? _holdRef;
     private bool isCardView = false;
     private HashSet<string> _selectedIds = new();
 
@@ -233,7 +235,30 @@
     private async Task ChangeSeason(WatchlistItem item, int d) { await WatchlistSvc.UpdateProgressAsync(item, Math.Max(1, (item.CurrentSeason ?? 1) + d), item.CurrentEpisode); }
 
     protected override void OnInitialized() => WatchlistSvc.OnStateChanged += HandleStateChanged;
-    public void Dispose() => WatchlistSvc.OnStateChanged -= HandleStateChanged;
+
+    private void HandleRowClick(WatchlistItem item)
+    {
+        if (isEditing) ToggleSelect(item.ImdbId);
+        else _ = WatchlistSvc.ShowDetailsAsync(item);
+    }
+
+    [Microsoft.JSInterop.JSInvokable]
+    public void OnHoldSelect(string imdbId)
+    {
+        if (!isEditing) isEditing = true;
+        _selectedIds.Add(imdbId);
+        StateHasChanged();
+    }
+
+        protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try { _holdRef = DotNetObjectReference.Create(this); await JS.InvokeVoidAsync("holdSelect.init", _holdRef); } catch {}
+        }
+    }
+
+    public void Dispose() { WatchlistSvc.OnStateChanged -= HandleStateChanged; _holdRef?.Dispose(); }
     private void HandleStateChanged() { _selectedIds.IntersectWith(WatchlistSvc.WatchingItems.Select(i => i.ImdbId).ToHashSet()); StateHasChanged(); }
 
     private static string Get1337xSearchUrl(WatchlistItem item)
