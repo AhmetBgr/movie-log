@@ -1,0 +1,377 @@
+@page "/discovery"
+@using System.Net.Http.Json
+@using MyPrivateWatchlist.Models
+@inject HttpClient Http
+@inject IConfiguration Config
+@inject MyPrivateWatchlist.Services.WatchlistService WatchlistSvc
+
+<PageTitle>Discovery</PageTitle>
+
+<div class="page-shell">
+    <div class="discovery-tabs" role="tablist" aria-label="Discovery tabs">
+        @foreach (var tab in _tabs)
+        {
+            <button class="disc-tab @(_activeTabKey == tab.Key ? "active" : "")"
+                    @onclick="() => SelectTabAsync(tab.Key)">
+                @tab.Label
+            </button>
+        }
+    </div>
+
+    <div class="toolbar-primary">
+        <button class="tb-btn @(!isCardView ? "active" : "")" @onclick="() => isCardView = false" title="Table view">
+            <i class="bi bi-list-ul"></i>
+        </button>
+        <button class="tb-btn @(isCardView ? "active" : "")" @onclick="() => isCardView = true" title="Card view">
+            <i class="bi bi-grid-3x2-gap"></i>
+        </button>
+        <div class="tb-spacer"></div>
+        <span class="text-secondary d-none d-sm-inline" style="font-size:0.76rem;white-space:nowrap;padding-right:4px;">
+            @CurrentState.Items.Count items
+        </span>
+    </div>
+
+    <div class="page-content scroll-y">
+        @if (CurrentState.IsLoading)
+        {
+            <div class="discovery-state-wrap">
+                <div class="spinner-border text-secondary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        }
+        else if (!string.IsNullOrEmpty(CurrentState.Error))
+        {
+            <div class="discovery-state-wrap">
+                <div class="alert alert-danger mb-0 d-inline-flex flex-column align-items-start gap-2">
+                    <span>@CurrentState.Error</span>
+                    <button class="btn btn-sm btn-outline-danger" @onclick="RetryActiveTabAsync">
+                        <i class="bi bi-arrow-clockwise me-1"></i>Retry
+                    </button>
+                </div>
+            </div>
+        }
+        else if (!CurrentState.Items.Any())
+        {
+            <div class="discovery-state-wrap">
+                <div class="text-center text-secondary opacity-75">
+                    <i class="bi bi-film fs-3 d-block mb-2"></i>
+                    <span>No items found.</span>
+                </div>
+            </div>
+        }
+        else if (!isCardView)
+        {
+            <div class="table-wrap">
+                <table class="table table-hover align-middle mb-0">
+                    <tbody>
+                        @foreach (var item in CurrentState.Items)
+                        {
+                            <tr style="cursor:pointer;" @onclick="() => WatchlistSvc.ShowDetailsAsync(item)">
+                                <td style="width:1%;white-space:nowrap;padding:0.1rem;" class="text-center">
+                                    <img src="@item.FullPosterUrl"
+                                         class="rounded shadow-sm"
+                                         style="width:56px;height:84px;object-fit:cover;border:1px solid rgba(0,0,0,0.05);"
+                                         alt="Thumbnail" />
+                                </td>
+                                <td class="px-3">
+                                    <div class="fw-bold text-dark title-hover">
+                                        @item.DisplayTitle
+                                        @if (!string.IsNullOrEmpty(item.DisplayOriginalTitle))
+                                        {
+                                            <span class="text-secondary small fw-normal ms-1">(@item.DisplayOriginalTitle)</span>
+                                        }
+                                    </div>
+                                    <span class="row-meta">@GetYear(item)</span>
+                                </td>
+                                <td class="d-none d-md-table-cell">
+                                    <span class="badge rounded-pill @(item.MediaType == "movie" ? "bg-secondary text-white" : "bg-light text-dark border")">
+                                        @(item.MediaType == "movie" ? "Movie" : "TV Series")
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="table-wrap table-wrap--wide p-3">
+                <div class="row row-cols-1 g-3">
+                    @foreach (var item in CurrentState.Items)
+                    {
+                        <div class="col">
+                            <div class="card border-0 overflow-hidden discovery-card" style="cursor:pointer;" @onclick="() => WatchlistSvc.ShowDetailsAsync(item)">
+                                <div class="d-flex">
+                                    <div class="discovery-poster">
+                                        <img src="@item.FullPosterUrl" alt="@item.DisplayTitle" />
+                                    </div>
+                                    <div class="flex-grow-1 px-3 py-2 position-relative">
+                                        <div class="fw-bold discovery-title">@item.DisplayTitle</div>
+                                        @if (!string.IsNullOrEmpty(item.DisplayOriginalTitle))
+                                        {
+                                            <div class="discovery-subtitle">@item.DisplayOriginalTitle</div>
+                                        }
+                                        <div class="row-meta">@GetYear(item)</div>
+                                        <span class="badge mt-2 @(item.MediaType == "movie" ? "bg-secondary text-white" : "bg-light text-dark border")" style="font-size:0.65rem;">
+                                            @(item.MediaType == "movie" ? "Movie" : "TV Series")
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private static readonly List<DiscoveryTab> _tabs = new()
+    {
+        new("trending", "Trending", "/trending/all/week", null),
+        new("popular-movies", "Popular Movies", "/movie/popular", "movie"),
+        new("popular-tv", "Popular TV", "/tv/popular", "tv"),
+        new("new-releases", "New Releases", "/movie/now_playing", "movie"),
+        new("upcoming", "Upcoming", "/movie/upcoming", "movie")
+    };
+
+    private static readonly Dictionary<string, List<TmdbSearchResultItem>> _sessionCache = new();
+
+    private readonly Dictionary<string, DiscoveryTabState> _tabStates = new();
+    private string _activeTabKey = "trending";
+    private bool isCardView;
+
+    private DiscoveryTabState CurrentState => _tabStates[_activeTabKey];
+
+    protected override async Task OnInitializedAsync()
+    {
+        foreach (var tab in _tabs)
+        {
+            if (_sessionCache.TryGetValue(tab.Key, out var cached))
+            {
+                _tabStates[tab.Key] = new DiscoveryTabState
+                {
+                    HasLoaded = true,
+                    Items = cached.ToList()
+                };
+            }
+            else
+            {
+                _tabStates[tab.Key] = new DiscoveryTabState();
+            }
+        }
+
+        await EnsureTabLoadedAsync(_activeTabKey);
+    }
+
+    private async Task SelectTabAsync(string tabKey)
+    {
+        _activeTabKey = tabKey;
+        await EnsureTabLoadedAsync(tabKey);
+    }
+
+    private async Task RetryActiveTabAsync()
+    {
+        await EnsureTabLoadedAsync(_activeTabKey, force: true);
+    }
+
+    private async Task EnsureTabLoadedAsync(string tabKey, bool force = false)
+    {
+        var state = _tabStates[tabKey];
+        if (state.IsLoading) return;
+
+        if (!force && state.HasLoaded) return;
+
+        if (!force && _sessionCache.TryGetValue(tabKey, out var cached))
+        {
+            state.Items = cached.ToList();
+            state.HasLoaded = true;
+            state.Error = null;
+            return;
+        }
+
+        state.IsLoading = true;
+        state.Error = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            var tab = _tabs.First(t => t.Key == tabKey);
+            var items = await FetchTabItemsAsync(tab);
+            state.Items = items;
+            state.HasLoaded = true;
+            _sessionCache[tabKey] = items.ToList();
+        }
+        catch (Exception ex)
+        {
+            state.Error = $"Failed to load {GetTabLabel(tabKey)}. {ex.Message}";
+        }
+        finally
+        {
+            state.IsLoading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task<List<TmdbSearchResultItem>> FetchTabItemsAsync(DiscoveryTab tab)
+    {
+        var apiKey = Config["TmdbApiKey"];
+        if (string.IsNullOrWhiteSpace(apiKey))
+            throw new InvalidOperationException("TMDB API key is missing.");
+
+        var url = $"https://api.themoviedb.org/3{tab.Endpoint}?api_key={Uri.EscapeDataString(apiKey)}&page=1";
+        var response = await Http.GetFromJsonAsync<TmdbSearchResponse>(url);
+        var sourceItems = response?.Results ?? new List<TmdbSearchResultItem>();
+
+        return sourceItems
+            .Select(item => NormalizeItem(item, tab.ForcedMediaType))
+            .Where(item => item.MediaType == "movie" || item.MediaType == "tv")
+            .Take(20)
+            .ToList();
+    }
+
+    private static TmdbSearchResultItem NormalizeItem(TmdbSearchResultItem item, string? forcedMediaType)
+    {
+        var mediaType = forcedMediaType ?? item.MediaType;
+        if (string.IsNullOrWhiteSpace(mediaType))
+        {
+            mediaType = !string.IsNullOrWhiteSpace(item.Title) ? "movie" : "tv";
+        }
+
+        return new TmdbSearchResultItem
+        {
+            Id = item.Id,
+            Name = item.Name,
+            OriginalName = item.OriginalName,
+            Title = item.Title,
+            OriginalTitle = item.OriginalTitle,
+            MediaType = mediaType,
+            PosterPath = item.PosterPath,
+            ReleaseDate = item.ReleaseDate,
+            FirstAirDate = item.FirstAirDate,
+            GenreIds = item.GenreIds
+        };
+    }
+
+    private static string GetYear(TmdbSearchResultItem item)
+    {
+        var date = item.DisplayDate;
+        return date.Length >= 4 ? date[..4] : date;
+    }
+
+    private string GetTabLabel(string key) => _tabs.FirstOrDefault(t => t.Key == key)?.Label ?? "tab";
+
+    private sealed class DiscoveryTab
+    {
+        public DiscoveryTab(string key, string label, string endpoint, string? forcedMediaType)
+        {
+            Key = key;
+            Label = label;
+            Endpoint = endpoint;
+            ForcedMediaType = forcedMediaType;
+        }
+
+        public string Key { get; }
+        public string Label { get; }
+        public string Endpoint { get; }
+        public string? ForcedMediaType { get; }
+    }
+
+    private sealed class DiscoveryTabState
+    {
+        public bool HasLoaded { get; set; }
+        public bool IsLoading { get; set; }
+        public string? Error { get; set; }
+        public List<TmdbSearchResultItem> Items { get; set; } = new();
+    }
+}
+
+<style>
+    .discovery-tabs {
+        position: sticky;
+        top: 0;
+        z-index: 12;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 10px;
+        background: #fff;
+        border-bottom: 1px solid #e8eaed;
+        overflow-x: auto;
+        overflow-y: hidden;
+        white-space: nowrap;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .discovery-tabs::-webkit-scrollbar { display: none; }
+
+    .disc-tab {
+        border: none;
+        border-radius: 999px;
+        padding: 6px 12px;
+        background: #f5f6fa;
+        color: #555;
+        font-size: 0.82rem;
+        font-weight: 600;
+        white-space: nowrap;
+        transition: background 0.15s, color 0.15s;
+    }
+
+    .disc-tab:hover {
+        background: #eceff4;
+        color: #111;
+    }
+
+    .disc-tab.active {
+        background: #1a1a2e;
+        color: #fff;
+    }
+
+    .discovery-state-wrap {
+        min-height: 280px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+    }
+
+    .discovery-card {
+        box-shadow: 0 1px 3px rgba(0,0,0,0.07), 0 2px 8px rgba(0,0,0,0.05);
+        border-radius: 10px !important;
+    }
+
+    .discovery-poster {
+        width: 80px;
+        min-height: 110px;
+        background: #f0f0f0;
+        overflow: hidden;
+        flex-shrink: 0;
+    }
+
+    .discovery-poster img {
+        width: 100%;
+        height: 100%;
+        min-height: 110px;
+        object-fit: cover;
+        display: block;
+    }
+
+    .discovery-title {
+        font-size: 0.9rem;
+        color: #111;
+        padding-right: 4px;
+    }
+
+    .discovery-subtitle {
+        margin-top: 2px;
+        font-size: 0.72rem;
+        color: #8a8a8a;
+    }
+
+    .title-hover { transition: opacity 0.15s; }
+    .title-hover:hover { opacity: 0.6; }
+</style>
