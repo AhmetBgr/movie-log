@@ -17,8 +17,5 @@
 - [ ] Continuous performance monitoring for 1000+ item lists(??).
 - [ ] Add unit tests for `WatchlistService` filtering logic(??).
 - [ ] reduce Corner softening on buttons
-- [ ] try to improve load time
 - [ ] x button next to search text to quick deletion
 - [ ] fix site not loading on mobile firefox
-- [ ] hold over to start selecting
-- [ ] filter panel swipe to close
