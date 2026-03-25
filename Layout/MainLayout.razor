@@ -2,6 +2,7 @@
 @implements IDisposable
 @inject NavigationManager NavManager
 @inject WatchlistService WatchlistSvc
+@inject AutoSyncService AutoSync
 @inject IJSRuntime JS
 @using MyPrivateWatchlist.Components
 
@@ -345,6 +346,7 @@
         {
             _dotNetRef = DotNetObjectReference.Create(this);
             await JS.InvokeVoidAsync("registerUpdateCallback", _dotNetRef);
+            await AutoSync.EnsureStartedAsync();
         }
     }
 

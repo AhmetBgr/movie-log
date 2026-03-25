@@ -5,6 +5,7 @@
 @inject IConfiguration Config
 @inject MyPrivateWatchlist.Services.WatchlistService WatchlistSvc
 @inject MyPrivateWatchlist.Services.GistSyncService GistSync
+@inject MyPrivateWatchlist.Services.AutoSyncService AutoSync
 @inject IJSRuntime JS
 
 <PageTitle>Configure & Data</PageTitle>
@@ -234,6 +235,23 @@
                                    placeholder="ghp_..."
                                    @bind="gistPat" />
                         </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-secondary text-uppercase">Auto Sync Mode</label>
+                            <select class="form-select border-0 bg-light shadow-none" @bind="gistAutoSyncMode">
+                                <option value="@GistAutoSyncMode.Disabled">Disabled</option>
+                                <option value="@GistAutoSyncMode.AutoPush">Auto Push (local -> gist)</option>
+                                <option value="@GistAutoSyncMode.AutoPull">Auto Pull (gist -> local)</option>
+                                <option value="@GistAutoSyncMode.TwoWay">Two-way</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-secondary text-uppercase">Auto Pull Interval (minutes)</label>
+                            <input type="number"
+                                   min="1"
+                                   max="120"
+                                   class="form-control bg-light border-0 py-2"
+                                   @bind="gistAutoPullIntervalMinutes" />
+                        </div>
                     </div>
 
                     <div class="d-flex flex-wrap gap-2 mb-2">
@@ -294,6 +312,8 @@
     private string statusMessage = "";
     private string gistId = "";
     private string gistPat = "";
+    private GistAutoSyncMode gistAutoSyncMode = GistAutoSyncMode.Disabled;
+    private int gistAutoPullIntervalMinutes = 5;
     private string gistStatusMessage = "";
     private bool gistStatusIsError = false;
     private bool syncBusy = false;
@@ -307,6 +327,8 @@
         var saved = await GistSync.GetSettingsAsync();
         gistId = saved.GistId;
         gistPat = saved.PersonalAccessToken;
+        gistAutoSyncMode = saved.AutoSyncMode;
+        gistAutoPullIntervalMinutes = Math.Max(1, saved.AutoPullIntervalMinutes);
     }
 
     private async Task SaveGistSettingsAsync()
@@ -320,8 +342,11 @@
             await GistSync.SaveSettingsAsync(new GistSettings
             {
                 GistId = gistId,
-                PersonalAccessToken = gistPat
+                PersonalAccessToken = gistPat,
+                AutoSyncMode = gistAutoSyncMode,
+                AutoPullIntervalMinutes = gistAutoPullIntervalMinutes
             });
+            await AutoSync.RestartPullLoopAsync();
 
             gistStatusMessage = "Sync settings saved locally.";
         }
@@ -347,8 +372,11 @@
             await GistSync.SaveSettingsAsync(new GistSettings
             {
                 GistId = gistId,
-                PersonalAccessToken = gistPat
+                PersonalAccessToken = gistPat,
+                AutoSyncMode = gistAutoSyncMode,
+                AutoPullIntervalMinutes = gistAutoPullIntervalMinutes
             });
+            await AutoSync.RestartPullLoopAsync();
 
             var remoteItems = await GistSync.LoadFromGistAsync();
             await WatchlistSvc.UpdateListAsync(remoteItems);
@@ -377,8 +405,11 @@
             await GistSync.SaveSettingsAsync(new GistSettings
             {
                 GistId = gistId,
-                PersonalAccessToken = gistPat
+                PersonalAccessToken = gistPat,
+                AutoSyncMode = gistAutoSyncMode,
+                AutoPullIntervalMinutes = gistAutoPullIntervalMinutes
             });
+            await AutoSync.RestartPullLoopAsync();
 
             await GistSync.SaveToGistAsync(WatchlistSvc.Items.ToList());
 

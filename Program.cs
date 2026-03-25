@@ -11,6 +11,7 @@ builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.
 builder.Services.AddScoped<LocalStorageService>();
 builder.Services.AddScoped<WatchlistService>();
 builder.Services.AddScoped<GistSyncService>();
+builder.Services.AddScoped<AutoSyncService>();
 var host = builder.Build();
 
 await host.RunAsync();

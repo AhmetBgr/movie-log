@@ -33,7 +33,9 @@ public class GistSyncService
         var normalized = new GistSettings
         {
             GistId = settings.GistId?.Trim() ?? "",
-            PersonalAccessToken = settings.PersonalAccessToken?.Trim() ?? ""
+            PersonalAccessToken = settings.PersonalAccessToken?.Trim() ?? "",
+            AutoSyncMode = settings.AutoSyncMode,
+            AutoPullIntervalMinutes = Math.Max(1, settings.AutoPullIntervalMinutes)
         };
         await _storage.SaveAsync(SettingsStorageKey, normalized);
     }
