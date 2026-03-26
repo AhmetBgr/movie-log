@@ -8,6 +8,8 @@
 - [ ] **Watchlist Statistics**: Pie charts or stats for genre distribution and year ranges.
 - [ ] **Dark/Light Mode Toggle**: Manual theme switcher (currently defaults to system/premium dark).
 - [ ] **global random**: show random movie outside of library.
+- [ ] custom lists
+- [ ] private notes/reviews
 
 
 ## Known Issues & small improvements
@@ -15,3 +17,6 @@
 - [ ] x button next to search text to quick deletion
 - [ ] fix site not loading on mobile firefox
 - [ ] improve search
+- [ ] advanced search
+- [ ] advanced filters
+- [ ] episode tracking??
