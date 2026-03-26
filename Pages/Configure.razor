@@ -208,7 +208,7 @@
                         <li>Copy the Gist ID from the gist URL (the long id after <code>/gists/...</code>).</li>
                         <li>Create a GitHub Personal Access Token with <strong>Gist</strong> permission (minimum required scope). See quick steps below.</li>
                         <li>Enter <strong>Gist ID</strong> and <strong>PAT</strong> in the form below and press <strong>Save Sync Settings</strong>.</li>
-                        <li>Use <strong>Load from Gist</strong> to import remote data and <strong>Save to Gist</strong> to push your current library.</li>
+                        <li>Use <strong>Check Sync</strong> to compare your device with the gist, then use <strong>Sync Now</strong> to push or pull the newer side.</li>
                     </ol>
 
                     <div class="bg-light border rounded-3 p-3 mb-3">
@@ -236,27 +236,9 @@
                                    placeholder="ghp_..."
                                    @bind="gistPat" />
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold text-secondary text-uppercase">Auto Sync Mode</label>
-                            <select class="form-select border-0 bg-light shadow-none" @bind="gistAutoSyncMode">
-                                <option value="@GistAutoSyncMode.Disabled">Disabled</option>
-                                <option value="@GistAutoSyncMode.AutoPush">Auto Push (local -> gist)</option>
-                                <option value="@GistAutoSyncMode.AutoPull">Auto Pull (gist -> local)</option>
-                                <option value="@GistAutoSyncMode.TwoWay">Two-way</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold text-secondary text-uppercase">Auto Pull Interval (minutes)</label>
-                            <input type="number"
-                                   min="1"
-                                   max="120"
-                                   class="form-control bg-light border-0 py-2"
-                                   @bind="gistAutoPullIntervalMinutes" />
-                        </div>
-                        <div class="col-md-6 d-flex align-items-end">
-                            <div class="form-check form-switch mb-0">
-                                <input class="form-check-input" type="checkbox" id="pauseAutoSync" @bind="gistAutoSyncPaused">
-                                <label class="form-check-label small fw-bold text-secondary" for="pauseAutoSync">Pause Auto Sync</label>
+                        <div class="col-12">
+                            <div class="small text-secondary bg-light border rounded-3 p-3">
+                                Sync is manual now. Use Check Sync to compare local data with the gist, and Sync Now to push or pull the newer side.
                             </div>
                         </div>
                     </div>
@@ -265,11 +247,11 @@
                         <button class="btn btn-outline-dark btn-sm rounded-pill px-3" @onclick="SaveGistSettingsAsync" disabled="@syncBusy">
                             <i class="bi bi-save me-1"></i>Save Sync Settings
                         </button>
-                        <button class="btn btn-outline-primary btn-sm rounded-pill px-3" @onclick="LoadLibraryFromGistAsync" disabled="@syncBusy">
-                            <i class="bi bi-cloud-download me-1"></i>Load from Gist
+                        <button class="btn btn-outline-primary btn-sm rounded-pill px-3" @onclick="CheckSyncStatusAsync" disabled="@syncBusy">
+                            <i class="bi bi-arrow-repeat me-1"></i>Check Sync
                         </button>
-                        <button class="btn btn-outline-success btn-sm rounded-pill px-3" @onclick="SaveLibraryToGistAsync" disabled="@syncBusy">
-                            <i class="bi bi-cloud-upload me-1"></i>Save to Gist
+                        <button class="btn btn-outline-success btn-sm rounded-pill px-3" @onclick="SyncNowAsync" disabled="@(syncBusy || !syncActionNeeded)">
+                            <i class="bi bi-cloud-check me-1"></i>Sync Now
                         </button>
                     </div>
 
@@ -281,9 +263,18 @@
                     }
 
                     <div class="bg-light border rounded-3 p-3 mb-2">
-                        <div class="small fw-bold text-dark mb-2">Auto Sync Status</div>
+                        <div class="small fw-bold text-dark mb-2">Manual Sync Status</div>
+                        <div class="small text-secondary">@syncStateLabel</div>
                         <div class="small text-secondary">Last sync: @(autoSyncLastAt ?? "Never")</div>
                         <div class="small text-secondary">Direction: @autoSyncDirection</div>
+                        @if (!string.IsNullOrWhiteSpace(syncRemoteSummary))
+                        {
+                            <div class="small text-secondary mt-1">@syncRemoteSummary</div>
+                        }
+                        @if (syncHasConflict)
+                        {
+                            <div class="small text-warning mt-1">Both local and gist changed. Sync Now will use whichever side changed more recently.</div>
+                        }
                         @if (!string.IsNullOrWhiteSpace(autoSyncLastError))
                         {
                             <div class="small text-danger mt-1">Last error: @autoSyncLastError</div>
@@ -329,15 +320,16 @@
     private string statusMessage = "";
     private string gistId = "";
     private string gistPat = "";
-    private GistAutoSyncMode gistAutoSyncMode = GistAutoSyncMode.Disabled;
-    private int gistAutoPullIntervalMinutes = 5;
-    private bool gistAutoSyncPaused = false;
     private string gistStatusMessage = "";
     private bool gistStatusIsError = false;
     private bool syncBusy = false;
     private string? autoSyncLastAt = null;
     private string autoSyncDirection = "Never";
     private string? autoSyncLastError = null;
+    private string syncStateLabel = "Sync status unknown";
+    private string? syncRemoteSummary = null;
+    private bool syncActionNeeded = false;
+    private bool syncHasConflict = false;
     private bool importAsWatched = false;
     private string selectedImportSource = "Auto";
     private int importProgress = 0;
@@ -348,11 +340,10 @@
         var saved = await GistSync.GetSettingsAsync();
         gistId = saved.GistId;
         gistPat = saved.PersonalAccessToken;
-        gistAutoSyncMode = saved.AutoSyncMode;
-        gistAutoPullIntervalMinutes = Math.Max(1, saved.AutoPullIntervalMinutes);
-        gistAutoSyncPaused = saved.AutoSyncPaused;
+        await AutoSync.EnsureStartedAsync();
         AutoSync.OnStatusChanged += HandleAutoSyncStatusChanged;
         RefreshAutoSyncStatus();
+        await AutoSync.RefreshStatusAsync();
     }
 
     private async Task SaveGistSettingsAsync()
@@ -366,13 +357,9 @@
             await GistSync.SaveSettingsAsync(new GistSettings
             {
                 GistId = gistId,
-                PersonalAccessToken = gistPat,
-                AutoSyncMode = gistAutoSyncMode,
-                AutoPullIntervalMinutes = gistAutoPullIntervalMinutes,
-                AutoSyncPaused = gistAutoSyncPaused
+                PersonalAccessToken = gistPat
             });
-            await AutoSync.RestartPullLoopAsync();
-            RefreshAutoSyncStatus();
+            await AutoSync.RefreshStatusAsync();
 
             gistStatusMessage = "Sync settings saved locally.";
         }
@@ -387,7 +374,7 @@
         }
     }
 
-    private async Task LoadLibraryFromGistAsync()
+    private async Task CheckSyncStatusAsync()
     {
         try
         {
@@ -398,23 +385,16 @@
             await GistSync.SaveSettingsAsync(new GistSettings
             {
                 GistId = gistId,
-                PersonalAccessToken = gistPat,
-                AutoSyncMode = gistAutoSyncMode,
-                AutoPullIntervalMinutes = gistAutoPullIntervalMinutes,
-                AutoSyncPaused = gistAutoSyncPaused
+                PersonalAccessToken = gistPat
             });
-            await AutoSync.RestartPullLoopAsync();
-            RefreshAutoSyncStatus();
+            await AutoSync.RefreshStatusAsync();
 
-            var remoteItems = await GistSync.LoadFromGistAsync();
-            await WatchlistSvc.UpdateListAsync(remoteItems);
-
-            gistStatusMessage = $"Loaded {remoteItems.Count} items from gist.";
+            gistStatusMessage = "Sync status refreshed.";
         }
         catch (Exception ex)
         {
             gistStatusIsError = true;
-            gistStatusMessage = $"Load failed: {ex.Message}";
+            gistStatusMessage = $"Sync check failed: {ex.Message}";
         }
         finally
         {
@@ -422,7 +402,7 @@
         }
     }
 
-    private async Task SaveLibraryToGistAsync()
+    private async Task SyncNowAsync()
     {
         try
         {
@@ -433,22 +413,16 @@
             await GistSync.SaveSettingsAsync(new GistSettings
             {
                 GistId = gistId,
-                PersonalAccessToken = gistPat,
-                AutoSyncMode = gistAutoSyncMode,
-                AutoPullIntervalMinutes = gistAutoPullIntervalMinutes,
-                AutoSyncPaused = gistAutoSyncPaused
+                PersonalAccessToken = gistPat
             });
-            await AutoSync.RestartPullLoopAsync();
-            RefreshAutoSyncStatus();
+            await AutoSync.SyncNowAsync();
 
-            await GistSync.SaveToGistAsync(WatchlistSvc.Items.ToList());
-
-            gistStatusMessage = $"Saved {WatchlistSvc.Items.Count} items to gist.";
+            gistStatusMessage = "Manual sync completed.";
         }
         catch (Exception ex)
         {
             gistStatusIsError = true;
-            gistStatusMessage = $"Save failed: {ex.Message}";
+            gistStatusMessage = $"Sync failed: {ex.Message}";
         }
         finally
         {
@@ -478,6 +452,10 @@
         autoSyncLastAt = AutoSync.LastSyncAt?.ToLocalTime().ToString("MMM dd, yyyy HH:mm:ss");
         autoSyncDirection = AutoSync.LastSyncDirection;
         autoSyncLastError = AutoSync.LastError;
+        syncStateLabel = AutoSync.SyncStateLabel;
+        syncRemoteSummary = AutoSync.LastRemoteSummary;
+        syncHasConflict = AutoSync.HasConflict;
+        syncActionNeeded = AutoSync.HasUnsyncedLocalChanges || AutoSync.HasRemoteChanges || AutoSync.HasConflict;
     }
 
     public void Dispose()

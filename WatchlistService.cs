@@ -974,8 +974,11 @@ public class WatchlistService
         }
     }
 
-    // Track which items have been attempted this session to avoid re-queuing stuck items
+    // Track hydration lifecycle per session so failed fetches can retry after a cooldown.
     private readonly HashSet<string> _hydratedThisSession = new();
+    private readonly HashSet<string> _hydratingNow = new();
+    private readonly Dictionary<string, DateTimeOffset> _hydrationRetryAfter = new();
+    private static readonly TimeSpan HydrationRetryCooldown = TimeSpan.FromMinutes(5);
 
     private async Task BackgroundHydrationLoop()
     {
@@ -988,29 +991,42 @@ public class WatchlistService
             {
                 if (FetchPreference == DataFetchPreference.Background)
                 {
-                    var itemWithMissingData = Items.FirstOrDefault(i => 
-                        !string.IsNullOrEmpty(i.ImdbId) &&
-                        !_hydratedThisSession.Contains(i.ImdbId) && (
-                        string.IsNullOrEmpty(i.Overview) || 
-                        string.IsNullOrEmpty(i.Genres) || 
-                        string.IsNullOrEmpty(i.Director) || 
-                        string.IsNullOrEmpty(i.PosterPath)));
+                    var itemWithMissingData = Items
+                        .Where(i => NeedsHydration(i) && CanAttemptHydration(i.ImdbId))
+                        .OrderByDescending(i => string.IsNullOrEmpty(i.Overview))
+                        .FirstOrDefault();
 
                     if (itemWithMissingData != null)
                     {
-                        // Mark as attempted before fetching to avoid infinite loops on failures
-                        _hydratedThisSession.Add(itemWithMissingData.ImdbId);
-                        
-                        var details = await GetTmdbEssentialsAsync(itemWithMissingData.ImdbId);
-                        if (details != null)
+                        _hydratingNow.Add(itemWithMissingData.ImdbId);
+
+                        try
                         {
-                            var changed = await HydrateMissingMetadataAsync(itemWithMissingData, details);
-                            if (changed)
+                            var details = await GetTmdbEssentialsAsync(itemWithMissingData.ImdbId);
+                            if (details != null)
                             {
-                                _ = ShowToastAsync($"Synced: {itemWithMissingData.Title}", 2500);
-                                // Remove from cache so the full detail view re-fetches fresh data next time
-                                _movieCache.Remove(itemWithMissingData.ImdbId);
+                                var changed = await HydrateMissingMetadataAsync(itemWithMissingData, details);
+                                if (changed)
+                                {
+                                    _ = ShowToastAsync($"Synced: {itemWithMissingData.Title}", 2500);
+                                    // Remove from cache so the full detail view re-fetches fresh data next time
+                                    _movieCache.Remove(itemWithMissingData.ImdbId);
+                                }
                             }
+
+                            if (NeedsHydration(itemWithMissingData))
+                            {
+                                _hydrationRetryAfter[itemWithMissingData.ImdbId] = DateTimeOffset.UtcNow.Add(HydrationRetryCooldown);
+                            }
+                            else
+                            {
+                                _hydratedThisSession.Add(itemWithMissingData.ImdbId);
+                                _hydrationRetryAfter.Remove(itemWithMissingData.ImdbId);
+                            }
+                        }
+                        finally
+                        {
+                            _hydratingNow.Remove(itemWithMissingData.ImdbId);
                         }
                     }
                 }
@@ -1074,6 +1090,25 @@ public class WatchlistService
         }
         
         return changed;
+    }
+
+    private static bool NeedsHydration(WatchlistItem item)
+        => !string.IsNullOrEmpty(item.ImdbId) && (
+            string.IsNullOrEmpty(item.Overview) ||
+            string.IsNullOrEmpty(item.Genres) ||
+            string.IsNullOrEmpty(item.Director) ||
+            string.IsNullOrEmpty(item.PosterPath));
+
+    private bool CanAttemptHydration(string imdbId)
+    {
+        if (string.IsNullOrEmpty(imdbId)) return false;
+        if (_hydratedThisSession.Contains(imdbId)) return false;
+        if (_hydratingNow.Contains(imdbId)) return false;
+
+        if (_hydrationRetryAfter.TryGetValue(imdbId, out var retryAfter) && retryAfter > DateTimeOffset.UtcNow)
+            return false;
+
+        return true;
     }
 
     public async Task ShowDetailsAsync(TmdbSearchResultItem searchItem)

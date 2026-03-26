@@ -7,29 +7,35 @@ namespace MyPrivateWatchlist.Services;
 
 public class AutoSyncService : IDisposable
 {
+    private const string SyncStateStorageKey = "gist_sync_state";
+
     private readonly WatchlistService _watchlistSvc;
     private readonly GistSyncService _gistSyncSvc;
-
+    private readonly LocalStorageService _storage;
     private readonly object _gate = new();
-    private CancellationTokenSource? _pullLoopCts;
-    private CancellationTokenSource? _pushDebounceCts;
+
     private bool _started;
     private bool _applyingRemote;
-    private bool _isPushing;
     private string? _lastSyncedHash;
-    private int _consecutivePullFailures;
+    private DateTimeOffset? _lastLocalChangeAt;
 
     public DateTimeOffset? LastSyncAt { get; private set; }
     public string LastSyncDirection { get; private set; } = "Never";
     public string? LastError { get; private set; }
+    public bool HasUnsyncedLocalChanges { get; private set; }
+    public bool HasRemoteChanges { get; private set; }
+    public bool HasConflict { get; private set; }
+    public string SyncStateLabel { get; private set; } = "Sync status unknown";
+    public string? LastRemoteSummary { get; private set; }
     public event Action? OnStatusChanged;
 
     private static readonly JsonSerializerOptions HashJsonOptions = new(JsonSerializerDefaults.Web);
 
-    public AutoSyncService(WatchlistService watchlistSvc, GistSyncService gistSyncSvc)
+    public AutoSyncService(WatchlistService watchlistSvc, GistSyncService gistSyncSvc, LocalStorageService storage)
     {
         _watchlistSvc = watchlistSvc;
         _gistSyncSvc = gistSyncSvc;
+        _storage = storage;
     }
 
     public async Task EnsureStartedAsync()
@@ -42,158 +48,155 @@ public class AutoSyncService : IDisposable
 
         _watchlistSvc.OnStateChanged += HandleWatchlistStateChanged;
         await WaitForWatchlistReadyAsync();
-        await RunStartupSyncByModeAsync();
-        await RestartPullLoopAsync();
+
+        var savedState = await _storage.GetAsync<SyncStateRecord>(SyncStateStorageKey);
+        _lastSyncedHash = savedState?.LastSyncedHash;
+        LastSyncAt = savedState?.LastSyncAt;
+        LastSyncDirection = savedState?.LastSyncDirection ?? "Never";
+        UpdateDerivedState(null, null, remoteSummary: null);
+        NotifyStatusChanged();
     }
 
-    public async Task RestartPullLoopAsync()
+    public async Task RefreshStatusAsync()
     {
-        CancellationTokenSource? oldCts;
-        lock (_gate)
+        try
         {
-            oldCts = _pullLoopCts;
-            _pullLoopCts = new CancellationTokenSource();
+            var settings = await _gistSyncSvc.GetSettingsAsync();
+            if (!HasCredentials(settings))
+            {
+                LastRemoteSummary = null;
+                LastError = null;
+                UpdateDerivedState(null, null, "Sync settings are incomplete.");
+                NotifyStatusChanged();
+                return;
+            }
+
+            var remote = await _gistSyncSvc.LoadSnapshotAsync();
+            LastError = remote.WarningMessage;
+            UpdateDerivedState(remote.Hash, remote.UpdatedAt, remote.DescribeSource());
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+            UpdateDerivedState(null, null, "Remote status unavailable.");
         }
 
-        if (oldCts != null)
-        {
-            try { oldCts.Cancel(); } catch { }
-            oldCts.Dispose();
-        }
+        NotifyStatusChanged();
+    }
 
-        _ = RunPullLoopAsync(_pullLoopCts.Token);
+    public async Task SyncNowAsync()
+    {
+        try
+        {
+            var settings = await _gistSyncSvc.GetSettingsAsync();
+            if (!HasCredentials(settings))
+                throw new InvalidOperationException("Gist settings are missing. Please provide both Gist ID and Personal Access Token.");
+
+            var localItems = _watchlistSvc.Items.ToList();
+            var localHash = ComputeHash(localItems);
+            var remote = await _gistSyncSvc.LoadSnapshotAsync();
+            var remoteHash = remote.Hash;
+
+            if (string.IsNullOrWhiteSpace(_lastSyncedHash))
+            {
+                if (localHash == remoteHash)
+                {
+                    await MarkSyncedAsync(localHash, "Sync (already up to date)");
+                    LastError = remote.WarningMessage;
+                    UpdateDerivedState(remoteHash, remote.UpdatedAt, remote.DescribeSource());
+                    return;
+                }
+
+                if (!localItems.Any() && remote.Items.Any())
+                {
+                    await ApplyRemoteAsync(remote, "Pull");
+                    return;
+                }
+
+                if (localItems.Any() && !remote.Items.Any())
+                {
+                    await PushLocalAsync(localItems, localHash, "Push");
+                    return;
+                }
+            }
+
+            var localChanged = !string.Equals(localHash, _lastSyncedHash, StringComparison.Ordinal);
+            var remoteChanged = !string.Equals(remoteHash, _lastSyncedHash, StringComparison.Ordinal);
+
+            if (!localChanged && !remoteChanged)
+            {
+                await MarkSyncedAsync(localHash, "Sync (already up to date)");
+                LastError = remote.WarningMessage;
+                UpdateDerivedState(remoteHash, remote.UpdatedAt, remote.DescribeSource());
+                return;
+            }
+
+            if (localChanged && !remoteChanged)
+            {
+                await PushLocalAsync(localItems, localHash, "Push");
+                return;
+            }
+
+            if (!localChanged && remoteChanged)
+            {
+                await ApplyRemoteAsync(remote, remote.UsedBackup ? "Pull (backup)" : "Pull");
+                return;
+            }
+
+            if (localHash == remoteHash)
+            {
+                await MarkSyncedAsync(localHash, "Sync (matched)");
+                LastError = remote.WarningMessage;
+                UpdateDerivedState(remoteHash, remote.UpdatedAt, remote.DescribeSource());
+                return;
+            }
+
+            var localChangeAt = _lastLocalChangeAt ?? DateTimeOffset.MinValue;
+            var remoteChangedAt = remote.UpdatedAt ?? DateTimeOffset.MinValue;
+
+            if (remoteChangedAt > localChangeAt)
+            {
+                await ApplyRemoteAsync(remote, remote.UsedBackup ? "Pull (backup)" : "Pull");
+            }
+            else
+            {
+                await PushLocalAsync(localItems, localHash, "Push");
+            }
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+            NotifyStatusChanged();
+            throw;
+        }
+    }
+
+    public void MarkLocalStateApplied()
+    {
+        var localHash = ComputeHash(_watchlistSvc.Items);
+        UpdateDerivedState(localHash, null, LastRemoteSummary);
+        NotifyStatusChanged();
     }
 
     private void HandleWatchlistStateChanged()
     {
         if (_watchlistSvc.IsInitializing) return;
         if (_applyingRemote) return;
-        _ = DebounceAutoPushAsync();
+
+        _lastLocalChangeAt = DateTimeOffset.UtcNow;
+        UpdateDerivedState(null, null, LastRemoteSummary);
+        NotifyStatusChanged();
     }
 
-    private async Task DebounceAutoPushAsync()
+    private async Task ApplyRemoteAsync(GistSnapshot remote, string direction)
     {
-        var settings = await _gistSyncSvc.GetSettingsAsync();
-        if (settings.AutoSyncPaused) return;
-        if (!IsPushEnabled(settings)) return;
-        if (!HasCredentials(settings)) return;
-
-        CancellationToken token;
-        lock (_gate)
-        {
-            _pushDebounceCts?.Cancel();
-            _pushDebounceCts?.Dispose();
-            _pushDebounceCts = new CancellationTokenSource();
-            token = _pushDebounceCts.Token;
-        }
-
+        _applyingRemote = true;
         try
         {
-            await Task.Delay(TimeSpan.FromSeconds(15), token);
-            await TryAutoPushAsync(settings, token);
-        }
-        catch (OperationCanceledException)
-        {
-            // Expected while user is actively changing data.
-        }
-    }
-
-    private async Task TryAutoPushAsync(GistSettings settings, CancellationToken token)
-    {
-        if (_isPushing) return;
-        _isPushing = true;
-        try
-        {
-            var items = _watchlistSvc.Items.ToList();
-            var hash = ComputeHash(items);
-            if (hash == _lastSyncedHash) return;
-            token.ThrowIfCancellationRequested();
-            await _gistSyncSvc.SaveToGistAsync(items);
-            _lastSyncedHash = hash;
-            LastSyncAt = DateTimeOffset.Now;
-            LastSyncDirection = "Push";
-            LastError = null;
-            NotifyStatusChanged();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[AutoSync] Auto-push failed: {ex.Message}");
-            LastError = ex.Message;
-            NotifyStatusChanged();
-        }
-        finally
-        {
-            _isPushing = false;
-        }
-    }
-
-    private async Task RunPullLoopAsync(CancellationToken token)
-    {
-        // Small startup delay so app initialization can settle.
-        try { await Task.Delay(TimeSpan.FromSeconds(10), token); } catch (OperationCanceledException) { return; }
-
-        while (!token.IsCancellationRequested)
-        {
-            try
-            {
-                var settings = await _gistSyncSvc.GetSettingsAsync();
-                if (!settings.AutoSyncPaused && IsPullEnabled(settings) && HasCredentials(settings) && !_watchlistSvc.IsInitializing)
-                {
-                    await TryAutoPullAsync();
-                }
-
-                var intervalMinutes = Math.Max(1, settings.AutoPullIntervalMinutes);
-                await Task.Delay(TimeSpan.FromMinutes(intervalMinutes), token);
-            }
-            catch (OperationCanceledException)
-            {
-                break;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[AutoSync] Pull loop error: {ex.Message}");
-                _consecutivePullFailures++;
-                LastError = ex.Message;
-                NotifyStatusChanged();
-                var backoffSeconds = Math.Min(300, (int)Math.Pow(2, Math.Min(_consecutivePullFailures, 6)) * 5);
-                try { await Task.Delay(TimeSpan.FromSeconds(backoffSeconds), token); } catch (OperationCanceledException) { break; }
-            }
-        }
-    }
-
-    private async Task TryAutoPullAsync()
-    {
-        try
-        {
-            var remoteItems = await _gistSyncSvc.LoadFromGistAsync();
-            var remoteHash = ComputeHash(remoteItems);
-            var localHash = ComputeHash(_watchlistSvc.Items);
-
-            if (remoteHash == localHash)
-            {
-                _lastSyncedHash = localHash;
-                LastSyncAt = DateTimeOffset.Now;
-                LastSyncDirection = "Pull (no changes)";
-                LastError = null;
-                _consecutivePullFailures = 0;
-                NotifyStatusChanged();
-                return;
-            }
-
-            _applyingRemote = true;
-            await _watchlistSvc.UpdateListAsync(remoteItems);
-            _lastSyncedHash = remoteHash;
-            LastSyncAt = DateTimeOffset.Now;
-            LastSyncDirection = "Pull";
-            LastError = null;
-            _consecutivePullFailures = 0;
-            NotifyStatusChanged();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[AutoSync] Auto-pull failed: {ex.Message}");
-            _consecutivePullFailures++;
-            LastError = ex.Message;
+            await _watchlistSvc.UpdateListAsync(remote.Items);
+            await MarkSyncedAsync(remote.Hash, direction);
+            LastError = remote.WarningMessage;
+            UpdateDerivedState(remote.Hash, remote.UpdatedAt, remote.DescribeSource());
             NotifyStatusChanged();
         }
         finally
@@ -202,35 +205,66 @@ public class AutoSyncService : IDisposable
         }
     }
 
-    private async Task RunStartupSyncByModeAsync()
+    private async Task PushLocalAsync(List<WatchlistItem> items, string localHash, string direction)
     {
-        try
-        {
-            var settings = await _gistSyncSvc.GetSettingsAsync();
-            if (settings.AutoSyncPaused) return;
-            if (!HasCredentials(settings)) return;
-
-            // Recommended startup behavior: pull-first for pull-capable modes.
-            if (IsPullEnabled(settings))
-            {
-                await TryAutoPullAsync();
-            }
-            // AutoPush intentionally does not push on startup to avoid clobbering remote.
-        }
-        catch (Exception ex)
-        {
-            LastError = ex.Message;
-            NotifyStatusChanged();
-        }
+        var saveResult = await _gistSyncSvc.SaveToGistAsync(items);
+        await MarkSyncedAsync(localHash, direction);
+        LastError = saveResult.WarningMessage;
+        UpdateDerivedState(saveResult.Hash, saveResult.UpdatedAt, saveResult.DescribeSource());
+        NotifyStatusChanged();
     }
 
-    private async Task WaitForWatchlistReadyAsync()
+    private async Task MarkSyncedAsync(string syncedHash, string direction)
     {
-        var attempts = 0;
-        while (_watchlistSvc.IsInitializing && attempts < 120)
+        _lastSyncedHash = syncedHash;
+        LastSyncAt = DateTimeOffset.Now;
+        LastSyncDirection = direction;
+        _lastLocalChangeAt = null;
+        await PersistStateAsync();
+    }
+
+    private async Task PersistStateAsync()
+    {
+        await _storage.SaveAsync(SyncStateStorageKey, new SyncStateRecord
         {
-            await Task.Delay(250);
-            attempts++;
+            LastSyncedHash = _lastSyncedHash,
+            LastSyncAt = LastSyncAt,
+            LastSyncDirection = LastSyncDirection
+        });
+    }
+
+    private void UpdateDerivedState(string? remoteHash, DateTimeOffset? remoteUpdatedAt, string? remoteSummary)
+    {
+        var localHash = ComputeHash(_watchlistSvc.Items);
+        var localChanged = !string.IsNullOrWhiteSpace(_lastSyncedHash) &&
+                           !string.Equals(localHash, _lastSyncedHash, StringComparison.Ordinal);
+        var remoteChanged = !string.IsNullOrWhiteSpace(remoteHash) &&
+                            !string.Equals(remoteHash, _lastSyncedHash, StringComparison.Ordinal);
+
+        if (string.IsNullOrWhiteSpace(_lastSyncedHash) && !string.IsNullOrWhiteSpace(remoteHash))
+        {
+            localChanged = _watchlistSvc.Items.Any() && !string.Equals(localHash, remoteHash, StringComparison.Ordinal);
+            remoteChanged = !_watchlistSvc.Items.Any() && !string.Equals(localHash, remoteHash, StringComparison.Ordinal);
+        }
+
+        HasUnsyncedLocalChanges = localChanged;
+        HasRemoteChanges = remoteChanged;
+        HasConflict = localChanged && remoteChanged && !string.Equals(localHash, remoteHash, StringComparison.Ordinal);
+        LastRemoteSummary = remoteSummary;
+
+        SyncStateLabel = HasConflict
+            ? "Both local and gist data changed since the last sync."
+            : HasUnsyncedLocalChanges
+                ? "Local changes are waiting to be synced."
+                : HasRemoteChanges
+                    ? "The gist has newer data available."
+                    : string.IsNullOrWhiteSpace(_lastSyncedHash)
+                        ? "No sync baseline yet."
+                        : "Local and gist data are in sync.";
+
+        if (remoteUpdatedAt.HasValue && !string.IsNullOrWhiteSpace(remoteSummary))
+        {
+            LastRemoteSummary = $"{remoteSummary} checked {remoteUpdatedAt.Value.ToLocalTime():MMM dd, yyyy HH:mm:ss}";
         }
     }
 
@@ -238,12 +272,6 @@ public class AutoSyncService : IDisposable
 
     private static bool HasCredentials(GistSettings settings)
         => !string.IsNullOrWhiteSpace(settings.GistId) && !string.IsNullOrWhiteSpace(settings.PersonalAccessToken);
-
-    private static bool IsPushEnabled(GistSettings settings)
-        => settings.AutoSyncMode == GistAutoSyncMode.AutoPush || settings.AutoSyncMode == GistAutoSyncMode.TwoWay;
-
-    private static bool IsPullEnabled(GistSettings settings)
-        => settings.AutoSyncMode == GistAutoSyncMode.AutoPull || settings.AutoSyncMode == GistAutoSyncMode.TwoWay;
 
     private static string ComputeHash(IEnumerable<WatchlistItem> items)
     {
@@ -276,12 +304,25 @@ public class AutoSyncService : IDisposable
         return Convert.ToHexString(bytes);
     }
 
+    private async Task WaitForWatchlistReadyAsync()
+    {
+        var attempts = 0;
+        while (_watchlistSvc.IsInitializing && attempts < 120)
+        {
+            await Task.Delay(250);
+            attempts++;
+        }
+    }
+
     public void Dispose()
     {
         _watchlistSvc.OnStateChanged -= HandleWatchlistStateChanged;
-        _pullLoopCts?.Cancel();
-        _pullLoopCts?.Dispose();
-        _pushDebounceCts?.Cancel();
-        _pushDebounceCts?.Dispose();
+    }
+
+    private sealed class SyncStateRecord
+    {
+        public string? LastSyncedHash { get; set; }
+        public DateTimeOffset? LastSyncAt { get; set; }
+        public string? LastSyncDirection { get; set; }
     }
 }
