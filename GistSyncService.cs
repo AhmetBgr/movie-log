@@ -11,8 +11,6 @@ public class GistSyncService
 {
     private const string SettingsStorageKey = "gist_settings";
     private const string WatchlistFileName = "watchlist.json";
-    private const string WatchlistBackupFileName = "watchlist.backup.json";
-    private const string WatchlistMetaFileName = "watchlist.meta.json";
 
     private readonly HttpClient _http;
     private readonly LocalStorageService _storage;
@@ -56,68 +54,59 @@ public class GistSyncService
         var settings = await RequireSettingsAsync();
         var gist = await FetchGistAsync(settings);
 
-        var primary = await TryReadItemsFileAsync(gist, WatchlistFileName, settings);
-        if (primary.Success)
+        if (gist.Files == null || !gist.Files.TryGetValue(WatchlistFileName, out var file))
         {
             return new GistSnapshot
             {
-                Items = primary.Items!,
-                Hash = ComputeHash(primary.Items!),
+                Items = new List<WatchlistItem>(),
+                Hash = ComputeHash(Array.Empty<WatchlistItem>()),
                 UpdatedAt = gist.UpdatedAt,
-                UsedBackup = false,
-                SourceFileName = WatchlistFileName,
-                WarningMessage = primary.WarningMessage
+                SourceFileName = WatchlistFileName
             };
         }
 
-        var backup = await TryReadItemsFileAsync(gist, WatchlistBackupFileName, settings);
-        if (backup.Success)
+        if (file.Truncated)
+            throw new InvalidOperationException($"'{WatchlistFileName}' is too large for this browser sync path. Please reduce the gist size or replace it with a smaller valid JSON file.");
+
+        if (string.IsNullOrWhiteSpace(file.Content))
         {
             return new GistSnapshot
             {
-                Items = backup.Items!,
-                Hash = ComputeHash(backup.Items!),
+                Items = new List<WatchlistItem>(),
+                Hash = ComputeHash(Array.Empty<WatchlistItem>()),
                 UpdatedAt = gist.UpdatedAt,
-                UsedBackup = true,
-                SourceFileName = WatchlistBackupFileName,
-                WarningMessage = $"Primary gist file is invalid. Loaded backup instead. {primary.ErrorMessage}".Trim()
+                SourceFileName = WatchlistFileName
             };
         }
 
-        if (primary.Exists)
-            throw new InvalidOperationException($"Primary and backup gist files are unreadable. {primary.ErrorMessage} {backup.ErrorMessage}".Trim());
-
-        return new GistSnapshot
+        try
         {
-            Items = new List<WatchlistItem>(),
-            Hash = ComputeHash(Array.Empty<WatchlistItem>()),
-            UpdatedAt = gist.UpdatedAt,
-            UsedBackup = false,
-            SourceFileName = WatchlistFileName
-        };
+            var items = JsonSerializer.Deserialize<List<WatchlistItem>>(file.Content, JsonOptions) ?? new List<WatchlistItem>();
+            return new GistSnapshot
+            {
+                Items = items,
+                Hash = ComputeHash(items),
+                UpdatedAt = gist.UpdatedAt,
+                SourceFileName = WatchlistFileName
+            };
+        }
+        catch (JsonException ex)
+        {
+            throw new InvalidOperationException($"File '{WatchlistFileName}' contains invalid JSON: {ex.Message}", ex);
+        }
     }
 
     public async Task<GistSaveResult> SaveToGistAsync(List<WatchlistItem> items)
     {
         var settings = await RequireSettingsAsync();
-        var existingSnapshot = await TryLoadExistingSnapshotForBackupAsync(settings);
         var newItems = items ?? new List<WatchlistItem>();
         var contentJson = JsonSerializer.Serialize(newItems, JsonOptions);
-        var backupJson = existingSnapshot?.RawJson ?? contentJson;
-        var meta = new GistMeta
-        {
-            UpdatedAt = DateTimeOffset.UtcNow,
-            Hash = ComputeHash(newItems),
-            BackupSource = existingSnapshot?.SourceFileName ?? WatchlistFileName
-        };
 
         var payload = new GistPatchRequest
         {
             Files = new Dictionary<string, GistFilePatch>
             {
-                [WatchlistFileName] = new GistFilePatch { Content = contentJson },
-                [WatchlistBackupFileName] = new GistFilePatch { Content = backupJson },
-                [WatchlistMetaFileName] = new GistFilePatch { Content = JsonSerializer.Serialize(meta, JsonOptions) }
+                [WatchlistFileName] = new GistFilePatch { Content = contentJson }
             }
         };
 
@@ -135,54 +124,10 @@ public class GistSyncService
 
         return new GistSaveResult
         {
-            Hash = meta.Hash,
-            UpdatedAt = meta.UpdatedAt,
-            SourceFileName = WatchlistFileName,
-            WarningMessage = existingSnapshot?.WarningMessage
+            Hash = ComputeHash(newItems),
+            UpdatedAt = DateTimeOffset.UtcNow,
+            SourceFileName = WatchlistFileName
         };
-    }
-
-    private async Task<GistSnapshot?> TryLoadExistingSnapshotForBackupAsync(GistSettings settings)
-    {
-        try
-        {
-            var gist = await FetchGistAsync(settings);
-            var primary = await TryReadItemsFileAsync(gist, WatchlistFileName, settings);
-            if (primary.Success)
-            {
-                return new GistSnapshot
-                {
-                    Items = primary.Items!,
-                    Hash = ComputeHash(primary.Items!),
-                    UpdatedAt = gist.UpdatedAt,
-                    UsedBackup = false,
-                    SourceFileName = WatchlistFileName,
-                    WarningMessage = primary.WarningMessage,
-                    RawJson = primary.RawJson
-                };
-            }
-
-            var backup = await TryReadItemsFileAsync(gist, WatchlistBackupFileName, settings);
-            if (backup.Success)
-            {
-                return new GistSnapshot
-                {
-                    Items = backup.Items!,
-                    Hash = ComputeHash(backup.Items!),
-                    UpdatedAt = gist.UpdatedAt,
-                    UsedBackup = true,
-                    SourceFileName = WatchlistBackupFileName,
-                    WarningMessage = $"Primary gist file is invalid. Preserving backup as the recovery copy. {primary.ErrorMessage}".Trim(),
-                    RawJson = backup.RawJson
-                };
-            }
-        }
-        catch
-        {
-            // If we cannot read the previous remote state, we still want to allow a save from local data.
-        }
-
-        return null;
     }
 
     private async Task<GistResponse> FetchGistAsync(GistSettings settings)
@@ -197,68 +142,6 @@ public class GistSyncService
 
         return JsonSerializer.Deserialize<GistResponse>(raw, JsonOptions)
                ?? throw new InvalidOperationException("GitHub gist response could not be parsed.");
-    }
-
-    private async Task<GistReadAttempt> TryReadItemsFileAsync(GistResponse gist, string fileName, GistSettings settings)
-    {
-        if (gist.Files == null || !gist.Files.TryGetValue(fileName, out var file))
-        {
-            return new GistReadAttempt { Exists = false };
-        }
-
-        var rawJson = await ReadFileContentAsync(file, settings);
-        if (string.IsNullOrWhiteSpace(rawJson))
-        {
-            return new GistReadAttempt
-            {
-                Exists = true,
-                Success = true,
-                Items = new List<WatchlistItem>(),
-                RawJson = "[]"
-            };
-        }
-
-        try
-        {
-            var items = JsonSerializer.Deserialize<List<WatchlistItem>>(rawJson, JsonOptions) ?? new List<WatchlistItem>();
-            return new GistReadAttempt
-            {
-                Exists = true,
-                Success = true,
-                Items = items,
-                WarningMessage = file.Truncated ? $"Loaded {fileName} from raw_url because the gist payload was truncated." : null,
-                RawJson = rawJson
-            };
-        }
-        catch (JsonException ex)
-        {
-            return new GistReadAttempt
-            {
-                Exists = true,
-                Success = false,
-                ErrorMessage = $"File '{fileName}' contains invalid JSON: {ex.Message}",
-                RawJson = rawJson
-            };
-        }
-    }
-
-    private async Task<string?> ReadFileContentAsync(GistFile file, GistSettings settings)
-    {
-        if (!file.Truncated && !string.IsNullOrWhiteSpace(file.Content))
-            return file.Content;
-
-        if (string.IsNullOrWhiteSpace(file.RawUrl))
-            return file.Content;
-
-        using var request = new HttpRequestMessage(HttpMethod.Get, file.RawUrl);
-        ApplyGitHubHeaders(request, settings.PersonalAccessToken);
-
-        using var response = await _http.SendAsync(request);
-        var raw = await response.Content.ReadAsStringAsync();
-        if (!response.IsSuccessStatusCode)
-            throw new InvalidOperationException($"GitHub gist raw file fetch failed ({(int)response.StatusCode}): {raw}");
-
-        return raw;
     }
 
     private async Task<GistSettings> RequireSettingsAsync()
@@ -322,9 +205,6 @@ public class GistSyncService
         [JsonPropertyName("content")]
         public string? Content { get; set; }
 
-        [JsonPropertyName("raw_url")]
-        public string? RawUrl { get; set; }
-
         [JsonPropertyName("truncated")]
         public bool Truncated { get; set; }
     }
@@ -338,23 +218,6 @@ public class GistSyncService
     {
         public string Content { get; set; } = "";
     }
-
-    private sealed class GistReadAttempt
-    {
-        public bool Exists { get; set; }
-        public bool Success { get; set; }
-        public List<WatchlistItem>? Items { get; set; }
-        public string? WarningMessage { get; set; }
-        public string? ErrorMessage { get; set; }
-        public string? RawJson { get; set; }
-    }
-
-    private sealed class GistMeta
-    {
-        public DateTimeOffset UpdatedAt { get; set; }
-        public string Hash { get; set; } = "";
-        public string BackupSource { get; set; } = WatchlistFileName;
-    }
 }
 
 public sealed class GistSnapshot
@@ -362,13 +225,12 @@ public sealed class GistSnapshot
     public List<WatchlistItem> Items { get; set; } = new();
     public string Hash { get; set; } = "";
     public DateTimeOffset? UpdatedAt { get; set; }
-    public bool UsedBackup { get; set; }
     public string SourceFileName { get; set; } = "watchlist.json";
     public string? WarningMessage { get; set; }
-    public string? RawJson { get; set; }
+    public bool UsedBackup => false;
 
     public string DescribeSource()
-        => UsedBackup ? "Loaded backup gist file." : "Loaded primary gist file.";
+        => "Loaded primary gist file.";
 }
 
 public sealed class GistSaveResult
@@ -379,5 +241,5 @@ public sealed class GistSaveResult
     public string? WarningMessage { get; set; }
 
     public string DescribeSource()
-        => "Saved primary gist file and refreshed backup.";
+        => "Saved primary gist file.";
 }

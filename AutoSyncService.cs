@@ -139,7 +139,7 @@ public class AutoSyncService : IDisposable
 
             if (!localChanged && remoteChanged)
             {
-                await ApplyRemoteAsync(remote, remote.UsedBackup ? "Pull (backup)" : "Pull");
+                await ApplyRemoteAsync(remote, "Pull");
                 return;
             }
 
@@ -156,7 +156,7 @@ public class AutoSyncService : IDisposable
 
             if (remoteChangedAt > localChangeAt)
             {
-                await ApplyRemoteAsync(remote, remote.UsedBackup ? "Pull (backup)" : "Pull");
+                await ApplyRemoteAsync(remote, "Pull");
             }
             else
             {
