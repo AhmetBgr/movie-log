@@ -195,6 +195,15 @@ public class OpenOnLinkService
     private static bool MergeDefaultLinks(List<OpenOnLink> links)
     {
         var changed = false;
+
+        var existingGoogle = links.FirstOrDefault(x => string.Equals(x.Name, "Google Search", StringComparison.OrdinalIgnoreCase));
+        if (existingGoogle != null && existingGoogle.Template.Contains("sclient=gws-wiz-serp", StringComparison.OrdinalIgnoreCase))
+        {
+            existingGoogle.Template = "https://www.google.com/search?q={query}";
+            existingGoogle.SampleUrl = "https://www.google.com/search?q=Proven+Innocent+2019";
+            changed = true;
+        }
+
         foreach (var defaults in GetDefaultLinks())
         {
             if (links.Any(existing =>
@@ -217,7 +226,7 @@ public class OpenOnLinkService
         [
             CreateDefaultLink("1337x Search", "https://1337x.to/search/{query}/1/", "https://1337x.to/search/dune+2022/1/", "1337x.to"),
             CreateDefaultLink("Criticker", "https://www.criticker.com/film/{titleSlug}/", "https://www.criticker.com/film/Dune/", "www.criticker.com", "title"),
-            CreateDefaultLink("Google Search", "https://www.google.com/search?q={query}&sca_esv=4e0bfa84728bf4dd&sxsrf=ANbL-n4kSDxjCrjMUibPAhh_6aDPWQ8TGA%3A1774552685895&ei=bYbFaY2wNprWxc8P1vCsgQU&biw=2133&bih=1081&ved=0ahUKEwjNmunzo76TAxUaa_EDHVY4K1AQ4dUDCBA&uact=5&oq=Proven+Innocent+2019&gs_lp=Egxnd3Mtd2l6LXNlcnAiFFByb3ZlbiBJbm5vY2VudCAyMDE5MgQQABgeMgsQABiABBiGAxiKBTILEAAYgAQYhgMYigUyCBAAGIAEGKIEMggQABiABBiiBDIIEAAYgAQYogQyBRAAGO8FSOUZUNAHWNUScAF4AZABAJgBkwGgAcgDqgEDMS4zuAEDyAEA-AEBmAIEoALDAsICChAAGLADGNYEGEfCAgYQABgHGB6YAwCIBgGQBgiSBwMyLjKgB4oSsgcDMS4yuAfAAsIHBTAuMy4xyAcKgAgA&sclient=gws-wiz-serp", "https://www.google.com/search?q=Proven+Innocent+2019&sca_esv=4e0bfa84728bf4dd&sxsrf=ANbL-n4kSDxjCrjMUibPAhh_6aDPWQ8TGA%3A1774552685895&ei=bYbFaY2wNprWxc8P1vCsgQU&biw=2133&bih=1081&ved=0ahUKEwjNmunzo76TAxUaa_EDHVY4K1AQ4dUDCBA&uact=5&oq=Proven+Innocent+2019&gs_lp=Egxnd3Mtd2l6LXNlcnAiFFByb3ZlbiBJbm5vY2VudCAyMDE5MgQQABgeMgsQABiABBiGAxiKBTILEAAYgAQYhgMYigUyCBAAGIAEGKIEMggQABiABBiiBDIIEAAYgAQYogQyBRAAGO8FSOUZUNAHWNUScAF4AZABAJgBkwGgAcgDqgEDMS4zuAEDyAEA-AEBmAIEoALDAsICChAAGLADGNYEGEfCAgYQABgHGB6YAwCIBgGQBgiSBwMyLjKgB4oSsgcDMS4yuAfAAsIHBTAuMy4xyAcKgAgA&sclient=gws-wiz-serp", "www.google.com"),
+            CreateDefaultLink("Google Search", "https://www.google.com/search?q={query}", "https://www.google.com/search?q=Proven+Innocent+2019", "www.google.com"),
             CreateDefaultLink("Imdb", "https://www.imdb.com/title/{imdbId}/?ref_=wl_t_1", "https://www.imdb.com/title/{imdbId}/?ref_=wl_t_1", "www.imdb.com"),
             CreateDefaultLink("Letterboxd", "https://letterboxd.com/film/{titleSlug}/", "https://letterboxd.com/film/dune/", "letterboxd.com", "lower"),
             CreateDefaultLink("r/movies", "https://www.reddit.com/r/movies/search/?q={query}&cId=b5efd88a-d45a-439d-b1b9-c2041982b614&iId=687a60fb-ae0c-40ed-8f40-bc7aea073c83", "https://www.reddit.com/r/movies/search/?q=dune%202021&cId=b5efd88a-d45a-439d-b1b9-c2041982b614&iId=687a60fb-ae0c-40ed-8f40-bc7aea073c83", "www.reddit.com"),

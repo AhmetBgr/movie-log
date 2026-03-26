@@ -2,6 +2,7 @@
 @using System.Net.Http.Json
 @using System.Text.Json.Serialization
 @using MyPrivateWatchlist.Models
+@using MyPrivateWatchlist.Components
 @inject HttpClient Http
 @inject IConfiguration Config
 @inject MyPrivateWatchlist.Services.WatchlistService WatchlistSvc
@@ -63,8 +64,8 @@
                                         <img src="@item.FullPosterUrl" alt="@item.DisplayTitle" />
                                     </div>
                                     <div class="flex-grow-1 px-3 py-2 position-relative">
-                                        <div class="discovery-title-row">
-                                            <div class="fw-bold discovery-title">@item.DisplayTitle</div>
+                                        <div class="discovery-title-row d-flex align-items-start gap-2" style="justify-content: flex-start;">
+                                            <div class="fw-bold discovery-title mb-0" style="flex: 0 1 auto; padding-right: 0;">@item.DisplayTitle</div>
                                             <div class="discovery-open-on" @onclick:stopPropagation="true">
                                                 <OpenOnMenu Title="@item.DisplayTitle"
                                                             Year="@GetYear(item)"
