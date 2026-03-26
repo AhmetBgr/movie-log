@@ -1,5 +1,4 @@
 using System.Net.Http.Headers;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -59,7 +58,7 @@ public class GistSyncService
             return new GistSnapshot
             {
                 Items = new List<WatchlistItem>(),
-                Hash = ComputeHash(Array.Empty<WatchlistItem>()),
+                Hash = WatchlistSyncData.ComputeHash(Array.Empty<WatchlistItem>()),
                 UpdatedAt = gist.UpdatedAt,
                 SourceFileName = WatchlistFileName
             };
@@ -73,7 +72,7 @@ public class GistSyncService
             return new GistSnapshot
             {
                 Items = new List<WatchlistItem>(),
-                Hash = ComputeHash(Array.Empty<WatchlistItem>()),
+                Hash = WatchlistSyncData.ComputeHash(Array.Empty<WatchlistItem>()),
                 UpdatedAt = gist.UpdatedAt,
                 SourceFileName = WatchlistFileName
             };
@@ -81,11 +80,11 @@ public class GistSyncService
 
         try
         {
-            var items = JsonSerializer.Deserialize<List<WatchlistItem>>(file.Content, JsonOptions) ?? new List<WatchlistItem>();
+            var items = WatchlistSyncData.Deserialize(file.Content);
             return new GistSnapshot
             {
                 Items = items,
-                Hash = ComputeHash(items),
+                Hash = WatchlistSyncData.ComputeHash(items),
                 UpdatedAt = gist.UpdatedAt,
                 SourceFileName = WatchlistFileName
             };
@@ -100,7 +99,7 @@ public class GistSyncService
     {
         var settings = await RequireSettingsAsync();
         var newItems = items ?? new List<WatchlistItem>();
-        var contentJson = JsonSerializer.Serialize(newItems, JsonOptions);
+        var contentJson = WatchlistSyncData.SerializeCompressed(newItems);
 
         var payload = new GistPatchRequest
         {
@@ -124,7 +123,7 @@ public class GistSyncService
 
         return new GistSaveResult
         {
-            Hash = ComputeHash(newItems),
+            Hash = WatchlistSyncData.ComputeHash(newItems),
             UpdatedAt = DateTimeOffset.UtcNow,
             SourceFileName = WatchlistFileName
         };
@@ -158,37 +157,6 @@ public class GistSyncService
         request.Headers.UserAgent.ParseAdd("MovieLog/1.0");
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
         request.Headers.Add("X-GitHub-Api-Version", "2022-11-28");
-    }
-
-    private static string ComputeHash(IEnumerable<WatchlistItem> items)
-    {
-        var normalized = items
-            .OrderBy(i => i.ImdbId, StringComparer.OrdinalIgnoreCase)
-            .Select(i => new
-            {
-                i.ImdbId,
-                i.Title,
-                i.TitleType,
-                i.Year,
-                i.Genres,
-                i.Director,
-                i.OriginalTitle,
-                i.ParsedYear,
-                Status = (int)i.Status,
-                i.CurrentSeason,
-                i.CurrentEpisode,
-                i.DateAdded,
-                i.UserRating,
-                i.Rating20,
-                i.Overview,
-                i.PosterPath,
-                i.VoteAverage
-            })
-            .ToList();
-
-        var json = JsonSerializer.Serialize(normalized, JsonOptions);
-        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(json));
-        return Convert.ToHexString(bytes);
     }
 
     private sealed class GistResponse

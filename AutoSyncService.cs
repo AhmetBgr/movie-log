@@ -1,6 +1,3 @@
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
 using MyPrivateWatchlist.Models;
 
 namespace MyPrivateWatchlist.Services;
@@ -28,8 +25,6 @@ public class AutoSyncService : IDisposable
     public string SyncStateLabel { get; private set; } = "Sync status unknown";
     public string? LastRemoteSummary { get; private set; }
     public event Action? OnStatusChanged;
-
-    private static readonly JsonSerializerOptions HashJsonOptions = new(JsonSerializerDefaults.Web);
 
     public AutoSyncService(WatchlistService watchlistSvc, GistSyncService gistSyncSvc, LocalStorageService storage)
     {
@@ -93,7 +88,7 @@ public class AutoSyncService : IDisposable
                 throw new InvalidOperationException("Gist settings are missing. Please provide both Gist ID and Personal Access Token.");
 
             var localItems = _watchlistSvc.Items.ToList();
-            var localHash = ComputeHash(localItems);
+            var localHash = WatchlistSyncData.ComputeHash(localItems);
             var remote = await _gistSyncSvc.LoadSnapshotAsync();
             var remoteHash = remote.Hash;
 
@@ -173,7 +168,7 @@ public class AutoSyncService : IDisposable
 
     public void MarkLocalStateApplied()
     {
-        var localHash = ComputeHash(_watchlistSvc.Items);
+        var localHash = WatchlistSyncData.ComputeHash(_watchlistSvc.Items);
         UpdateDerivedState(localHash, null, LastRemoteSummary);
         NotifyStatusChanged();
     }
@@ -235,7 +230,7 @@ public class AutoSyncService : IDisposable
 
     private void UpdateDerivedState(string? remoteHash, DateTimeOffset? remoteUpdatedAt, string? remoteSummary)
     {
-        var localHash = ComputeHash(_watchlistSvc.Items);
+        var localHash = WatchlistSyncData.ComputeHash(_watchlistSvc.Items);
         var localChanged = !string.IsNullOrWhiteSpace(_lastSyncedHash) &&
                            !string.Equals(localHash, _lastSyncedHash, StringComparison.Ordinal);
         var remoteChanged = !string.IsNullOrWhiteSpace(remoteHash) &&
@@ -272,37 +267,6 @@ public class AutoSyncService : IDisposable
 
     private static bool HasCredentials(GistSettings settings)
         => !string.IsNullOrWhiteSpace(settings.GistId) && !string.IsNullOrWhiteSpace(settings.PersonalAccessToken);
-
-    private static string ComputeHash(IEnumerable<WatchlistItem> items)
-    {
-        var normalized = items
-            .OrderBy(i => i.ImdbId, StringComparer.OrdinalIgnoreCase)
-            .Select(i => new
-            {
-                i.ImdbId,
-                i.Title,
-                i.TitleType,
-                i.Year,
-                i.Genres,
-                i.Director,
-                i.OriginalTitle,
-                i.ParsedYear,
-                Status = (int)i.Status,
-                i.CurrentSeason,
-                i.CurrentEpisode,
-                i.DateAdded,
-                i.UserRating,
-                i.Rating20,
-                i.Overview,
-                i.PosterPath,
-                i.VoteAverage
-            })
-            .ToList();
-
-        var json = JsonSerializer.Serialize(normalized, HashJsonOptions);
-        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(json));
-        return Convert.ToHexString(bytes);
-    }
 
     private async Task WaitForWatchlistReadyAsync()
     {
