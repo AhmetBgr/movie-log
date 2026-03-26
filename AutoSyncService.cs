@@ -188,6 +188,16 @@ public class AutoSyncService : IDisposable
         _applyingRemote = true;
         try
         {
+            var currentItems = _watchlistSvc.Items.ToList();
+            if (currentItems.Any())
+            {
+                var localHash = WatchlistSyncData.ComputeHash(currentItems);
+                if (!string.Equals(localHash, remote.Hash, StringComparison.Ordinal))
+                {
+                    await _gistSyncSvc.CreateBackupAsync(currentItems, "before-pull");
+                }
+            }
+
             await _watchlistSvc.UpdateListAsync(remote.Items);
             await MarkSyncedAsync(remote.Hash, direction);
             LastError = remote.WarningMessage;
@@ -202,7 +212,7 @@ public class AutoSyncService : IDisposable
 
     private async Task PushLocalAsync(List<WatchlistItem> items, string localHash, string direction)
     {
-        var saveResult = await _gistSyncSvc.SaveToGistAsync(items);
+        var saveResult = await _gistSyncSvc.SaveToGistAsync(items, "push");
         await MarkSyncedAsync(localHash, direction);
         LastError = saveResult.WarningMessage;
         UpdateDerivedState(saveResult.Hash, saveResult.UpdatedAt, saveResult.DescribeSource());
