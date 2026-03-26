@@ -13,6 +13,7 @@ public class WatchlistService
     private readonly IJSRuntime _js;
     private readonly Dictionary<string, TmdbMovie> _movieCache = new();
     private readonly Dictionary<string, TmdbMovie> _movieDetailsByIdCache = new();
+    private readonly Dictionary<int, TmdbCollection> _collectionCache = new();
     private Dictionary<string, WatchlistItemDetails> _detailsStore = new();
     private Dictionary<int, string> _genreMap = new();
     private CancellationTokenSource? _saveDebounceCts;
@@ -47,6 +48,10 @@ public class WatchlistService
     public TmdbMovie? SelectedMovie { get; private set; }
     public bool IsModalOpen { get; private set; }
     public bool IsLoadingDetails { get; private set; }
+    
+    // Franchise Page State
+    public TmdbCollection? SelectedCollection { get; private set; }
+    public bool IsFranchisePageOpen { get; private set; }
 
     private string _selectedType = "All";
     public string SelectedType 
@@ -336,6 +341,7 @@ public class WatchlistService
                         OriginalTitle = det?.OriginalTitle,
                         Overview      = det?.Overview,
                         VoteAverage   = det?.VoteAverage,
+                        Collection    = s.Collection
                     };
                     // ParsedYear migration
                     if (item.ParsedYear == 0 && !string.IsNullOrEmpty(item.Year))
@@ -531,80 +537,26 @@ public class WatchlistService
             
             if (response?.MovieResults?.Any() == true) 
             {
-                var movie = response.MovieResults.First();
-                try 
+                var findMovie = response.MovieResults.First();
+                var fullMovie = await GetTmdbDetailsByIdAsync(findMovie.Id, "movie");
+                if (fullMovie != null)
                 {
-                    var creditsUrl = $"https://api.themoviedb.org/3/movie/{movie.Id}/credits?api_key={apiKey}";
-                    var credits = await _http.GetFromJsonAsync<TmdbCredits>(creditsUrl);
-                    if (credits != null)
-                    {
-                        movie.Directors = credits.Crew.Where(c => c.Job == "Director").Select(c => c.Name).Distinct().ToList();
-                        movie.Actors = credits.Cast.Take(5).Select(c => c.Name).ToList();
-                    }
-                    
-                    var imagesUrl = $"https://api.themoviedb.org/3/movie/{movie.Id}/images?api_key={apiKey}";
-                    var images = await _http.GetFromJsonAsync<TmdbImages>(imagesUrl);
-                    if (images != null)
-                    {
-                        movie.BackdropPaths = images.Backdrops.Take(10).Select(b => b.FilePath).ToList();
-                    }
-
-                    var videosUrl = $"https://api.themoviedb.org/3/movie/{movie.Id}/videos?api_key={apiKey}";
-                    var videos = await _http.GetFromJsonAsync<TmdbVideosResponse>(videosUrl);
-                    movie.TrailerKey = videos?.Results?.FirstOrDefault(v => v.Site == "YouTube" && v.Type == "Trailer")?.Key;
+                    fullMovie.ImdbId ??= imdbId;
+                    _movieCache[imdbId] = fullMovie;
+                    return fullMovie;
                 }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Details enrichment error for movie {movie.Id}: {ex.Message}");
-                }
-
-                _movieCache[imdbId] = movie;
-                return movie;
             }
             
             if (response?.TvResults?.Any() == true)
             {
                 var tv = response.TvResults.First();
-                var movie = new TmdbMovie
+                var fullTv = await GetTmdbDetailsByIdAsync(tv.Id, "tv");
+                if (fullTv != null)
                 {
-                    Id = tv.Id,
-                    Title = tv.Name,
-                    OriginalTitle = tv.OriginalName,
-                    Overview = tv.Overview,
-                    PosterPath = tv.PosterPath,
-                    VoteAverage = tv.VoteAverage,
-                    ReleaseDate = tv.FirstAirDate,
-                    GenreList = tv.GenreList
-                };
-
-                try 
-                {
-                    var creditsUrl = $"https://api.themoviedb.org/3/tv/{tv.Id}/credits?api_key={apiKey}";
-                    var credits = await _http.GetFromJsonAsync<TmdbCredits>(creditsUrl);
-                    if (credits != null)
-                    {
-                        movie.Directors = credits.Crew.Where(c => c.Job == "Executive Producer" || c.Job == "Director").Select(c => c.Name).Distinct().ToList();
-                        movie.Actors = credits.Cast.Take(5).Select(c => c.Name).ToList();
-                    }
-                    
-                    var imagesUrl = $"https://api.themoviedb.org/3/tv/{tv.Id}/images?api_key={apiKey}";
-                    var images = await _http.GetFromJsonAsync<TmdbImages>(imagesUrl);
-                    if (images != null)
-                    {
-                        movie.BackdropPaths = images.Backdrops.Take(10).Select(b => b.FilePath).ToList();
-                    }
-
-                    var videosUrl = $"https://api.themoviedb.org/3/tv/{tv.Id}/videos?api_key={apiKey}";
-                    var videos = await _http.GetFromJsonAsync<TmdbVideosResponse>(videosUrl);
-                    movie.TrailerKey = videos?.Results?.FirstOrDefault(v => v.Site == "YouTube" && v.Type == "Trailer")?.Key;
+                    fullTv.ImdbId ??= imdbId;
+                    _movieCache[imdbId] = fullTv;
+                    return fullTv;
                 }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Details enrichment error for tv {tv.Id}: {ex.Message}");
-                }
-
-                _movieCache[imdbId] = movie;
-                return movie;
             }
         }
         catch (Exception ex)
@@ -729,6 +681,25 @@ public class WatchlistService
         return null;
     }
 
+    public async Task<TmdbCollection?> GetTmdbCollectionAsync(int collectionId)
+    {
+        if (_collectionCache.TryGetValue(collectionId, out var cached)) return cached;
+
+        var apiKey = _config["TmdbApiKey"];
+        var url = $"https://api.themoviedb.org/3/collection/{collectionId}?api_key={apiKey}";
+        try
+        {
+            var col = await _http.GetFromJsonAsync<TmdbCollection>(url);
+            if (col != null)
+            {
+                _collectionCache[collectionId] = col;
+                return col;
+            }
+        }
+        catch (Exception ex) { Console.WriteLine($"Collection API error: {ex.Message}"); }
+        return null;
+    }
+
     public async Task<string?> ResolveImdbIdAsync(string title, int? year)
     {
         var apiKey = _config["TmdbApiKey"];
@@ -796,6 +767,7 @@ public class WatchlistService
             DateAdded      = i.DateAdded,
             UserRating     = i.UserRating,
             Rating20       = i.Rating20,
+            Collection     = i.Collection
         }).ToList();
 
         // Merge any runtime-populated detail fields back into the details store
@@ -1163,6 +1135,20 @@ public class WatchlistService
         IsModalOpen = false;
         SelectedItem = null;
         SelectedMovie = null;
+        NotifyStateChanged(fullRefresh: false);
+    }
+
+    public async Task OpenFranchisePageAsync(TmdbCollection collection)
+    {
+        IsFranchisePageOpen = true;
+        SelectedCollection = collection;
+        NotifyStateChanged(fullRefresh: false);
+    }
+
+    public void CloseFranchisePage()
+    {
+        IsFranchisePageOpen = false;
+        SelectedCollection = null;
         NotifyStateChanged(fullRefresh: false);
     }
 }

@@ -1,5 +1,6 @@
 @using MyPrivateWatchlist.Models
 @inject MyPrivateWatchlist.Services.WatchlistService WatchlistSvc
+@inject NavigationManager NavManager
 @implements IDisposable
 
 @if (WatchlistSvc.IsModalOpen && WatchlistSvc.SelectedItem != null && WatchlistSvc.SelectedMovie != null)
@@ -68,10 +69,20 @@
                                             <p class="text-secondary fw-semibold small mb-2 text-uppercase tracking-wide">Released: @movie.ReleaseDate</p>
                                         }
 
-                                        <div class="mb-4">
+                                        <div class="d-flex align-items-center gap-2 flex-wrap mb-4">
                                             <span class="badge bg-dark text-white fs-6 px-3 py-2 rounded-pill shadow-sm">
                                                 <i class="bi bi-star-fill text-warning me-1"></i> @movie.VoteAverage.ToString("0.0") / 10
                                             </span>
+                                        
+
+                                            @if (movie.Collection != null && movie.Collection.Id > 0)
+                                            {
+                                                        <button class="btn btn-sm btn-outline-primary rounded-pill fw-bold bg-opacity-10 d-flex align-items-center shadow-sm"
+                                                        @onclick:stopPropagation="true"
+                                                        @onclick='() => { WatchlistSvc.CloseModal(); NavManager.NavigateTo($"/franchise/{movie.Collection.Id}"); }'>
+                                                    <i class="bi bi-collection-play-fill me-2 fs-6"></i> @movie.Collection.Name
+                                                </button>
+                                            }
                                         </div>
                                     </div>
 

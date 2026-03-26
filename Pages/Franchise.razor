@@ -1,0 +1,183 @@
+@page "/franchise/{Id:int}"
+@using MyPrivateWatchlist.Models
+@using MyPrivateWatchlist.Components
+@inject MyPrivateWatchlist.Services.WatchlistService WatchlistSvc
+@inject NavigationManager NavManager
+
+<PageTitle>@(_collection?.Name ?? "Franchise")</PageTitle>
+
+<div class="page-shell">
+    @if (_isLoading)
+    {
+        <div class="page-content" style="display:flex;align-items:center;justify-content:center;height:100vh;">
+            <div class="spinner-border text-secondary" style="width:3rem;height:3rem;" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else if (_collection != null)
+    {
+        <div class="franchise-header position-relative bg-dark mx-auto mt-3 rounded-4 overflow-hidden shadow" style="width: 70%; height: 20vh; min-height: 150px;">
+            @if (!string.IsNullOrEmpty(_collection.BackdropPath))
+            {
+                <div class="position-absolute w-100 h-100" style="background-image: url('https://image.tmdb.org/t/p/w1280@(_collection.BackdropPath)'); background-size: cover; background-position: center; opacity: 0.4;"></div>
+            }
+            <div class="position-absolute w-100 h-100 bg-gradient-to-t" style="background: linear-gradient(to bottom, transparent, rgba(0,0,0,0.95));"></div>
+            
+            <button type="button" class="btn btn-dark bg-opacity-50 position-absolute top-0 start-0 m-4 rounded-circle hover-invert" style="z-index: 10; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;" @onclick="GoBack">
+                <i class="bi bi-arrow-left fs-5"></i>
+            </button>
+
+            <div class="position-absolute bottom-0 start-0 p-4 p-md-5 d-flex align-items-end gap-3 gap-md-4 w-100">
+                <img src="@_collection.FullPosterUrl" class="rounded-3 shadow-lg border border-secondary border-opacity-25" style="width: 80px; height: 120px; object-fit: cover; z-index: 2;" alt="Poster" />
+                <div class="text-white pb-2" style="z-index: 2;">
+                    <h2 class="fw-black mb-2 text-shadow" style="letter-spacing: -0.02em; font-size: 1.5rem;">@_collection.Name</h2>
+                    <span class="badge bg-primary bg-opacity-75 fs-6 py-2 px-3 rounded-pill shadow-sm">
+                        <i class="bi bi-film me-2"></i>@(_collection.Parts?.Count ?? 0) Movies
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="page-content bg-light p-3 p-md-4 mt-3" style="overflow-y: auto; height: 70vh;">
+            <div class="container-fluid p-0 max-width-wrapper">
+                <div class="row g-4">
+                    @if (_collection.Parts != null)
+                    {
+                        @foreach (var part in _collection.Parts.OrderBy(p => p.ReleaseDate))
+                        {
+                            var existingLibItem = WatchlistSvc.Items.FirstOrDefault(i => i.Title == part.Title && i.TitleType == "Movie");
+
+                            <div class="col-6 col-sm-4 col-md-3 col-lg-2 col-xl-2 px-2">
+                                <div class="card border-0 movie-card h-100" style="cursor: pointer;" @onclick="() => OpenMovie(part)">
+                                    <div class="d-flex flex-column h-100">
+                                        <!-- Poster Background -->
+                                        <div class="position-relative w-100" style="padding-top: 150%; background: #e9ecef;">
+                                            <img src="@part.FullPosterUrl" class="position-absolute top-0 start-0 w-100 h-100" alt="@part.Title" loading="lazy" style="object-fit: cover;" onerror="this.style.display='none';" />
+                                            
+                                            <div class="position-absolute top-0 start-0 w-100 h-100" style="background: linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.85) 100%);"></div>
+
+                                            @if (existingLibItem != null && existingLibItem.Rating20.HasValue)
+                                            {
+                                                <div class="position-absolute top-0 end-0 m-2">
+                                                    <span class="rating-badge shadow-sm" style="background-color: @(GetRatingColor(existingLibItem.Rating20.Value)); color: #fff; padding: 4px 8px; border-radius: 6px; font-weight: 800; font-size: 0.65rem;">
+                                                        @existingLibItem.UserRating
+                                                    </span>
+                                                </div>
+                                            }
+
+                                            <!-- Inner Info Overlay -->
+                                            <div class="position-absolute bottom-0 start-0 w-100 p-3 text-white">
+                                                <h6 class="card-title fw-bold mb-1 title-shadow-sm" style="font-size: 0.85rem; line-height: 1.2;">@part.Title</h6>
+                                                <div class="d-flex align-items-center gap-2">
+                                                    @if (!string.IsNullOrEmpty(part.ReleaseDate))
+                                                    {
+                                                        <span class="text-white-50 title-shadow-sm" style="font-size: 0.65rem; font-weight: 600;"><i class="bi bi-calendar3 me-1"></i>@(part.ReleaseDate.Length >= 4 ? part.ReleaseDate.Substring(0, 4) : part.ReleaseDate)</span>
+                                                    }
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="page-content" style="display:flex;align-items:center;justify-content:center;height:100vh;">
+            <div class="text-center py-5">
+                <i class="bi bi-exclamation-triangle fs-1 d-block mb-3 text-secondary opacity-25"></i>
+                <p class="fs-5 text-secondary">Franchise not found or could not be loaded.</p>
+                <button class="btn btn-outline-secondary mt-3" @onclick="GoBack">Go Back</button>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .max-width-wrapper {
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+    .fw-black { font-weight: 900; }
+    .text-shadow { text-shadow: 0 2px 10px rgba(0,0,0,0.8); }
+    .title-shadow-sm { text-shadow: 0 1px 4px rgba(0,0,0,0.9); }
+    
+    .movie-card {
+        background: #111;
+        border-radius: 12px !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+        overflow: hidden;
+    }
+    .movie-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 24px rgba(0,0,0,0.25);
+    }
+    .hover-invert { transition: background-color 0.2s, color 0.2s; }
+    .hover-invert:hover { background-color: #fff !important; color: #000 !important; }
+</style>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private TmdbCollection? _collection;
+    private bool _isLoading = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _isLoading = true;
+        
+        try
+        {
+            _collection = await WatchlistSvc.GetTmdbCollectionAsync(Id);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading collection: {ex.Message}");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void GoBack()
+    {
+        NavManager.NavigateTo("/");
+    }
+
+    private string GetRatingColor(int val)
+    {
+        double hue = (val / 100.0) * 120;
+        return $"hsl({hue}, 70%, 45%)";
+    }
+
+    private async Task OpenMovie(TmdbMovie part)
+    {
+        var existing = WatchlistSvc.Items.FirstOrDefault(i => i.ImdbId == part.ImdbId) ?? WatchlistSvc.Items.FirstOrDefault(i => i.Title == part.Title && i.Year.Contains(part.ReleaseDate?.Substring(0, 4) ?? ""));
+        
+        if (existing != null)
+        {
+            await WatchlistSvc.ShowDetailsAsync(existing);
+        }
+        else
+        {
+            var searchItem = new TmdbSearchResultItem 
+            { 
+                Id = part.Id, 
+                Title = part.Title, 
+                OriginalTitle = part.OriginalTitle,
+                MediaType = "movie", 
+                ReleaseDate = part.ReleaseDate, 
+                PosterPath = part.PosterPath 
+            };
+            await WatchlistSvc.ShowDetailsAsync(searchItem);
+        }
+    }
+}

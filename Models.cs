@@ -39,6 +39,7 @@ public class WatchlistItem
     public string? Overview { get; set; }
     public string? PosterPath { get; set; }
     public double? VoteAverage { get; set; }
+    public TmdbCollection? Collection { get; set; }
 
     public string? DisplayOriginalTitle 
     {
@@ -91,6 +92,9 @@ public class TmdbMovie
     public List<string> Actors { get; set; } = new();
     public List<string> BackdropPaths { get; set; } = new();
     public string? TrailerKey { get; set; }
+
+    [JsonPropertyName("belongs_to_collection")]
+    public TmdbCollection? Collection { get; set; }
 
     [JsonPropertyName("genres")]
     public List<TmdbGenre> GenreList { get; set; } = new();
@@ -276,6 +280,7 @@ public class WatchlistItemSlim
     public DateTime DateAdded { get; set; } = DateTime.Now;
     public int? UserRating { get; set; }
     public int? Rating20 { get; set; }
+    public TmdbCollection? Collection { get; set; }
 }
 
 /// <summary>
@@ -288,4 +293,26 @@ public class WatchlistItemDetails
     public string? OriginalTitle { get; set; }
     public string? Overview { get; set; }
     public double? VoteAverage { get; set; }
+}
+
+public class TmdbCollection
+{
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = "";
+
+    [JsonPropertyName("poster_path")]
+    public string? PosterPath { get; set; }
+
+    [JsonPropertyName("backdrop_path")]
+    public string? BackdropPath { get; set; }
+
+    [JsonPropertyName("parts")]
+    public List<TmdbMovie>? Parts { get; set; }
+
+    public string FullPosterUrl => string.IsNullOrEmpty(PosterPath)
+        ? "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" 
+        : $"https://image.tmdb.org/t/p/w500{PosterPath}";
 }
