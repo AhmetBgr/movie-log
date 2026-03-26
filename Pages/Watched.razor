@@ -218,10 +218,7 @@
                                 <td class="px-3" style="cursor:pointer;" @onclick="() => HandleRowClick(item)">
                                     <div class="d-flex align-items-center gap-2">
                                         <span class="fw-bold text-dark title-hover">@item.Title</span>
-                                        <a class="ext-link" href="@Get1337xSearchUrl(item)" target="_blank" rel="noopener noreferrer"
-                                           title="Search on 1337x" @onclick:stopPropagation="true">
-                                            <i class="bi bi-box-arrow-up-right"></i>
-                                        </a>
+                                        <OpenOnMenu Item="item" />
                                     </div>
                                     @if (!string.IsNullOrEmpty(item.Director))
                                     {
@@ -268,7 +265,7 @@
                             @foreach (var item in _watchedItems)
                             {
                                 <div class="col">
-                                    <div class="card border-0 overflow-hidden movie-card-w @(_selectedIds.Contains(item.ImdbId) ? "movie-card-selected" : "")"
+                                    <div class="card border-0 movie-card-w @(_selectedIds.Contains(item.ImdbId) ? "movie-card-selected" : "")"
                                          data-holdselect-id="@item.ImdbId"
                                          style="cursor:pointer;" @onclick="() => HandleRowClick(item)">
                                         <div class="d-flex">
@@ -305,7 +302,10 @@
                                                         <span class="rating-badge-w" style="background:@GetRatingColor(item.Rating20.Value);">@item.UserRating</span>
                                                     </div>
                                                 }
-                                                <div class="fw-bold" style="font-size:0.9rem;color:#111;padding-right:@(item.Rating20.HasValue ? "46px" : "4px");">@item.Title</div>
+                                                <div class="d-flex align-items-center gap-2" style="padding-right:@(item.Rating20.HasValue ? "46px" : "4px");">
+                                                    <div class="fw-bold" style="font-size:0.9rem;color:#111;">@item.Title</div>
+                                                    <OpenOnMenu Item="item" />
+                                                </div>
                                                 <div class="row-meta">@item.Year &middot; @item.DateAdded.ToString("MMM dd, yyyy")</div>
                                                 @if (!string.IsNullOrEmpty(item.Director))
                                                 {
@@ -463,12 +463,6 @@
 
     private List<string> AvailableGenres => _availableGenres;
     private string GetRatingColor(int val) { double hue = (val / 100.0) * 120; return $"hsl({hue},70%,45%)"; }
-
-    private static string Get1337xSearchUrl(WatchlistItem item)
-    {
-        var q = string.IsNullOrWhiteSpace(item.Year) ? item.Title?.Trim() ?? "" : $"{item.Title?.Trim()} {item.Year?.Trim()}".Trim();
-        return $"https://1337x.to/search/{System.Net.WebUtility.UrlEncode(q)}/1/";
-    }
 }
 
 <style>
@@ -507,13 +501,6 @@
     /* Row interactions */
     .title-hover { transition: opacity 0.15s; }
     .title-hover:hover { opacity: 0.6; }
-    .ext-link {
-        opacity: 0; width: 20px; height: 20px;
-        display: inline-flex; align-items: center; justify-content: center;
-        color: #888; font-size: 0.7rem; transition: opacity 0.15s;
-        text-decoration: none;
-    }
-    tr:hover .ext-link { opacity: 1; }
 
     /* Rating box */
     .rating-box {

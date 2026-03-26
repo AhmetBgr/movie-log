@@ -126,10 +126,9 @@
                                             <span class="text-secondary small fw-normal ms-1">(@item.DisplayOriginalTitle)</span>
                                         }
                                     </span>
-                                    <a class="ext-link" href="@Get1337xSearchUrl(item)" target="_blank" rel="noopener noreferrer"
-                                       title="Search on 1337x" @onclick:stopPropagation="true">
-                                        <i class="bi bi-box-arrow-up-right"></i>
-                                    </a>
+                                    <OpenOnMenu Title="@item.DisplayTitle"
+                                                Year="@GetSearchResultYear(item)"
+                                                ImdbId="@ResolveSearchResultImdbId(item)" />
                                 </div>
                                 <span class="d-lg-none text-secondary d-block" style="font-size:0.72rem;opacity:0.75;">
                                     @if (directorsMap.TryGetValue($"{item.MediaType}-{item.Id}", out var dirMobile)) { @dirMobile }
@@ -335,18 +334,15 @@
         else await WatchlistSvc.UpdateStatusAsync(lib, status);
     }
 
-    private static string Get1337xSearchUrl(TmdbSearchResultItem item)
-    {
-        var year = item.DisplayDate.Length >= 4 ? item.DisplayDate.Substring(0, 4) : "";
-        var q = string.IsNullOrWhiteSpace(year) ? item.DisplayTitle?.Trim() ?? "" : $"{item.DisplayTitle?.Trim()} {year}".Trim();
-        return $"https://1337x.to/search/{System.Net.WebUtility.UrlEncode(q)}/1/";
-    }
+    private static string GetSearchResultYear(TmdbSearchResultItem item)
+        => item.DisplayDate.Length >= 4 ? item.DisplayDate[..4] : "";
+
+    private string? ResolveSearchResultImdbId(TmdbSearchResultItem item)
+        => FindLibraryItem(item)?.ImdbId;
 }
 
 <style>
     .title-hover { transition: opacity 0.15s; }
     .title-hover:hover { opacity: 0.6; }
-    .ext-link { opacity: 0; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; color: #888; font-size: 0.7rem; transition: opacity 0.15s; text-decoration: none; }
-    tr:hover .ext-link { opacity: 1; }
     .search-title { max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
 </style>

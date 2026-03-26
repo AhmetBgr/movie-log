@@ -63,7 +63,14 @@
                                         <img src="@item.FullPosterUrl" alt="@item.DisplayTitle" />
                                     </div>
                                     <div class="flex-grow-1 px-3 py-2 position-relative">
-                                        <div class="fw-bold discovery-title">@item.DisplayTitle</div>
+                                        <div class="discovery-title-row">
+                                            <div class="fw-bold discovery-title">@item.DisplayTitle</div>
+                                            <div class="discovery-open-on" @onclick:stopPropagation="true">
+                                                <OpenOnMenu Title="@item.DisplayTitle"
+                                                            Year="@GetYear(item)"
+                                                            ImdbId="@ResolveDiscoveryImdbId(item)" />
+                                            </div>
+                                        </div>
                                         @if (!string.IsNullOrEmpty(item.DisplayOriginalTitle))
                                         {
                                             <div class="discovery-subtitle">@item.DisplayOriginalTitle</div>
@@ -322,6 +329,9 @@
             (year == "Unknown Date" || i.Year.Contains(year, StringComparison.OrdinalIgnoreCase)));
     }
 
+    private string? ResolveDiscoveryImdbId(TmdbSearchResultItem item)
+        => FindLibraryItem(item)?.ImdbId;
+
     private static string GetLibraryStatusText(WatchlistStatus status) => status switch
     {
         WatchlistStatus.Pending => "In Watchlist",
@@ -513,7 +523,22 @@
     .discovery-title {
         font-size: 0.9rem;
         color: #111;
-        padding-right: 4px;
+        padding-right: 8px;
+        min-width: 0;
+        flex: 1 1 auto;
+    }
+
+    .discovery-title-row {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 6px;
+    }
+
+    .discovery-open-on {
+        flex: 0 0 auto;
+        display: inline-flex;
+        align-items: flex-start;
     }
 
     .discovery-subtitle {

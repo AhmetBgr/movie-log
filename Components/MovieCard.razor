@@ -3,7 +3,7 @@
 
 @if (Item != null)
 {
-    <div class="card border-0 overflow-hidden movie-card @(IsSelected ? "movie-card-selected" : "")"
+    <div class="card border-0 movie-card @(IsSelected ? "movie-card-selected" : "")"
          data-holdselect-id="@Item.ImdbId"
          style="cursor: pointer;"
          @onclick="ShowDetails">
@@ -27,7 +27,7 @@
             }
 
             <!-- ── Main Content (poster + data) ─────────────────────── -->
-            <div class="flex-grow-1 d-flex flex-column overflow-hidden">
+            <div class="flex-grow-1 d-flex flex-column">
 
                 <!-- Top Group: Poster and Data Column -->
                 <div class="d-flex">
@@ -39,6 +39,7 @@
                                 <img src="@Item.FullPosterUrl"
                                      class="h-100 w-100 poster-img"
                                      alt="@Item.Title"
+                                     loading="lazy"
                                      style="object-fit: cover; display: block;"
                                      onerror="this.style.display='none'; this.parentElement.innerHTML='<i class=&quot;bi bi-film fs-1 text-secondary opacity-25&quot;></i>';" />
                             }
@@ -63,7 +64,10 @@
 
                         <!-- Row 1: Title -->
                         <div class="mb-1">
-                            <h6 class="card-title fw-bold mb-0 movie-title">@Item.Title</h6>
+                            <div class="d-flex align-items-start gap-2">
+                                <h6 class="card-title fw-bold mb-0 movie-title">@Item.Title</h6>
+                                <OpenOnMenu Item="@Item" />
+                            </div>
                             @if (Item.DateAdded != default && Item.DateAdded != DateTime.MinValue)
                             {
                                 <div class="meta-text mt-1">
@@ -159,11 +163,10 @@
         background: #fff;
         border-radius: 10px !important;
         box-shadow: 0 1px 3px rgba(0,0,0,0.07), 0 2px 8px rgba(0,0,0,0.05);
-        transition: box-shadow 0.05s ease, transform 0.05s ease;
+        transition: box-shadow 0.08s ease;
     }
     .movie-card:hover {
         box-shadow: 0 4px 16px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.06) !important;
-        transform: translateY(-2px);
     }
     .movie-card-selected {
         outline: 2px solid rgba(13, 110, 253, 0.5);
@@ -218,13 +221,6 @@
         background: #f0f0f0;
         min-height: 130px;
     }
-    .poster-img {
-        transition: transform 0.05s ease;
-    }
-    .movie-card:hover .poster-img {
-        transform: scale(1.03);
-    }
-
     .rating-badge {
         display: inline-flex;
         align-items: center;

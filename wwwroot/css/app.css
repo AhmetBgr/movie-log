@@ -294,28 +294,6 @@ tr:hover .show-on-row-hover {
     opacity: 1;
 }
 
-/* 1337x search link: hidden until row/title hover or keyboard focus */
-.table tbody tr .link-1337x-hover,
-.title-with-1337x-hover .link-1337x-hover {
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.15s ease, visibility 0.15s;
-    pointer-events: none;
-}
-
-.table tbody tr:hover .link-1337x-hover,
-.title-with-1337x-hover:hover .link-1337x-hover {
-    opacity: 1;
-    visibility: visible;
-    pointer-events: auto;
-}
-
-.link-1337x-hover:focus-visible {
-    opacity: 1 !important;
-    visibility: visible !important;
-    pointer-events: auto !important;
-}
-
 /* ── MobileNav overrides — ensure no global rules bleed in ── */
 .mob-item,
 .mob-item:hover,

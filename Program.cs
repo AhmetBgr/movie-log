@@ -12,6 +12,7 @@ builder.Services.AddScoped<LocalStorageService>();
 builder.Services.AddScoped<WatchlistService>();
 builder.Services.AddScoped<GistSyncService>();
 builder.Services.AddScoped<AutoSyncService>();
+builder.Services.AddScoped<OpenOnLinkService>();
 var host = builder.Build();
 
 await host.RunAsync();

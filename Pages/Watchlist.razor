@@ -200,9 +200,7 @@
                                     <td class="px-3">
                                         <div class="d-flex align-items-center gap-2">
                                             <span class="fw-bold text-dark title-hover">@item.Title</span>
-                                            <a class="ext-link" href="@Get1337xSearchUrl(item)" target="_blank" rel="noopener noreferrer" title="Search on 1337x" @onclick:stopPropagation="true">
-                                                <i class="bi bi-box-arrow-up-right"></i>
-                                            </a>
+                                            <OpenOnMenu Item="item" />
                                         </div>
                                         @if (!string.IsNullOrEmpty(item.Director))
                                         {
@@ -236,16 +234,15 @@
                     }
                     <div class="table-wrap table-wrap--wide p-3">
                         <div class="row row-cols-1 g-3">
-                            @foreach (var item in _filteredItems)
-                            {
-                                <div class="col">
+                            <Virtualize Items="_filteredItems" Context="item" ItemSize="228" OverscanCount="2">
+                                <div class="col" @key="item.ImdbId">
                                     <MovieCard Item="item"
                                                IsEditMode="@isEditing"
                                                IsSelected="@_selectedIds.Contains(item.ImdbId)"
                                                OnToggleSelect="@(() => ToggleSelect(item.ImdbId))"
                                                ShowActionButtons="true" />
                                 </div>
-                            }
+                            </Virtualize>
                         </div>
                     </div>
                 }
@@ -338,12 +335,6 @@
     }
 
     private List<string> AvailableGenres => _availableGenres;
-
-    private static string Get1337xSearchUrl(WatchlistItem item)
-    {
-        var q = string.IsNullOrWhiteSpace(item.Year) ? item.Title?.Trim() ?? "" : $"{item.Title?.Trim()} {item.Year?.Trim()}".Trim();
-        return $"https://1337x.to/search/{System.Net.WebUtility.UrlEncode(q)}/1/";
-    }
 }
 
 <style>
@@ -355,8 +346,6 @@
     .content-scroll { flex: 1; overflow-y: auto; overflow-x: hidden; min-height: 0; min-width: 0; }
     .title-hover { transition: opacity 0.15s; }
     .title-hover:hover { opacity: 0.6; }
-    .ext-link { opacity: 0; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; color: #888; font-size: 0.7rem; transition: opacity 0.15s; text-decoration: none; }
-    tr:hover .ext-link { opacity: 1; }
     .poster-thumb { width: 40px; height: 60px; border-radius: 4px; overflow: hidden; background: #f0f0f0; flex-shrink: 0; }
     .poster-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .poster-fallback { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #ccc; font-size: 1rem; }

@@ -1,0 +1,204 @@
+@using MyPrivateWatchlist.Models
+@inject MyPrivateWatchlist.Services.OpenOnLinkService OpenOnLinks
+@inject IJSRuntime JS
+@implements IDisposable
+
+@if (_availableLinks.Count > 0)
+{
+    <details class="open-on-menu" @onclick:stopPropagation="true">
+        <summary class="open-on-trigger @(ButtonClass ?? "")" title="Open on" @onclick:stopPropagation="true">
+            <i class="bi bi-three-dots"></i>
+        </summary>
+        <div class="open-on-popover" @onclick:stopPropagation="true">
+            <div class="d-flex align-items-center justify-content-between">
+                <div class="open-on-heading">Open on</div>
+                <button type="button" class="open-on-close" title="Close" onclick="window.openOnMenu.closeClosest(this)">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+            @foreach (var link in _availableLinks)
+            {
+                var url = _resolvedItem == null ? null : OpenOnLinks.BuildUrl(link, _resolvedItem);
+                if (!string.IsNullOrWhiteSpace(url))
+                {
+                    <a class="open-on-item"
+                       href="@url"
+                       target="_blank"
+                       rel="noopener noreferrer"
+                       onclick="window.openOnMenu.closeClosest(this)"
+                       title="@link.Name">
+                        @link.Name
+                    </a>
+                }
+            }
+        </div>
+    </details>
+}
+
+@code {
+    [Parameter] public WatchlistItem? Item { get; set; }
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? Year { get; set; }
+    [Parameter] public string? ImdbId { get; set; }
+    [Parameter] public string? ButtonClass { get; set; }
+
+    private List<OpenOnLink> _availableLinks = new();
+    private WatchlistItem? _resolvedItem;
+
+    protected override async Task OnInitializedAsync()
+    {
+        OpenOnLinks.OnChanged += HandleLinksChanged;
+        await OpenOnLinks.EnsureLoadedAsync();
+        RefreshLinks();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("openOnMenu.init");
+        }
+    }
+
+    protected override void OnParametersSet()
+        => RefreshLinks();
+
+    private void HandleLinksChanged()
+    {
+        RefreshLinks();
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void RefreshLinks()
+    {
+        _resolvedItem = Item ?? BuildItemFromParts();
+        _availableLinks = _resolvedItem == null
+            ? new List<OpenOnLink>()
+            : OpenOnLinks.Links.Where(link => OpenOnLinks.CanOpen(link, _resolvedItem)).ToList();
+    }
+
+    private WatchlistItem? BuildItemFromParts()
+    {
+        if (string.IsNullOrWhiteSpace(Title) && string.IsNullOrWhiteSpace(ImdbId))
+            return null;
+
+        return new WatchlistItem
+        {
+            ImdbId = ImdbId ?? "",
+            Title = Title ?? "",
+            Year = Year ?? "",
+            TitleType = ""
+        };
+    }
+
+    public void Dispose()
+        => OpenOnLinks.OnChanged -= HandleLinksChanged;
+}
+
+<style>
+    .open-on-menu {
+        position: relative;
+        display: inline-block;
+    }
+
+    .open-on-trigger {
+        list-style: none;
+        width: 24px;
+        height: 24px;
+        border: 0;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #6c757d;
+        background: transparent;
+        cursor: pointer;
+        transition: background 0.12s ease, color 0.12s ease;
+    }
+
+    .open-on-trigger:hover {
+        background: rgba(0, 0, 0, 0.06);
+        color: #212529;
+    }
+
+    .open-on-trigger::-webkit-details-marker,
+    .open-on-trigger::marker {
+        display: none;
+    }
+
+    .open-on-popover {
+        position: fixed;
+        top: 0;
+        left: 0;
+        min-width: 180px;
+        max-width: min(280px, calc(100vw - 16px));
+        padding: 8px;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        border-radius: 12px;
+        background: #fff;
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.16);
+        z-index: 2000;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+    }
+
+    .open-on-menu[open] .open-on-popover[data-positioned="true"] {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+    }
+
+    .open-on-heading {
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #6c757d;
+        padding: 2px 6px 8px;
+        margin: 0;
+    }
+
+    .open-on-item {
+        display: block;
+        padding: 8px 10px;
+        border-radius: 8px;
+        color: #212529;
+        font-size: 0.88rem;
+        font-weight: 500;
+        text-decoration: none;
+        white-space: nowrap;
+    }
+
+    .open-on-item:nth-of-type(even) {
+        background: rgba(0, 0, 0, 0.025);
+    }
+
+    .open-on-item + .open-on-item {
+        border-top: 1px solid rgba(0, 0, 0, 0.07);
+    }
+
+    .open-on-item:hover {
+        background: #f5f6f8;
+        color: #111;
+    }
+
+    .open-on-close {
+        width: 26px;
+        height: 26px;
+        border: 0;
+        border-radius: 999px;
+        background: transparent;
+        color: #6c757d;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background 0.12s ease, color 0.12s ease;
+    }
+
+    .open-on-close:hover {
+        background: rgba(0, 0, 0, 0.06);
+        color: #212529;
+    }
+</style>
