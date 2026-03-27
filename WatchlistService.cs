@@ -1130,6 +1130,37 @@ public class WatchlistService
         }
     }
 
+    public async Task ShowGlobalRandomMovieAsync()
+    {
+        var apiKey = _config["TmdbApiKey"];
+        try
+        {
+            // Pick a random page from the top 500 pages of popular movies
+            int randomPage = Random.Shared.Next(1, 501);
+            var url = $"https://api.themoviedb.org/3/discover/movie?api_key={apiKey}&sort_by=popularity.desc&page={randomPage}&vote_count.gte=100&include_adult=false";
+            
+            var response = await _http.GetFromJsonAsync<TmdbSearchResponse>(url);
+            if (response?.Results != null && response.Results.Any())
+            {
+                // Filter out items already in the user's library
+                var results = response.Results.Where(r => 
+                    !Items.Any(i => i.Title.Equals(r.Title, StringComparison.OrdinalIgnoreCase))
+                ).ToList();
+
+                if (!results.Any()) results = response.Results; // Fallback if all are in library
+
+                var chosen = results[Random.Shared.Next(results.Count)];
+                chosen.MediaType = "movie"; // discover/movie only returns movies
+                await ShowDetailsAsync(chosen);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Global random error: {ex.Message}");
+            _ = ShowToastAsync("Failed to fetch a random movie. Check your connection.");
+        }
+    }
+
     public void CloseModal()
     {
         IsModalOpen = false;

@@ -27,8 +27,8 @@
 
         <!-- Search bar — always fixed to top -->
         <div class="search-bar-wrap">
-            <div class="search-bar-inner">
-                <form class="search-form" @onsubmit="PerformSearch" @onsubmit:preventDefault="true">
+            <div class="search-bar-inner d-flex align-items-center gap-2">
+                <form class="search-form flex-grow-1" @onsubmit="PerformSearch" @onsubmit:preventDefault="true">
                     <i class="bi bi-search search-icon"></i>
                     <input type="text"
                            class="search-input"
@@ -37,8 +37,15 @@
                            @bind:event="oninput"
                            @onfocus="() => isSearchFocused = true"
                            @onblur="HandleBlur" />
-                    <button type="submit" class="search-btn">Search</button>
+                    <button type="submit" class="search-btn">
+                        <i class="bi bi-search d-sm-none"></i>
+                        <span class="d-none d-sm-inline">Search</span>
+                    </button>
                 </form>
+
+                <button type="button" class="random-btn shadow-sm" @onclick="WatchlistSvc.ShowGlobalRandomMovieAsync" title="Feeling lucky? Show random movie outside library">
+                    <i class="bi bi-dice-5-fill"></i>
+                </button>
 
                 @if (isSearchFocused && WatchlistSvc.EnableSearchHistory && WatchlistSvc.SearchHistory.Any(s => string.IsNullOrEmpty(SearchText) || s.Contains(SearchText, StringComparison.OrdinalIgnoreCase)))
                 {
@@ -109,13 +116,13 @@
         z-index: 100;
         background: #fff;
         border-bottom: 1px solid #e8eaed;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-        padding: 10px 16px;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+        padding: 6px 16px;
     }
 
     .search-bar-inner {
         position: relative;
-        max-width: 680px;
+        max-width: 720px;
         margin: 0 auto;
     }
 
@@ -126,9 +133,9 @@
         background: #f1f3f4;
         border-radius: 999px;
         border: 2px solid transparent;
-        padding: 0 6px 0 16px;
+        padding: 0 4px 0 14px;
         transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
-        height: 46px;
+        height: 40px;
     }
 
     .search-form:focus-within {
@@ -139,14 +146,10 @@
 
     .search-icon {
         color: #888;
-        font-size: 1rem;
+        font-size: 0.9rem;
         flex-shrink: 0;
-        margin-right: 10px;
+        margin-right: 8px;
         transition: color 0.2s;
-    }
-
-    .search-form:focus-within .search-icon {
-        color: #1a73e8;
     }
 
     .search-input {
@@ -154,13 +157,9 @@
         border: none;
         background: transparent;
         outline: none;
-        font-size: 0.95rem;
+        font-size: 0.9rem;
         color: #202124;
         min-width: 0;
-    }
-
-    .search-input::placeholder {
-        color: #aaa;
     }
 
     .search-btn {
@@ -169,19 +168,62 @@
         color: #fff;
         border: none;
         border-radius: 999px;
-        padding: 6px 18px;
-        font-size: 0.82rem;
-        font-weight: 600;
+        padding: 4px 14px;
+        font-size: 0.75rem;
+        font-weight: 700;
         letter-spacing: 0.04em;
         text-transform: uppercase;
         cursor: pointer;
         transition: background 0.2s, transform 0.1s;
-        height: 34px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
-    .search-btn:hover {
-        background: #3a0647;
-        transform: scale(1.03);
+    .random-btn {
+        flex-shrink: 0;
+        width: 40px;
+        height: 40px;
+        background: #f1f3f4;
+        color: #1a1a2e;
+        border: none;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 1.1rem;
+    }
+
+    .random-btn:hover {
+        background: var(--primary);
+        color: #fff;
+        transform: rotate(15deg) scale(1.08);
+    }
+
+    /* ── Mobile adjustments ────────────────────────────────── */
+    @@media (max-width: 576px) {
+        .search-bar-wrap {
+            padding: 6px 10px;
+        }
+        .search-form {
+            padding-left: 10px;
+        }
+        .search-icon {
+            display: none; /* Hide the left icon to save space on tiny screens */
+        }
+        .search-btn {
+            width: 32px; /* Make it square-ish icon-only button */
+            padding: 0;
+            font-size: 1rem;
+        }
+        .random-btn {
+            width: 36px;
+            height: 36px;
+            font-size: 1rem;
+        }
     }
 
     /* ── History dropdown ───────────────────────────────────── */
