@@ -79,7 +79,7 @@
                                             {
                                                         <button class="btn btn-sm btn-outline-primary rounded-pill fw-bold bg-opacity-10 d-flex align-items-center shadow-sm"
                                                         @onclick:stopPropagation="true"
-                                                        @onclick='() => { WatchlistSvc.CloseModal(); NavManager.NavigateTo($"/franchise/{movie.Collection.Id}"); }'>
+                                                        @onclick='() => { WatchlistSvc.CloseModal(); NavManager.NavigateTo($"franchise/{movie.Collection.Id}"); }'>
                                                     <i class="bi bi-collection-play-fill me-2 fs-6"></i> @movie.Collection.Name
                                                 </button>
                                             }
