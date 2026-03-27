@@ -9,71 +9,77 @@
 <div class="page-shell">
     @if (_isLoading)
     {
-        <div class="page-content" style="display:flex;align-items:center;justify-content:center;height:100vh;">
-            <div class="spinner-border text-secondary" style="width:3rem;height:3rem;" role="status">
+        <div class="page-content d-flex align-items-center justify-content-center" style="height: 80vh;">
+            <div class="spinner-border text-primary" style="width: 3rem; height: 3rem; border-width: 0.25rem;" role="status">
                 <span class="visually-hidden">Loading...</span>
             </div>
         </div>
     }
     else if (_collection != null)
     {
-        <div class="franchise-header position-relative bg-dark mx-auto mt-3 rounded-4 overflow-hidden shadow" style="width: 70%; height: 20vh; min-height: 150px;">
-            @if (!string.IsNullOrEmpty(_collection.BackdropPath))
-            {
-                <div class="position-absolute w-100 h-100" style="background-image: url('https://image.tmdb.org/t/p/w1280@(_collection.BackdropPath)'); background-size: cover; background-position: center; opacity: 0.4;"></div>
-            }
-            <div class="position-absolute w-100 h-100 bg-gradient-to-t" style="background: linear-gradient(to bottom, transparent, rgba(0,0,0,0.95));"></div>
-            
-            <button type="button" class="btn btn-dark bg-opacity-50 position-absolute top-0 start-0 m-4 rounded-circle hover-invert" style="z-index: 10; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;" @onclick="GoBack">
-                <i class="bi bi-arrow-left fs-5"></i>
-            </button>
-
-            <div class="position-absolute bottom-0 start-0 p-4 p-md-5 d-flex align-items-end gap-3 gap-md-4 w-100">
-                <img src="@_collection.FullPosterUrl" class="rounded-3 shadow-lg border border-secondary border-opacity-25" style="width: 80px; height: 120px; object-fit: cover; z-index: 2;" alt="Poster" />
-                <div class="text-white pb-2" style="z-index: 2;">
-                    <h2 class="fw-black mb-2 text-shadow" style="letter-spacing: -0.02em; font-size: 1.5rem;">@_collection.Name</h2>
-                    <span class="badge bg-primary bg-opacity-75 fs-6 py-2 px-3 rounded-pill shadow-sm">
-                        <i class="bi bi-film me-2"></i>@(_collection.Parts?.Count ?? 0) Movies
-                    </span>
+        <div class="page-content scroll-y p-3 p-md-4">
+            <div class="container-fluid p-0 max-width-wrapper animate-in">
+                
+                <!-- Minimalist Premium Header -->
+                <div class="franchise-header-v2 mb-5">
+                    <div class="d-flex flex-column flex-md-row gap-4 align-items-start align-items-md-center">
+                        <div class="header-poster-container">
+                            <img src="@_collection.FullPosterUrl" class="header-poster shadow-lg rounded-4" alt="Collection Poster" />
+                            <button type="button" class="btn btn-white back-btn-circle shadow-sm" @onclick="GoBack" title="Go Back">
+                                <i class="bi bi-arrow-left fs-5"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="header-details flex-grow-1">
+                            <div class="d-flex align-items-center gap-2 mb-2 text-muted text-uppercase fw-bold ls-wider" style="font-size: 0.75rem; letter-spacing: 0.1em;">
+                                <i class="bi bi-collection"></i> <span>Collection</span>
+                            </div>
+                            <h1 class="fw-black display-4 mb-2">@_collection.Name</h1>
+                            <div class="d-flex flex-wrap align-items-center gap-3">
+                                <span class="badge bg-primary bg-opacity-10 text-primary fs-6 py-2 px-3 rounded-pill border border-primary border-opacity-10">
+                                    <i class="bi bi-film me-2"></i>@(_collection.Parts?.Count ?? 0) Movies
+                                </span>
+                                @if (_collection.Parts?.Any() == true)
+                                {
+                                    var minYear = _collection.Parts.Where(p => !string.IsNullOrEmpty(p.ReleaseDate)).Min(p => p.ReleaseDate?.Substring(0, 4));
+                                    var maxYear = _collection.Parts.Where(p => !string.IsNullOrEmpty(p.ReleaseDate)).Max(p => p.ReleaseDate?.Substring(0, 4));
+                                    <span class="text-secondary small fw-semibold">
+                                        <i class="bi bi-calendar3 me-2"></i>@minYear - @maxYear
+                                    </span>
+                                }
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
 
-        <div class="page-content bg-light p-3 p-md-4 mt-3" style="overflow-y: auto; height: 70vh;">
-            <div class="container-fluid p-0 max-width-wrapper">
-                <div class="row g-4">
+                <!-- Collection Movies Grid -->
+                <div class="row g-4 h-auto">
                     @if (_collection.Parts != null)
                     {
                         @foreach (var part in _collection.Parts.OrderBy(p => p.ReleaseDate))
                         {
                             var existingLibItem = WatchlistSvc.Items.FirstOrDefault(i => i.Title == part.Title && i.TitleType == "Movie");
 
-                            <div class="col-6 col-sm-4 col-md-3 col-lg-2 col-xl-2 px-2">
-                                <div class="card border-0 movie-card h-100" style="cursor: pointer;" @onclick="() => OpenMovie(part)">
-                                    <div class="d-flex flex-column h-100">
-                                        <!-- Poster Background -->
-                                        <div class="position-relative w-100" style="padding-top: 150%; background: #e9ecef;">
-                                            <img src="@part.FullPosterUrl" class="position-absolute top-0 start-0 w-100 h-100" alt="@part.Title" loading="lazy" style="object-fit: cover;" onerror="this.style.display='none';" />
+                            <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+                                <div class="franchise-movie-card h-100" @onclick="() => OpenMovie(part)">
+                                    <div class="card-glass h-100 overflow-hidden d-flex flex-column">
+                                        <div class="poster-box position-relative">
+                                            <img src="@part.FullPosterUrl" class="poster-img w-100 h-100" alt="@part.Title" loading="lazy" />
                                             
-                                            <div class="position-absolute top-0 start-0 w-100 h-100" style="background: linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.85) 100%);"></div>
-
                                             @if (existingLibItem != null && existingLibItem.Rating20.HasValue)
                                             {
-                                                <div class="position-absolute top-0 end-0 m-2">
-                                                    <span class="rating-badge shadow-sm" style="background-color: @(GetRatingColor(existingLibItem.Rating20.Value)); color: #fff; padding: 4px 8px; border-radius: 6px; font-weight: 800; font-size: 0.65rem;">
-                                                        @existingLibItem.UserRating
-                                                    </span>
+                                                <div class="rating-badge-v2" style="background-color: @(GetRatingColor(existingLibItem.Rating20.Value));">
+                                                    @existingLibItem.UserRating
                                                 </div>
                                             }
-
-                                            <!-- Inner Info Overlay -->
-                                            <div class="position-absolute bottom-0 start-0 w-100 p-3 text-white">
-                                                <h6 class="card-title fw-bold mb-1 title-shadow-sm" style="font-size: 0.85rem; line-height: 1.2;">@part.Title</h6>
-                                                <div class="d-flex align-items-center gap-2">
+                                            
+                                            <div class="movie-card-overlay">
+                                                <div class="overlay-info p-3">
                                                     @if (!string.IsNullOrEmpty(part.ReleaseDate))
                                                     {
-                                                        <span class="text-white-50 title-shadow-sm" style="font-size: 0.65rem; font-weight: 600;"><i class="bi bi-calendar3 me-1"></i>@(part.ReleaseDate.Length >= 4 ? part.ReleaseDate.Substring(0, 4) : part.ReleaseDate)</span>
+                                                        <div class="year-pill mb-1">@(part.ReleaseDate.Length >= 4 ? part.ReleaseDate.Substring(0, 4) : part.ReleaseDate)</div>
                                                     }
+                                                    <h6 class="title-text fw-bold m-0">@part.Title</h6>
                                                 </div>
                                             </div>
                                         </div>
@@ -88,11 +94,14 @@
     }
     else
     {
-        <div class="page-content" style="display:flex;align-items:center;justify-content:center;height:100vh;">
+        <div class="page-content d-flex align-items-center justify-content-center" style="height: 80vh;">
             <div class="text-center py-5">
-                <i class="bi bi-exclamation-triangle fs-1 d-block mb-3 text-secondary opacity-25"></i>
-                <p class="fs-5 text-secondary">Franchise not found or could not be loaded.</p>
-                <button class="btn btn-outline-secondary mt-3" @onclick="GoBack">Go Back</button>
+                <div class="empty-state-icon mb-3">
+                    <i class="bi bi-search fs-1 text-muted opacity-25"></i>
+                </div>
+                <h4 class="text-secondary fw-bold">Collection not found</h4>
+                <p class="text-muted">The franchise you are looking for could not be loaded.</p>
+                <button class="btn btn-outline-primary px-4 mt-2 rounded-pill" @onclick="GoBack">Return to Home</button>
             </div>
         </div>
     }
@@ -103,23 +112,163 @@
         max-width: 1400px;
         margin: 0 auto;
     }
-    .fw-black { font-weight: 900; }
-    .text-shadow { text-shadow: 0 2px 10px rgba(0,0,0,0.8); }
-    .title-shadow-sm { text-shadow: 0 1px 4px rgba(0,0,0,0.9); }
     
-    .movie-card {
-        background: #111;
-        border-radius: 12px !important;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-        transition: transform 0.15s ease, box-shadow 0.15s ease;
+    .animate-in {
+        animation: slideUpFade 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    
+    @@keyframes slideUpFade {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .fw-black { font-weight: 900; }
+    
+    /* Header Styles */
+    .header-poster-container {
+        position: relative;
+        flex-shrink: 0;
+    }
+    
+    .header-poster {
+        width: 160px;
+        height: 240px;
+        object-fit: cover;
+        transition: transform 0.15s ease;
+        border: 4px solid #fff;
+    }
+    
+    .back-btn-circle {
+        position: absolute;
+        top: -12px;
+        left: -12px;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        border: none;
+        background: #fff;
+        color: #1a1a1a;
+        transition: all 0.06s ease;
+        z-index: 10;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+    }
+    
+    .back-btn-circle:hover {
+        transform: scale(1.1);
+        background: var(--primary);
+        color: #fff;
+    }
+
+    /* Movie Card Styles */
+    .franchise-movie-card {
+        cursor: pointer;
+        transition: all 0.12s cubic-bezier(0.16, 1, 0.3, 1);
+        border-radius: 16px;
+    }
+
+    .card-glass {
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+        border-radius: 16px;
+        transition: inherit;
+    }
+
+    .franchise-movie-card:hover {
+        transform: translateY(-8px) scale(1.02);
+        z-index: 2;
+    }
+    
+    .franchise-movie-card:hover .card-glass {
+        box-shadow: 0 20px 48px rgba(0,0,0,0.16);
+        border-color: var(--primary-dark);
+    }
+
+    .poster-box {
+        aspect-ratio: 2/3;
+        width: 100%;
+    }
+
+    .poster-img {
+        object-fit: cover;
+        transition: transform 0.18s ease;
+    }
+
+    .franchise-movie-card:hover .poster-img {
+        transform: scale(1.08);
+    }
+
+    .movie-card-overlay {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 100%;
+        background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 40%, transparent 100%);
+        display: flex;
+        align-items: flex-end;
+        opacity: 0.9;
+        transition: opacity 0.09s ease;
+    }
+
+    .overlay-info {
+        width: 100%;
+        color: #fff;
+    }
+
+    .title-text {
+        font-size: 0.95rem;
+        line-height: 1.25;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
         overflow: hidden;
     }
-    .movie-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 12px 24px rgba(0,0,0,0.25);
+
+    .year-pill {
+        font-size: 0.7rem;
+        font-weight: 700;
+        background: rgba(255,255,255,0.2);
+        backdrop-filter: blur(4px);
+        padding: 2px 8px;
+        border-radius: 4px;
+        display: inline-block;
+        color: #fff;
     }
-    .hover-invert { transition: background-color 0.2s, color 0.2s; }
-    .hover-invert:hover { background-color: #fff !important; color: #000 !important; }
+
+    .rating-badge-v2 {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        padding: 4px 8px;
+        border-radius: 8px;
+        color: #fff;
+        font-weight: 800;
+        font-size: 0.75rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+        z-index: 3;
+    }
+
+    @@media (max-width: 768px) {
+        .header-poster {
+            width: 120px;
+            height: 180px;
+        }
+        .display-4 { font-size: 2.2rem; }
+        .back-btn-circle {
+            width: 34px;
+            height: 34px;
+            top: -8px;
+            left: -8px;
+        }
+    }
 </style>
 
 @code {
@@ -132,6 +281,7 @@
     protected override async Task OnParametersSetAsync()
     {
         _isLoading = true;
+        StateHasChanged(); // Trigger re-render for loading state
         
         try
         {
@@ -160,7 +310,8 @@
 
     private async Task OpenMovie(TmdbMovie part)
     {
-        var existing = WatchlistSvc.Items.FirstOrDefault(i => i.ImdbId == part.ImdbId) ?? WatchlistSvc.Items.FirstOrDefault(i => i.Title == part.Title && i.Year.Contains(part.ReleaseDate?.Substring(0, 4) ?? ""));
+        var existing = WatchlistSvc.Items.FirstOrDefault(i => i.ImdbId == part.ImdbId) ?? 
+                       WatchlistSvc.Items.FirstOrDefault(i => i.Title == part.Title && i.Year.Contains(part.ReleaseDate?.Substring(0, 4) ?? ""));
         
         if (existing != null)
         {
@@ -176,6 +327,7 @@
                 MediaType = "movie", 
                 ReleaseDate = part.ReleaseDate, 
                 PosterPath = part.PosterPath 
+                // FullPosterUrl property handles the construction
             };
             await WatchlistSvc.ShowDetailsAsync(searchItem);
         }
