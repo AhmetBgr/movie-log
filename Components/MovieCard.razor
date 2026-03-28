@@ -50,6 +50,7 @@
                     <!-- Right Side: Data Column (Vertical Stack) -->
                     <div class="flex-grow-1 p-3 data-col">
                         <!-- Rating Badge -->
+                        <!-- 
                         @if (Item.Rating20.HasValue)
                         {
                             <div class="position-absolute top-0 end-0 m-2">
@@ -58,6 +59,7 @@
                                 </span>
                             </div>
                         }
+                        -->
 
                         <!-- Row 1: Title -->
                         <div class="mb-1">
@@ -91,7 +93,87 @@
                             </div>
                         </div>
 
+                        <!--  -->
+                        @if (ShowTracking)
+                        {
+                            <td class="px-3 text-center d-none d-md-table-cell">
+                                @if (Item.TitleType.Contains("TV", StringComparison.OrdinalIgnoreCase) && ShowTracking)
+                                {
+                                    <div class="d-inline-flex align-items-center bg-light rounded-pill px-2 py-1 border shadow-sm tracking-pill">
+                                        <div class="d-flex align-items-center px-1">
+                                            @if (IsEditMode) { <button class="track-btn" @onclick="() => ChangeSeason(Item,-1)" @onclick:stopPropagation="true"><i class="bi bi-dash"></i></button> }
+                                            <span class="text-secondary small fw-bold mx-1">S</span>
+                                            <span class="fw-bolder text-dark" style="min-width:18px;">@Item.CurrentSeason</span>
+                                            @if (IsEditMode) { <button class="track-btn" @onclick="() => ChangeSeason(Item,1)" @onclick:stopPropagation="true"><i class="bi bi-plus"></i></button> }
+                                        </div>
+                                        <div class="vr mx-1 opacity-10" style="height:16px;"></div>
+                                        <div class="d-flex align-items-center px-1">
+                                            @if (IsEditMode) { <button class="track-btn" @onclick="() => ChangeEpisode(Item,-1)" @onclick:stopPropagation="true"><i class="bi bi-dash"></i></button> }
+                                            <span class="text-secondary small fw-bold mx-1">E</span>
+                                            <span class="fw-bolder text-dark" style="min-width:18px;">@Item.CurrentEpisode</span>
+                                            @if (IsEditMode) { <button class="track-btn" @onclick="() => ChangeEpisode(Item,1)" @onclick:stopPropagation="true"><i class="bi bi-plus"></i></button> }
+                                        </div>
+                                    </div>
+                                }
+                            </td>        
+                        }
+
+
+                        @if (Item.TitleType.Contains("TV", StringComparison.OrdinalIgnoreCase) && ShowTracking)
+                        {
+                            @if (IsEditMode)
+                            {
+                                <div class="d-md-none mt-1 tracking-pill-wrap" @onclick:stopPropagation="true">
+                                    <div class="d-inline-flex align-items-center bg-light rounded-pill px-2 py-1 border shadow-sm tracking-pill">
+                                        <div class="d-flex align-items-center px-1">
+                                            <button class="track-btn" @onclick="() => ChangeSeason(Item,-1)" @onclick:stopPropagation="true"><i class="bi bi-dash"></i></button>
+                                            <span class="text-secondary small fw-bold mx-1">S</span>
+                                            <span class="fw-bolder text-dark" style="min-width:18px;">@Item.CurrentSeason</span>
+                                            <button class="track-btn" @onclick="() => ChangeSeason(Item,1)" @onclick:stopPropagation="true"><i class="bi bi-plus"></i></button>
+                                        </div>
+                                        <div class="vr mx-1 opacity-10" style="height:16px;"></div>
+                                        <div class="d-flex align-items-center px-1">
+                                            <button class="track-btn" @onclick="() => ChangeEpisode(Item,-1)" @onclick:stopPropagation="true"><i class="bi bi-dash"></i></button>
+                                            <span class="text-secondary small fw-bold mx-1">E</span>
+                                            <span class="fw-bolder text-dark" style="min-width:18px;">@Item.CurrentEpisode</span>
+                                            <button class="track-btn" @onclick="() => ChangeEpisode(Item,1)" @onclick:stopPropagation="true"><i class="bi bi-plus"></i></button>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <span class="d-md-none text-secondary" style="font-size:0.72rem;">S@(Item.CurrentSeason) · E@(Item.CurrentEpisode)</span>
+                            }
+                        }
+
+                        <!-- Inline rating editor -->
+                        @if (ShowRating)
+                        {
+                            <div class="d-flex align-items-center gap-2 mt-2" @onclick:stopPropagation="true">
+                                <div class="rating-box-sm @(Item.Rating20 == null ? "rating-empty" : "")"
+                                     style="@(Item.Rating20 != null ? $"background:{GetRatingColor(Item.Rating20.Value)};" : "")">
+                                    <input type="number" class="rating-input-sm @(Item.Rating20 == null ? "" : "text-white")"
+                                           min="0" max="100" placeholder="–"
+                                           value="@Item.Rating20"
+                                           @onchange="(e) => UpdateRating20(Item, string.IsNullOrEmpty(e.Value?.ToString()) ? null : int.Parse(e.Value.ToString()!))" />
+                                </div>
+                                <span class="text-secondary" style="font-size:0.68rem;">/ 100</span>
+                                @if (IsEditMode && Item.Rating20 != null)
+                                {
+                                    <button class="btn btn-link btn-sm p-0 text-secondary opacity-40" style="text-decoration:none;"
+                                            @onclick="() => UpdateRating20(Item, null)">
+                                        <i class="bi bi-x-circle"></i>
+                                    </button>
+                                }
+                            </div>
+                        }
+
+
+
+
                         <!-- Row 3: Director -->
+                        <!--
                         @if (!string.IsNullOrEmpty(Item.Director))
                         {
                             <div class="mb-2">
@@ -100,8 +182,9 @@
                                 </span>
                             </div>
                         }
-
+                        -->
                         <!-- Row 4: Genres -->
+                        <!--
                         @if (!string.IsNullOrEmpty(Item.Genres))
                         {
                             <div class="d-flex flex-wrap gap-1">
@@ -111,6 +194,8 @@
                                 }
                             </div>
                         }
+                        -->
+
                     </div>
                 </div>
 
@@ -136,10 +221,14 @@
     [Parameter] public WatchlistItem? Item { get; set; }
     [Parameter] public bool ShowEditControls { get; set; } = false;
     [Parameter] public bool ShowActionButtons { get; set; } = false;
+    [Parameter] public bool ShowTracking { get; set; } = false;
+    [Parameter] public bool ShowRating { get; set; } = false;
     [Parameter] public bool IsEditMode { get; set; } = false;
     [Parameter] public bool IsSelected { get; set; } = false;
     [Parameter] public EventCallback OnToggleSelect { get; set; }
     [Parameter] public RenderFragment? SidePanel { get; set; }
+    private bool showSavedIndicator = true;
+
 
     private async Task ShowDetails()
     {
@@ -153,9 +242,48 @@
         double hue = (val / 100.0) * 120;
         return $"hsl({hue}, 70%, 45%)";
     }
+    private async Task UpdateRating20(WatchlistItem item, int? r)
+    {
+        if (r.HasValue) r = Math.Clamp(r.Value, 0, 100);
+        await WatchlistSvc.UpdateRatingAsync(item, r);
+        if (r.HasValue) { showSavedIndicator = true; StateHasChanged(); await Task.Delay(1500); showSavedIndicator = false; StateHasChanged(); }
+    }
+
+    private async Task ChangeEpisode(WatchlistItem Item, int d) { var n = (Item.CurrentEpisode ?? 1) + d; if (n >= 1) await WatchlistSvc.UpdateProgressAsync(Item, Item.CurrentSeason, n); }
+    private async Task ChangeSeason(WatchlistItem Item, int d) { await WatchlistSvc.UpdateProgressAsync(Item, Math.Max(1, (Item.CurrentSeason ?? 1) + d), Item.CurrentEpisode); }
+
 }
 
 <style>
+    .track-btn { width: 26px; height: 26px; padding: 0; border: 1px solid rgba(0,0,0,0.15); background: #fff; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.02rem; transition: background 0.12s; }
+    .track-btn:hover { background: #f0f0f0; }
+    .tracking-pill { padding: 2px 6px !important; font-size: 0.72rem; transform-origin: left center; transition: transform 0.15s; }
+    .tracking-pill .vr { height: 13px !important; }
+    .tracking-pill span.fw-bolder { min-width: 15px; font-size: 0.8rem; }
+
+    /* Mobile pill container — shrinks pill if the title cell gets narrow (rules in app.css) */
+    .tracking-pill-wrap { container-type: inline-size; }
+
+    /* Rating box (card view — smaller) */
+    .rating-box-sm {
+        width: 38px; height: 38px; border-radius: 8px;
+        display: flex; align-items: center; justify-content: center;
+        border: 2px dashed #dee2e6; background: #f8f9fa;
+        transition: border-color 0.2s, background 0.2s, transform 0.15s;
+    }
+    .rating-box-sm:focus-within { transform: scale(1.08); border-style: solid; border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
+    .rating-box-sm:not(.rating-empty) { border: none; }
+    .rating-input-sm {
+        width: 38px; height: 38px; text-align: center; font-weight: 900;
+        font-size: 0.9rem; background: transparent; border: none; outline: none;
+        cursor: pointer; color: #555;
+    }
+    .rating-input-sm.text-white { color: #fff !important; caret-color: #fff; }
+    input[type=number].rating-input-sm::-webkit-inner-spin-button,
+    input[type=number].rating-input-sm::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type=number].rating-input-sm { -moz-appearance: textfield; }
+
+
     .movie-card {
         background: #fff;
         border-radius: 10px !important;

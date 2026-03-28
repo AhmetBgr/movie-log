@@ -201,7 +201,9 @@
                                            IsEditMode="@isEditing"
                                            IsSelected="@_selectedIds.Contains(item.ImdbId)"
                                            OnToggleSelect="@(() => ToggleSelect(item.ImdbId))"
-                                           ShowActionButtons="true" />
+                                           ShowActionButtons="true"
+                                           ShowTracking="true"
+                                           ShowRating="false"/>
                             </div>
                         </Virtualize>
                     </div>

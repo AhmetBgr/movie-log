@@ -255,7 +255,30 @@
                 }
                 else
                 {
+
                     <!-- CARD VIEW -->
+                    @if (!_watchedItems.Any())
+                    {
+                        <p class="text-center text-secondary opacity-50 fst-italic py-5">No movies match your filters.</p>
+                    }
+                    <div class="table-wrap table-wrap--wide p-3">
+                        <div class="row row-cols-1 g-3">
+                            <Virtualize Items="_watchedItems" Context="item" ItemSize="228" OverscanCount="2">
+                                <div class="col" @key="item.ImdbId">
+                                    <MovieCard Item="item"
+                                               IsEditMode="@isEditing"
+                                               IsSelected="@_selectedIds.Contains(item.ImdbId)"
+                                               OnToggleSelect="@(() => ToggleSelect(item.ImdbId))"
+                                               ShowActionButtons="true"
+                                               ShowTracking="false"
+                                               ShowRating="true"/>
+                                </div>
+                            </Virtualize>
+                        </div>
+                    </div>
+
+                    <!-- CARD VIEW -->
+                    <!-- 
                     @if (!_watchedItems.Any())
                     {
                         <p class="text-center text-secondary opacity-50 fst-italic py-5">No movies match your filters.</p>
@@ -280,7 +303,8 @@
                                                     </div>
                                                 </div>
                                             }
-                                            <!-- Poster -->
+
+
                                             <div style="width:80px;flex-shrink:0;overflow:hidden;background:#f0f0f0;">
                                                 @if (!string.IsNullOrEmpty(item.FullPosterUrl) && !item.FullPosterUrl.Contains("data:image/png;base64"))
                                                 {
@@ -294,7 +318,8 @@
                                                     <div style="width:100%;min-height:110px;display:flex;align-items:center;justify-content:center;color:#ccc;font-size:1.4rem;"><i class="bi bi-film"></i></div>
                                                 }
                                             </div>
-                                            <!-- Info -->
+
+
                                             <div class="flex-grow-1 px-3 py-2 position-relative">
                                                 @if (item.Rating20.HasValue)
                                                 {
@@ -315,7 +340,9 @@
                                                 {
                                                     <span class="badge mt-1 @(item.TitleType.Contains("TV", StringComparison.OrdinalIgnoreCase) ? "bg-light text-dark border" : "bg-secondary text-white")" style="font-size:0.65rem;">@item.TitleType</span>
                                                 }
-                                                <!-- Inline rating editor -->
+
+
+
                                                 <div class="d-flex align-items-center gap-2 mt-2" @onclick:stopPropagation="true">
                                                     <div class="rating-box-sm @(item.Rating20 == null ? "rating-empty" : "")"
                                                          style="@(item.Rating20 != null ? $"background:{GetRatingColor(item.Rating20.Value)};" : "")">
@@ -340,6 +367,7 @@
                             }
                         </div>
                     </div>
+                    -->
                 }
             </div>
 
