@@ -4,8 +4,7 @@
 @inject IJSRuntime JS
 @implements IDisposable
 
-<div class="side-panel-overlay @(WatchlistSvc.IsSidePanelOpen ? "show" : "")" @onclick="ClosePanel">
-    <div class="side-panel @(WatchlistSvc.IsSidePanelOpen ? "open" : "")" @onclick:stopPropagation="true">
+<div class="side-panel @(WatchlistSvc.IsSidePanelOpen ? "open" : "")" @onclick:stopPropagation="true">
         @if (WatchlistSvc.SelectedItem != null && WatchlistSvc.SelectedMovie != null)
         {
             var item = WatchlistSvc.SelectedItem;
@@ -214,7 +213,6 @@
             </div>
         }
     </div>
-</div>
 
 @if (selectedLightboxPath != null)
 {
@@ -229,49 +227,34 @@
 <TrailerPlayer VideoKey="@WatchlistSvc.SelectedMovie?.TrailerKey" IsOpen="isTrailerOpen" OnClose="() => isTrailerOpen = false" />
 
 <style>
-    .side-panel-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        background: rgba(0,0,0,0.4);
-        z-index: 1050;
-        visibility: hidden;
-        opacity: 0;
-        transition: all 0.3s ease;
-        backdrop-filter: blur(2px);
-    }
-    .side-panel-overlay.show {
-        visibility: visible;
-        opacity: 1;
-    }
-
     .side-panel {
-        position: fixed;
-        top: 0;
-        right: -450px;
-        width: 450px;
-        height: 100vh;
+        width: 0;
+        height: 100%;
         background: #fff;
-        box-shadow: -10px 0 40px rgba(0,0,0,0.15);
-        z-index: 1051;
-        transition: right 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        border-right: 0px solid #e8eaed;
+        z-index: 10;
+        transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-width 0.4s;
         display: flex;
         flex-direction: column;
+        overflow: hidden;
+        flex-shrink: 0;
     }
     .side-panel.open {
-        right: 0;
+        width: 450px;
+        border-left: 1px solid #e8eaed;
+        box-shadow: -5px 0 20px rgba(0,0,0,0.05);
     }
 
     .side-panel-header {
-        position: absolute;
-        top: 15px;
-        right: 15px;
+        position: sticky;
+        top: 0;
         z-index: 100;
-        background: rgba(255,255,255,0.8);
-        border-radius: 50%;
-        padding: 5px;
+        background: rgba(255,255,255,0.95);
+        backdrop-filter: blur(8px);
+        padding: 12px 15px;
+        display: flex;
+        justify-content: flex-end;
+        border-bottom: 1px solid rgba(0,0,0,0.05);
     }
 
     .side-panel-content {

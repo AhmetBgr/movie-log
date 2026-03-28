@@ -13,7 +13,8 @@
         <NavMenu />
     </div>
 
-    <main class="pb-sm-0">
+    <div class="d-flex flex-row flex-grow-1 overflow-hidden h-100">
+        <main class="pb-sm-0 flex-grow-1 h-100 overflow-auto">
 
         <!-- ── Update banner ──────────────────────────────── -->
         @if (_showUpdateBanner)
@@ -86,7 +87,6 @@
         </article>
 
         <MovieDetailsModal />
-        <SidePanel />
 
         @if (!string.IsNullOrEmpty(WatchlistSvc.ToastMessage))
         {
@@ -100,7 +100,9 @@
                 </div>
             </div>
         }
-    </main>
+        </main>
+        <SidePanel />
+    </div>
 
     <!-- Mobile bottom nav: visible below sm only -->
     <div class="d-sm-none" style="position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;">
