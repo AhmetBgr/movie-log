@@ -51,15 +51,15 @@
 
                         <!-- Info Section -->
                         <div class="col-md-7 position-relative">
-                            <button type="button" class="btn-close position-absolute top-0 end-0 m-4 shadow-none" aria-label="Close" @onclick="WatchlistSvc.CloseModal"></button>
+                            <button type="button" class="btn-close position-absolute top-0 end-0 m-3 shadow-none" aria-label="Close" @onclick="WatchlistSvc.CloseModal" style="z-index: 10;"></button>
                             
-                            <div class="card-body p-3 p-md-5 d-flex flex-column h-100">
+                            <div class="card-body p-3 p-md-4 d-flex flex-column h-100">
                                 <div class="d-flex align-items-start justify-content-between gap-3 mb-1">
                                     <div class="flex-grow-1">
                                         <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
-                                            <h2 class="card-title fw-black text-dark mb-0">
+                                            <h3 class="card-title fw-black text-dark mb-0">
                                                 <a href="https://www.imdb.com/title/@item.ImdbId/" target="_blank" class="text-decoration-none text-dark hover-opacity">@movie.Title</a>
-                                            </h2>
+                                            </h3>
                                             <OpenOnMenu Title="@movie.Title"
                                                         Year="@GetModalYear(movie, item)"
                                                         ImdbId="@GetModalImdbId(movie, item)" />
@@ -124,28 +124,50 @@
 
 
 
-                                <div class="info-content custom-scrollbar overflow-auto flex-grow-1 pe-2" style="max-height: 350px;">
-                                    @if (movie.Directors.Any())
+                                <div class="info-content custom-scrollbar overflow-auto flex-grow-1 pe-2" style="max-height: 380px;">
+                                    @if (movie.Credits?.Crew?.Any(c => c.Job == "Director") == true)
                                     {
-                                        <p class="mb-2 text-dark fs-6"><strong>Director:</strong> 
-                                            @foreach (var dir in movie.Directors)
-                                            {
-                                                <a href="https://www.imdb.com/find/?q=@System.Uri.EscapeDataString(dir)&s=nm" target="_blank" class="text-decoration-none text-secondary fw-semibold me-2 hover-opacity">@dir</a>
-                                            }
-                                        </p>
+                                        <div class="mb-3">
+                                            <h4 class="small-meta text-uppercase tracking-wider text-secondary mb-2">Director</h4>
+                                            <div class="d-flex flex-wrap gap-2">
+                                                @foreach (var dir in movie.Credits.Crew.Where(c => c.Job == "Director"))
+                                                {
+                                                    <button class="btn btn-sm btn-light border rounded-pill px-3 py-1.5 fw-bold d-flex align-items-center gap-2 hover-bg-dark transition-all"
+                                                            @onclick="() => WatchlistSvc.OpenPersonProfileAsync(dir.Id)" @onclick:stopPropagation="true">
+                                                        <img src="@dir.FullProfileUrl" class="rounded-circle shadow-sm" style="width: 24px; height: 24px; object-fit: cover;" />
+                                                        <span>@dir.Name</span>
+                                                    </button>
+                                                }
+                                            </div>
+                                        </div>
                                     }
 
-                                    @if (movie.Actors.Any())
+                                    @if (movie.Credits?.Cast?.Any() == true)
                                     {
-                                        <p class="mb-4 text-dark fs-6"><strong>Cast:</strong> 
-                                            @foreach (var actor in movie.Actors)
-                                            {
-                                                <a href="https://www.imdb.com/find/?q=@System.Uri.EscapeDataString(actor)&s=nm" target="_blank" class="text-decoration-none text-secondary fw-semibold me-2 hover-opacity">@actor</a>
-                                            }
-                                        </p>
+                                        <div class="mb-3">
+                                            <h4 class="small-meta text-uppercase tracking-wider text-secondary mb-2">Top Cast</h4>
+                                            <div class="row g-2">
+                                                @foreach (var actor in movie.Credits.Cast.Take(6))
+                                                {
+                                                    <div class="col-6 col-sm-4">
+                                                        <div class="cast-card d-flex align-items-center gap-2 p-2 rounded-3 border bg-light bg-opacity-50 hover-bg-white transition-all cursor-pointer shadow-sm"
+                                                             @onclick="() => WatchlistSvc.OpenPersonProfileAsync(actor.Id)" @onclick:stopPropagation="true">
+                                                            <div class="cast-avatar flex-shrink-0">
+                                                                <img src="@actor.FullProfileUrl" class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover;" />
+                                                            </div>
+                                                            <div class="cast-info overflow-hidden">
+                                                                <div class="small fw-bold text-dark text-truncate">@actor.Name</div>
+                                                                <div class="smaller text-secondary text-truncate">@actor.Character</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                }
+                                            </div>
+                                        </div>
                                     }
+
                                     
-                                    <p class="card-text fs-6 text-secondary position-relative" style="line-height: 1.7;">
+                                    <p class="card-text small text-secondary position-relative" style="line-height: 1.6;">
                                         @if (WatchlistSvc.IsLoadingDetails && string.IsNullOrEmpty(movie.Overview))
                                         {
                                             <div class="d-flex align-items-center gap-2 text-secondary py-3 opacity-50">
@@ -165,9 +187,6 @@
                                     </p>
                                 </div>
                                 
-                                <div class="mt-auto pt-4 border-top">
-
-                                </div>
 
                                 <div class="mt-auto pt-4 border-top">
                                     <div class="d-flex flex-column flex-sm-row gap-3 align-items-stretch align-items-sm-center">
@@ -181,12 +200,12 @@
                                             <button class="btn btn-lg @(status == WatchlistStatus.Pending ? "btn-secondary shadow-none" : "btn-light border-0 text-secondary bg-transparent") flex-grow-1 py-2.5 rounded-3 d-flex align-items-center justify-content-center transition-all px-1 px-md-3" 
                                                     onmouseover="if(!this.classList.contains('btn-secondary')) this.classList.add('bg-white')"
                                                     onmouseout="if(!this.classList.contains('btn-secondary')) this.classList.remove('bg-white')"
-                                                    @onclick="() => {
+                                                    @onclick="async () => {
                                                         var currentItem = GetLibraryItem();
                                                         if (currentItem?.Status == WatchlistStatus.Pending) {
-                                                            RemoveItem();
+                                                            await RemoveItem();
                                                         } else {
-                                                            HandleStatusTabClick(WatchlistStatus.Pending);
+                                                            await HandleStatusTabClick(WatchlistStatus.Pending);
                                                         }
                                                     }">
                                                 <i class="bi bi-list-nested me-1 me-md-2 fs-5"></i> 
@@ -197,12 +216,12 @@
                                             <button class="btn btn-lg @(status == WatchlistStatus.Watching ? "btn-success shadow-none" : "btn-light border-0 text-success bg-transparent") flex-grow-1 py-2.5 rounded-3 d-flex align-items-center justify-content-center transition-all px-1 px-md-3" 
                                                     onmouseover="if(!this.classList.contains('btn-success')) this.classList.add('bg-white')"
                                                     onmouseout="if(!this.classList.contains('btn-success')) this.classList.remove('bg-white')"
-                                                    @onclick="() => {
+                                                    @onclick="async () => {
                                                         var currentItem = GetLibraryItem();
                                                         if (currentItem?.Status == WatchlistStatus.Watching) {
-                                                            RemoveItem();
+                                                            await RemoveItem();
                                                         } else {
-                                                            HandleStatusTabClick(WatchlistStatus.Watching);
+                                                            await HandleStatusTabClick(WatchlistStatus.Watching);
                                                         }
                                                     }">
                                                 <i class="bi bi-play-fill me-1 fs-4"></i> 
@@ -213,12 +232,12 @@
                                             <button class="btn btn-lg @(status == WatchlistStatus.Watched ? "btn-primary shadow-none" : "btn-light border-0 text-primary bg-transparent") flex-grow-1 py-2.5 rounded-3 d-flex align-items-center justify-content-center transition-all px-1 px-md-3" 
                                                     onmouseover="if(!this.classList.contains('btn-primary')) this.classList.add('bg-white')"
                                                     onmouseout="if(!this.classList.contains('btn-primary')) this.classList.remove('bg-white')"
-                                                    @onclick="() => {
+                                                    @onclick="async () => {
                                                         var currentItem = GetLibraryItem();
                                                         if (currentItem?.Status == WatchlistStatus.Watched) {
-                                                            RemoveItem();
+                                                            await RemoveItem();
                                                         } else {
-                                                            HandleStatusTabClick(WatchlistStatus.Watched);
+                                                            await HandleStatusTabClick(WatchlistStatus.Watched);
                                                         }
                                                     }">
                                                 <i class="bi bi-check-lg me-1 me-md-2 fs-5"></i> 
@@ -412,6 +431,38 @@
             max-height: none !important;
         }
     }
+
+    .hover-bg-dark:hover {
+        background-color: #1a1a2e !important;
+        color: #fff !important;
+        border-color: #1a1a2e !important;
+    }
+
+    .hover-bg-white:hover {
+        background-color: #fff !important;
+        border-color: #1a73e8 !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
+        transform: translateY(-2px);
+    }
+
+    .cast-card {
+        cursor: pointer;
+    }
+
+    .small-meta {
+        font-size: 0.68rem;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+    }
+
+    .smaller {
+        font-size: 0.7rem;
+    }
+
+    .transition-all {
+        transition: all 0.2s ease;
+    }
+
 </style>
 
 @code {
@@ -449,7 +500,7 @@
 
     public void Dispose()
     {
-        WatchlistSvc.OnStateChanged -= null;
+        WatchlistSvc.OnStateChanged -= StateHasChanged;
     }
 
     private bool showSavedIndicator = false;
@@ -509,7 +560,7 @@
                 UserRating = (int)Math.Round(ratingValue.Value / 10.0),
                 DateAdded = DateTime.Now,
                 Genres = string.Join(", ", selectedMovie.GenreList.Select(g => g.Name)),
-                Director = selectedMovie.Directors.Any() ? string.Join(", ", selectedMovie.Directors) : null,
+                Director = selectedMovie.Credits?.Crew?.FirstOrDefault(c => c.Job == "Director")?.Name,
                 Overview = selectedMovie.Overview,
                 PosterPath = selectedMovie.PosterPath
             };
@@ -608,7 +659,7 @@
             Year = movie.ReleaseDate ?? "",
             ParsedYear = int.TryParse(movie.ReleaseDate?.Split('-')[0], out var y) ? y : 0,
             Genres = "",
-            Director = movie.Directors.Any() ? string.Join(", ", movie.Directors) : null,
+            Director = movie.Credits?.Crew?.FirstOrDefault(c => c.Job == "Director")?.Name,
             Status = status,
             CurrentSeason = (status == WatchlistStatus.Watching && item.TitleType.Contains("TV", StringComparison.OrdinalIgnoreCase)) ? 1 : null,
             CurrentEpisode = (status == WatchlistStatus.Watching && item.TitleType.Contains("TV", StringComparison.OrdinalIgnoreCase)) ? 1 : null

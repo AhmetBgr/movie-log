@@ -11,9 +11,12 @@ public class WatchlistService
     private readonly LocalStorageService _storage;
     private readonly IConfiguration _config;
     private readonly IJSRuntime _js;
+    private readonly Microsoft.AspNetCore.Components.NavigationManager _nav;
     private readonly Dictionary<string, TmdbMovie> _movieCache = new();
     private readonly Dictionary<string, TmdbMovie> _movieDetailsByIdCache = new();
     private readonly Dictionary<int, TmdbCollection> _collectionCache = new();
+    private readonly Dictionary<int, TmdbPerson> _personCache = new();
+    private readonly Dictionary<int, TmdbPersonCombinedCredits> _personCreditsCache = new();
     private Dictionary<string, WatchlistItemDetails> _detailsStore = new();
     private Dictionary<int, string> _genreMap = new();
     private CancellationTokenSource? _saveDebounceCts;
@@ -52,6 +55,12 @@ public class WatchlistService
     // Franchise Page State
     public TmdbCollection? SelectedCollection { get; private set; }
     public bool IsFranchisePageOpen { get; private set; }
+
+    // Person Profile State
+    public TmdbPerson? SelectedPerson { get; private set; }
+    public TmdbPersonCombinedCredits? SelectedPersonCredits { get; private set; }
+    public bool IsPersonProfileOpen { get; private set; }
+    public bool IsLoadingPerson { get; private set; }
 
     private string _selectedType = "All";
     public string SelectedType 
@@ -274,12 +283,13 @@ public class WatchlistService
         }).ToList();
     }
 
-    public WatchlistService(HttpClient http, LocalStorageService storage, IConfiguration config, IJSRuntime js)
+    public WatchlistService(HttpClient http, LocalStorageService storage, IConfiguration config, IJSRuntime js, Microsoft.AspNetCore.Components.NavigationManager nav)
     {
         _http = http;
         _storage = storage;
         _config = config;
         _js = js;
+        _nav = nav;
     }
 
     public async Task InitializeAsync()
@@ -593,11 +603,10 @@ public class WatchlistService
                         }
 
                         var creditsUrl = $"https://api.themoviedb.org/3/movie/{tmdbId}/credits?api_key={apiKey}";
-                        var credits = await _http.GetFromJsonAsync<TmdbCredits>(creditsUrl);
-                        if (credits != null)
+                        var creditsResponse = await _http.GetFromJsonAsync<TmdbCredits>(creditsUrl);
+                        if (creditsResponse != null)
                         {
-                        movie.Directors = credits.Crew.Where(c => c.Job == "Director").Select(c => c.Name).Distinct().ToList();
-                            movie.Actors = credits.Cast.Take(5).Select(c => c.Name).ToList();
+                            movie.Credits = creditsResponse;
                         }
                         
                         var imagesUrl = $"https://api.themoviedb.org/3/movie/{tmdbId}/images?api_key={apiKey}";
@@ -647,11 +656,10 @@ public class WatchlistService
                         }
 
                         var creditsUrl = $"https://api.themoviedb.org/3/tv/{tv.Id}/credits?api_key={apiKey}";
-                        var credits = await _http.GetFromJsonAsync<TmdbCredits>(creditsUrl);
-                        if (credits != null)
+                        var creditsResponse = await _http.GetFromJsonAsync<TmdbCredits>(creditsUrl);
+                        if (creditsResponse != null)
                         {
-                        movie.Directors = credits.Crew.Where(c => c.Job == "Executive Producer" || c.Job == "Director").Select(c => c.Name).Distinct().ToList();
-                            movie.Actors = credits.Cast.Take(5).Select(c => c.Name).ToList();
+                            movie.Credits = creditsResponse;
                         }
                         
                         var imagesUrl = $"https://api.themoviedb.org/3/tv/{tv.Id}/images?api_key={apiKey}";
@@ -1024,7 +1032,7 @@ public class WatchlistService
                 var creditsUrl = $"https://api.themoviedb.org/3/movie/{movie.Id}/credits?api_key={apiKey}";
                 var credits = await _http.GetFromJsonAsync<TmdbCredits>(creditsUrl);
                 if (credits != null)
-                    movie.Directors = credits.Crew.Where(c => c.Job == "Director").Select(c => c.Name).Distinct().ToList();
+                    movie.Credits = credits;
             }
             else if (response?.TvResults?.Any() == true)
             {
@@ -1037,7 +1045,7 @@ public class WatchlistService
                 var creditsUrl = $"https://api.themoviedb.org/3/tv/{tv.Id}/credits?api_key={apiKey}";
                 var credits = await _http.GetFromJsonAsync<TmdbCredits>(creditsUrl);
                 if (credits != null)
-                    movie.Directors = credits.Crew.Where(c => c.Job == "Director" || c.Job == "Series Director").Select(c => c.Name).Distinct().ToList();
+                    movie.Credits = credits;
             }
 
             return movie;
@@ -1051,7 +1059,7 @@ public class WatchlistService
         
         if (string.IsNullOrEmpty(listItem.Overview) && !string.IsNullOrEmpty(details.Overview)) { listItem.Overview = details.Overview; changed = true; }
         if (string.IsNullOrEmpty(listItem.Genres) && details.GenreList.Any()) { listItem.Genres = string.Join(", ", details.GenreList.Select(g => g.Name)); changed = true; }
-        if (string.IsNullOrEmpty(listItem.Director) && details.Directors.Any()) { listItem.Director = string.Join(", ", details.Directors); changed = true; }
+        if (string.IsNullOrEmpty(listItem.Director) && details.Credits?.Crew?.Any(c => c.Job == "Director") == true) { listItem.Director = details.Credits.Crew.First(c => c.Job == "Director").Name; changed = true; }
         if (string.IsNullOrEmpty(listItem.PosterPath) && !string.IsNullOrEmpty(details.PosterPath)) { listItem.PosterPath = details.PosterPath; changed = true; }
         if (!listItem.VoteAverage.HasValue && details.VoteAverage > 0) { listItem.VoteAverage = details.VoteAverage; changed = true; }
         
@@ -1182,7 +1190,62 @@ public class WatchlistService
         SelectedCollection = null;
         NotifyStateChanged(fullRefresh: false);
     }
+
+    public async Task OpenPersonProfileAsync(int personId)
+    {
+        _nav.NavigateTo($"/person/{personId}");
+    }
+
+    public void ClosePersonProfile()
+    {
+        IsPersonProfileOpen = false;
+        SelectedPerson = null;
+        SelectedPersonCredits = null;
+        NotifyStateChanged(fullRefresh: false);
+    }
+
+    private async Task<TmdbPerson?> GetPersonDetailsAsync(int personId)
+    {
+        if (_personCache.TryGetValue(personId, out var cached)) return cached;
+
+        var apiKey = _config["TmdbApiKey"];
+        var url = $"https://api.themoviedb.org/3/person/{personId}?api_key={apiKey}";
+        try
+        {
+            var person = await _http.GetFromJsonAsync<TmdbPerson>(url);
+            if (person != null)
+            {
+                _personCache[personId] = person;
+                return person;
+            }
+        }
+        catch (Exception ex) { Console.WriteLine($"Person details API error: {ex.Message}"); }
+        return null;
+    }
+
+    private async Task<TmdbPersonCombinedCredits?> GetPersonCreditsAsync(int personId)
+    {
+        if (_personCreditsCache.TryGetValue(personId, out var cached)) return cached;
+
+        var apiKey = _config["TmdbApiKey"];
+        var url = $"https://api.themoviedb.org/3/person/{personId}/combined_credits?api_key={apiKey}";
+        try
+        {
+            var credits = await _http.GetFromJsonAsync<TmdbPersonCombinedCredits>(url);
+            if (credits != null)
+            {
+                // Sort by popularity and filter out very obscure titles if needed
+                credits.Cast = credits.Cast.OrderByDescending(c => c.VoteAverage).ToList();
+                credits.Crew = credits.Crew.OrderByDescending(c => c.VoteAverage).ToList();
+                _personCreditsCache[personId] = credits;
+                return credits;
+            }
+        }
+        catch (Exception ex) { Console.WriteLine($"Person credits API error: {ex.Message}"); }
+        return null;
+    }
 }
+
 
 public class TmdbFindResult
 {

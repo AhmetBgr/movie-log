@@ -88,8 +88,7 @@ public class TmdbMovie
     public string? ImdbId { get; set; }
 
     // --- NEW EXTENDED FIELDS ---
-    public List<string> Directors { get; set; } = new();
-    public List<string> Actors { get; set; } = new();
+    public TmdbCredits? Credits { get; set; }
     public List<string> BackdropPaths { get; set; } = new();
     public string? TrailerKey { get; set; }
 
@@ -143,18 +142,142 @@ public class TmdbCredits
 
 public class TmdbCast
 {
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+
     [JsonPropertyName("name")]
     public string Name { get; set; } = "";
+
+    [JsonPropertyName("character")]
+    public string? Character { get; set; }
+
+    [JsonPropertyName("profile_path")]
+    public string? ProfilePath { get; set; }
+
+    public string FullProfileUrl => string.IsNullOrEmpty(ProfilePath)
+        ? "https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-4-user-grey-d8fe574e3425d038c5d392ed9342517a9494391.svg"
+        : $"https://image.tmdb.org/t/p/w185{ProfilePath}";
 }
 
 public class TmdbCrew
 {
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+
     [JsonPropertyName("name")]
     public string Name { get; set; } = "";
     
     [JsonPropertyName("job")]
     public string Job { get; set; } = "";
+
+    [JsonPropertyName("profile_path")]
+    public string? ProfilePath { get; set; }
+
+    public string FullProfileUrl => string.IsNullOrEmpty(ProfilePath)
+        ? "https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-4-user-grey-d8fe574e3425d038c5d392ed9342517a9494391.svg"
+        : $"https://image.tmdb.org/t/p/w185{ProfilePath}";
 }
+
+public class TmdbPerson
+{
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = "";
+
+    [JsonPropertyName("biography")]
+    public string? Biography { get; set; }
+
+    [JsonPropertyName("birthday")]
+    public string? Birthday { get; set; }
+
+    [JsonPropertyName("deathday")]
+    public string? Deathday { get; set; }
+
+    [JsonPropertyName("place_of_birth")]
+    public string? PlaceOfBirth { get; set; }
+
+    [JsonPropertyName("profile_path")]
+    public string? ProfilePath { get; set; }
+
+    [JsonPropertyName("known_for_department")]
+    public string? KnownForDepartment { get; set; }
+
+    [JsonPropertyName("gender")]
+    public int Gender { get; set; }
+
+    [JsonPropertyName("also_known_as")]
+    public List<string>? AlsoKnownAs { get; set; }
+
+    public string FullProfileUrl => string.IsNullOrEmpty(ProfilePath)
+        ? "https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-4-user-grey-d8fe574e3425d038c5d392ed9342517a9494391.svg"
+        : $"https://image.tmdb.org/t/p/w500{ProfilePath}";
+}
+
+public class TmdbPersonCombinedCredits
+{
+    [JsonPropertyName("cast")]
+    public List<TmdbPersonCreditItem> Cast { get; set; } = new();
+
+    [JsonPropertyName("crew")]
+    public List<TmdbPersonCreditItem> Crew { get; set; } = new();
+}
+
+public class TmdbPersonCreditItem
+{
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+
+    [JsonPropertyName("title")]
+    public string? Title { get; set; }
+
+    [JsonPropertyName("name")]
+    public string? Name { get; set; }
+
+    [JsonPropertyName("poster_path")]
+    public string? PosterPath { get; set; }
+
+    [JsonPropertyName("release_date")]
+    public string? ReleaseDate { get; set; }
+
+    [JsonPropertyName("first_air_date")]
+    public string? FirstAirDate { get; set; }
+
+    [JsonPropertyName("media_type")]
+    public string MediaType { get; set; } = "";
+
+    [JsonPropertyName("character")]
+    public string? Character { get; set; }
+
+    [JsonPropertyName("job")]
+    public string? Job { get; set; }
+
+    [JsonPropertyName("vote_average")]
+    public double VoteAverage { get; set; }
+
+    [JsonPropertyName("vote_count")]
+    public int VoteCount { get; set; }
+
+    [JsonPropertyName("popularity")]
+    public double Popularity { get; set; }
+
+    [JsonPropertyName("backdrop_path")]
+    public string? BackdropPath { get; set; }
+
+    public string FullBackdropUrl => string.IsNullOrEmpty(BackdropPath)
+        ? ""
+        : $"https://image.tmdb.org/t/p/w1280{BackdropPath}";
+
+    public string DisplayTitle => Title ?? Name ?? "Unknown";
+    public string DisplayDate => ReleaseDate ?? FirstAirDate ?? "";
+    public int Year => int.TryParse(DisplayDate.Split('-')[0], out var y) ? y : 0;
+
+    public string FullPosterUrl => string.IsNullOrEmpty(PosterPath)
+        ? "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
+        : $"https://image.tmdb.org/t/p/w185{PosterPath}";
+}
+
 
 public class TmdbSearchResponse
 {

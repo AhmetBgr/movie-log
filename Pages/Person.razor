@@ -1,0 +1,429 @@
+@page "/person/{Id:int}"
+@using MyPrivateWatchlist.Models
+@using MyPrivateWatchlist.Components
+@inject MyPrivateWatchlist.Services.WatchlistService WatchlistSvc
+@inject NavigationManager NavManager
+@inject HttpClient Http
+@inject IConfiguration Config
+@inject IJSRuntime JS
+@implements IDisposable
+
+<PageTitle>@(person?.Name ?? "Person Profile")</PageTitle>
+
+<div class="page-shell">
+    <!-- Navbar with Back Button -->
+    <div class="toolbar-primary sticky-top bg-white border-bottom px-3 py-2">
+        <button class="btn btn-link text-dark p-0 me-3 d-flex align-items-center text-decoration-none" @onclick="GoBack">
+            <i class="bi bi-arrow-left fs-4"></i>
+            <span class="ms-2 fw-bold">Back</span>
+        </button>
+        <div class="tb-divider"></div>
+        <span class="text-secondary small fw-bold text-uppercase tracking-wider">Person Profile</span>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="d-flex align-items-center justify-content-center p-5" style="min-height: 70vh;">
+            <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else if (person != null)
+    {
+        <div class="page-content scroll-y p-0">
+            <!-- Header Section -->
+            <div class="position-relative">
+                <div class="person-header-bg" style="background-image: url(@credits?.Cast?.FirstOrDefault(c => !string.IsNullOrEmpty(c.BackdropPath))?.FullBackdropUrl);"></div>
+                <div class="table-wrap px-3 py-5 person-header-content position-relative">
+                    <div class="row g-4 align-items-end">
+                        <div class="col-auto">
+                            <div class="person-poster shadow-lg">
+                                <img src="@person.FullProfileUrl" class="img-fluid" alt="@person.Name" />
+                            </div>
+                        </div>
+                        <div class="col">
+                            <h1 class="person-name">@person.Name</h1>
+                            <div class="person-meta d-flex flex-wrap gap-3">
+                                @if (!string.IsNullOrEmpty(person.Birthday))
+                                {
+                                    <div class="meta-item">
+                                        <i class="bi bi-calendar3 me-2"></i>
+                                        Born: @person.Birthday
+                                        @if (!string.IsNullOrEmpty(person.PlaceOfBirth))
+                                        {
+                                            <span> in @person.PlaceOfBirth</span>
+                                        }
+                                    </div>
+                                }
+                                @if (!string.IsNullOrEmpty(person.KnownForDepartment))
+                                {
+                                    <div class="meta-item">
+                                        <i class="bi bi-briefcase me-2"></i>
+                                        @person.KnownForDepartment
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-wrap px-3 py-4">
+                <div class="row g-4">
+                    <div class="col-12">
+                        <!-- Quick Stats / Personal Info -->
+                        <div class="d-flex flex-wrap gap-4 mb-5 p-4 rounded-4 bg-light bg-opacity-50 border shadow-sm">
+                            <div class="stat-item">
+                                <div class="stat-label">Known For</div>
+                                <div class="stat-value">@person.KnownForDepartment</div>
+                            </div>
+                            <div class="tb-divider d-none d-md-block"></div>
+                            <div class="stat-item">
+                                <div class="stat-label">Gender</div>
+                                <div class="stat-value">@(person.Gender == 1 ? "Female" : (person.Gender == 2 ? "Male" : "Not specified"))</div>
+                            </div>
+                            @if (!string.IsNullOrEmpty(person.Deathday))
+                            {
+                                <div class="tb-divider d-none d-md-block"></div>
+                                <div class="stat-item">
+                                    <div class="stat-label">Died</div>
+                                    <div class="stat-value">@person.Deathday</div>
+                                </div>
+                            }
+                            @if (person.AlsoKnownAs?.Any() == true)
+                            {
+                                <div class="tb-divider d-none d-md-block"></div>
+                                <div class="stat-item flex-grow-1">
+                                    <div class="stat-label">Also Known As</div>
+                                    <div class="stat-value text-secondary small">@string.Join(", ", person.AlsoKnownAs.Take(3))</div>
+                                </div>
+                            }
+                        </div>
+
+                        <section class="mb-5">
+                            <h2 class="section-title">Biography</h2>
+                            <div class="biography-text">
+                                @if (string.IsNullOrEmpty(person.Biography))
+                                {
+                                    <p class="text-secondary fs-5 opacity-75">No biography available for this person.</p>
+                                }
+                                else
+                                {
+                                    @((MarkupString)person.Biography.Replace("\n", "<br/>"))
+                                }
+                            </div>
+                        </section>
+
+                        @if (credits?.Cast?.Any() == true || credits?.Crew?.Any() == true)
+                        {
+                            <section>
+                                <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 gap-3">
+                                    <h2 class="section-title mb-0">Full Filmography</h2>
+                                    
+                                    <div class="toolbar-primary bg-light border p-1 rounded-pill d-inline-flex">
+                                        <button class="tb-btn @(sortColumn == "Rating" ? "active" : "")" @onclick='() => SetSort("Rating")'>
+                                            <i class="bi @(sortColumn == "Rating" ? (sortDescending ? "bi-star-fill" : "bi-star") : "bi-star")"></i>
+                                            <span class="tb-label">Rating</span>
+                                        </button>
+                                        <button class="tb-btn @(sortColumn == "Popularity" ? "active" : "")" @onclick='() => SetSort("Popularity")'>
+                                            <i class="bi bi-graph-up"></i>
+                                            <span class="tb-label">Popularity</span>
+                                        </button>
+                                        <button class="tb-btn @(sortColumn == "Year" ? "active" : "")" @onclick='() => SetSort("Year")'>
+                                            <i class="bi @(sortColumn == "Year" ? (sortDescending ? "bi-sort-numeric-down-alt" : "bi-sort-numeric-up") : "bi-calendar-event")"></i>
+                                            <span class="tb-label">Year</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-5 row-cols-xl-6 g-3 g-md-4">
+                                    @foreach (var credit in SortedCredits)
+                                    {
+                                        <div class="col">
+                                            <div class="movie-card" @onclick="() => OpenMovie(credit)">
+                                                <div class="movie-poster-wrap shadow-sm">
+                                                    <img src="@credit.FullPosterUrl" class="movie-poster" alt="@(credit.Title ?? credit.Name)" />
+                                                    <div class="movie-overlay">
+                                                        <i class="bi bi-plus-lg fs-4"></i>
+                                                    </div>
+                                                </div>
+                                                <div class="movie-info p-2">
+                                                    <div class="movie-title">@(credit.Title ?? credit.Name)</div>
+                                                    <div class="movie-meta d-flex justify-content-between">
+                                                        <span>@(credit.Year > 0 ? credit.Year.ToString() : "N/A")</span>
+                                                        @if (credit.VoteAverage > 0)
+                                                        {
+                                                            <span class="text-warning fw-bold"><i class="bi bi-star-fill smaller me-1"></i>@(credit.VoteAverage.ToString("F1"))</span>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </section>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .person-header-bg {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 100%;
+        background-size: cover;
+        background-position: center 20%;
+        filter: blur(40px) brightness(0.4);
+        opacity: 0.6;
+        z-index: 0;
+        transition: background-image 0.2s ease;
+    }
+
+    .person-header-content {
+        z-index: 1;
+        color: #fff;
+    }
+
+    .person-poster {
+        width: 180px;
+        border-radius: 20px;
+        overflow: hidden;
+        border: 4px solid #fff;
+        background: #f0f0f0;
+    }
+
+    .person-name {
+        font-size: 3.5rem;
+        font-weight: 900;
+        margin-bottom: 12px;
+        line-height: 1.1;
+        text-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    .meta-item {
+        font-size: 1.1rem;
+        font-weight: 500;
+        opacity: 0.9;
+    }
+
+    .section-title {
+        font-size: 1.8rem;
+        font-weight: 800;
+        color: #1a1a2e;
+        margin-bottom: 24px;
+        position: relative;
+    }
+
+    .biography-text {
+        font-size: 1.15rem;
+        line-height: 1.8;
+        color: #444;
+        max-width: 900px;
+    }
+
+    .movie-card {
+        cursor: pointer;
+        transition: all 0.1s cubic-bezier(0.16, 1, 0.3, 1);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    
+    .movie-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(26, 26, 46, 0.6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        opacity: 0;
+        transition: opacity 0.1s ease;
+    }
+
+    .movie-card:hover {
+        transform: translateY(-8px);
+    }
+
+    .movie-poster-wrap {
+        position: relative;
+        aspect-ratio: 2/3;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    }
+
+    .movie-poster {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.2s ease;
+    }
+
+    .movie-card:hover .movie-poster {
+        transform: scale(1.05);
+    }
+
+    .movie-card:hover .movie-overlay {
+        opacity: 1;
+    }
+
+    .movie-title {
+        font-weight: 700;
+        font-size: 0.9rem;
+        color: #1a1a2e;
+        margin-top: 8px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .movie-meta {
+        font-size: 0.75rem;
+        color: #666;
+        font-weight: 600;
+    }
+
+    .stat-item {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .stat-label {
+        font-size: 0.72rem;
+        font-weight: 800;
+        color: #666;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 2px;
+    }
+
+    .stat-value {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #1a1a2e;
+    }
+
+    .toolbar-primary .tb-btn.active {
+        background: #1a1a2e;
+        color: #fff;
+    }
+
+    .toolbar-primary .tb-btn {
+        border-radius: 999px;
+        border: none;
+        padding: 5px 15px;
+        transition: all 0.2s;
+        font-size: 0.8rem;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .toolbar-primary .tb-btn:hover:not(.active) {
+        background: rgba(0,0,0,0.05);
+    }
+
+    @@media (max-width: 768px) {
+        .person-name { font-size: 2.5rem; }
+        .person-poster { width: 140px; }
+        .biography-text { font-size: 1rem; }
+    }
+</style>
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private TmdbPerson? person;
+    private TmdbPersonCombinedCredits? credits;
+    private bool isLoading = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        isLoading = true;
+        person = null;
+        credits = null;
+        StateHasChanged();
+
+        try
+        {
+            var apiKey = Config["TmdbApiKey"];
+            person = await Http.GetFromJsonAsync<TmdbPerson>($"https://api.themoviedb.org/3/person/{Id}?api_key={apiKey}");
+            credits = await Http.GetFromJsonAsync<TmdbPersonCombinedCredits>($"https://api.themoviedb.org/3/person/{Id}/combined_credits?api_key={apiKey}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching person: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private string sortColumn = "Year";
+    private bool sortDescending = true;
+
+    private void SetSort(string col)
+    {
+        if (sortColumn == col) sortDescending = !sortDescending;
+        else { sortColumn = col; sortDescending = true; }
+        StateHasChanged();
+    }
+
+    private IEnumerable<TmdbPersonCreditItem> SortedCredits
+    {
+        get
+        {
+            if (credits == null) return Enumerable.Empty<TmdbPersonCreditItem>();
+            
+            var all = credits.Cast.Concat(credits.Crew)
+                .Where(c => !string.IsNullOrEmpty(c.PosterPath))
+                .DistinctBy(c => $"{c.MediaType}-{c.Id}");
+
+            return sortColumn switch
+            {
+                "Year" => sortDescending 
+                    ? all.OrderByDescending(c => c.Year).ThenByDescending(c => c.Popularity)
+                    : all.OrderBy(c => c.Year).ThenByDescending(c => c.Popularity),
+                "Popularity" => sortDescending
+                    ? all.OrderByDescending(c => c.Popularity).ThenByDescending(c => c.VoteAverage)
+                    : all.OrderBy(c => c.Popularity).ThenByDescending(c => c.VoteAverage),
+                _ => sortDescending
+                    ? all.OrderByDescending(c => c.VoteAverage * (c.VoteCount > 10 ? 1 : 0.5)).ThenByDescending(c => c.Popularity)
+                    : all.OrderBy(c => c.VoteAverage * (c.VoteCount > 10 ? 1 : 0.5)).ThenByDescending(c => c.Popularity)
+            };
+        }
+    }
+
+    private void GoBack()
+    {
+        _ = JS.InvokeVoidAsync("uiHelpers.historyBack");
+    }
+
+    private async Task OpenMovie(TmdbPersonCreditItem credit)
+    {
+        var item = new TmdbSearchResultItem { 
+            Id = credit.Id, 
+            MediaType = credit.MediaType ?? "movie",
+            Title = credit.Title ?? credit.Name,
+            PosterPath = credit.PosterPath
+        };
+        await WatchlistSvc.ShowDetailsAsync(item);
+    }
+
+    public void Dispose()
+    {
+        // Cleanup if needed
+    }
+}

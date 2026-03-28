@@ -136,10 +136,18 @@
                                 <span class="row-meta">@(item.DisplayDate.Length >= 4 ? item.DisplayDate.Substring(0,4) : item.DisplayDate)</span>
                             </td>
                             <td class="text-secondary small px-3 d-none d-lg-table-cell">
-                                @if (directorsMap.TryGetValue($"{item.MediaType}-{item.Id}", out var director))
-                                    { @director }
+                                @if (directorsMap.TryGetValue($"{item.MediaType}-{item.Id}", out var directorStr))
+                                {
+                                    <div class="d-flex flex-wrap gap-1">
+                                        @foreach (var d in directorStr.Split(", ", StringSplitOptions.RemoveEmptyEntries))
+                                        {
+                                            <span class="text-decoration-none text-secondary fw-semibold hover-opacity-75 cursor-pointer" 
+                                                  @onclick="() => OpenDirectorProfileAsync(item, d)" @onclick:stopPropagation="true">@d</span>
+                                        }
+                                    </div>
+                                }
                                 else
-                                    { <span class="spinner-border spinner-border-sm opacity-25" role="status"></span> }
+                                { <span class="spinner-border spinner-border-sm opacity-25" role="status"></span> }
                             </td>
                             <td class="d-none d-md-table-cell">
                                 <span class="badge rounded-pill @(item.MediaType == "movie" ? "bg-secondary text-white" : "bg-light text-dark border")">
@@ -293,7 +301,13 @@
             try
             {
                 var movie = await WatchlistSvc.GetTmdbDetailsByIdAsync(item.Id, item.MediaType);
-                if (movie != null) { directorsMap[key] = movie.Directors.Any() ? string.Join(", ", movie.Directors) : "N/A"; _directorRefreshCounter++; if (_directorRefreshCounter % 5 == 0) await InvokeAsync(StateHasChanged); }
+                if (movie != null) 
+                { 
+                    var directors = movie.Credits?.Crew?.Where(c => c.Job == "Director").Select(c => c.Name).ToList() ?? new();
+                    directorsMap[key] = directors.Any() ? string.Join(", ", directors) : "N/A"; 
+                    _directorRefreshCounter++; 
+                    if (_directorRefreshCounter % 5 == 0) await InvokeAsync(StateHasChanged); 
+                }
             }
             catch { }
             try { await Task.Delay(100, token); } catch (OperationCanceledException) { break; }
@@ -324,7 +338,7 @@
                     Year = movie.ReleaseDate ?? "",
                     ParsedYear = int.TryParse(movie.ReleaseDate?.Split('-')[0], out var y) ? y : 0,
                     Genres = string.Join(", ", movie.GenreList.Select(g => g.Name)),
-                    Director = movie.Directors.Any() ? string.Join(", ", movie.Directors) : null,
+                    Director = movie.Credits?.Crew?.Where(c => c.Job == "Director").Select(c => c.Name).FirstOrDefault(),
                     Status = status,
                     CurrentSeason = (status == WatchlistStatus.Watching && item.MediaType == "tv") ? 1 : null,
                     CurrentEpisode = (status == WatchlistStatus.Watching && item.MediaType == "tv") ? 1 : null,
@@ -332,6 +346,16 @@
                 });
         }
         else await WatchlistSvc.UpdateStatusAsync(lib, status);
+    }
+
+    private async Task OpenDirectorProfileAsync(TmdbSearchResultItem item, string directorName)
+    {
+        var m = await WatchlistSvc.GetTmdbDetailsByIdAsync(item.Id, item.MediaType);
+        var dirId = m?.Credits?.Crew?.FirstOrDefault(c => c.Name == directorName && c.Job == "Director")?.Id;
+        if (dirId.HasValue) 
+        {
+            await WatchlistSvc.OpenPersonProfileAsync(dirId.Value);
+        }
     }
 
     private static string GetSearchResultYear(TmdbSearchResultItem item)
