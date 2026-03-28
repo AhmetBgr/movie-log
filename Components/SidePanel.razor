@@ -112,17 +112,93 @@
                                 </button>
                             }
                         </div>
+
+                        
+
                     </div>
 
                     @if (movie.Collection != null && movie.Collection.Id > 0)
                     {
-                        <div class="mb-4">
+                        <div class="mb-4 pt-2">
                             <button class="btn btn-sm btn-outline-primary rounded-pill fw-bold bg-opacity-10 d-flex align-items-center shadow-sm"
                                     @onclick='() => { WatchlistSvc.CloseSidePanel(); NavManager.NavigateTo($"franchise/{movie.Collection.Id}"); }'>
                                 <i class="bi bi-collection-play-fill me-2 fs-6"></i> @movie.Collection.Name
                             </button>
                         </div>
                     }
+
+
+                    <!--Actions-->
+                    @{ var status = libItem?.Status; }
+                    <div class="d-flex flex-column gap-1">
+                        <div class="btn-group bg-light rounded-3 p-0 shadow-sm w-100">
+
+                            <button class="btn @(status == WatchlistStatus.Pending ? "btn-secondary" : "btn-light border-0 text-secondary bg-transparent") 
+                                           flex-grow-1 py-1 px-1 rounded-2 fw-bold 
+                                           d-flex align-items-center justify-content-center gap-1"
+                                    @onclick="async () => { 
+                                        if (libItem?.Status == WatchlistStatus.Pending) 
+                                            await RemoveItem(); 
+                                        else 
+                                            await HandleStatusTabClick(WatchlistStatus.Pending); 
+                                    }">
+                                <i class="bi bi-list-nested fs-6"></i>
+                                <span style="font-size: 0.7rem;">Watchlist</span>
+                            </button>
+
+                            <button class="btn @(status == WatchlistStatus.Watching ? "btn-success shadow-none" : "btn-light border-0 text-success bg-transparent") 
+                                           flex-grow-1 py-1 px-1 rounded-2 fw-bold 
+                                           d-flex align-items-center justify-content-center gap-1"
+                                    @onclick="async () => { 
+                                        if (libItem?.Status == WatchlistStatus.Watching) 
+                                            await RemoveItem(); 
+                                        else 
+                                            await HandleStatusTabClick(WatchlistStatus.Watching); 
+                                    }">
+                                <i class="bi bi-play-fill fs-6"></i>
+                                <span style="font-size: 0.7rem;">Watching</span>
+                            </button>
+
+                            <button class="btn @(status == WatchlistStatus.Watched ? "btn-primary shadow-none" : "btn-light border-0 text-primary bg-transparent") 
+                                           flex-grow-1 py-1 px-1 rounded-2 fw-bold 
+                                           d-flex align-items-center justify-content-center gap-1"
+                                    @onclick="async () => { 
+                                        if (libItem?.Status == WatchlistStatus.Watched) 
+                                            await RemoveItem(); 
+                                        else 
+                                            await HandleStatusTabClick(WatchlistStatus.Watched); 
+                                    }">
+                                <i class="bi bi-check-lg fs-6"></i>
+                                <span style="font-size: 0.7rem;">Watched</span>
+                            </button>
+
+                        </div>
+                    </div>
+
+
+
+                    <div class="mt-1 pt-2 border-top">
+                        <div class="mb-4">
+                            <h4 class="small-meta text-uppercase tracking-wider text-secondary mb-2">Overview</h4>
+                            <p class="text-secondary small" style="line-height: 1.6;">
+                                @if (WatchlistSvc.IsLoadingDetails && string.IsNullOrEmpty(movie.Overview))
+                                {
+                                    <div class="d-flex align-items-center gap-2 py-2">
+                                        <div class="spinner-border spinner-border-sm" role="status"></div>
+                                        <span>Fetching cinematic details...</span>
+                                    </div>
+                                }
+                                else
+                                {
+                                    @(string.IsNullOrEmpty(movie.Overview) ? "No overview available." : movie.Overview)
+                                }
+                            </p>
+                        </div>
+                    </div>
+
+
+
+
 
                     @if (movie.Credits?.Crew?.Any(c => c.Job == "Director") == true)
                     {
@@ -161,54 +237,15 @@
                         </div>
                     }
 
-                    <div class="mb-4">
-                        <h4 class="small-meta text-uppercase tracking-wider text-secondary mb-2">Overview</h4>
-                        <p class="text-secondary small" style="line-height: 1.6;">
-                            @if (WatchlistSvc.IsLoadingDetails && string.IsNullOrEmpty(movie.Overview))
-                            {
-                                <div class="d-flex align-items-center gap-2 py-2">
-                                    <div class="spinner-border spinner-border-sm" role="status"></div>
-                                    <span>Fetching cinematic details...</span>
-                                </div>
-                            }
-                            else
-                            {
-                                @(string.IsNullOrEmpty(movie.Overview) ? "No overview available." : movie.Overview)
-                            }
-                        </p>
-                    </div>
 
-                    <!-- Actions -->
-                    <div class="mt-5 pt-4 border-top">
-                        @{ var status = libItem?.Status; }
-                        <div class="d-flex flex-column gap-3">
-                            <div class="btn-group bg-light rounded-3 p-1 shadow-sm w-100">
-                                <button class="btn @(status == WatchlistStatus.Pending ? "btn-secondary" : "btn-light border-0 text-secondary bg-transparent") flex-grow-1 py-3 rounded-2 fw-bold d-flex flex-column align-items-center justify-content-center transition-all" 
-                                        @onclick="async () => { if (libItem?.Status == WatchlistStatus.Pending) await RemoveItem(); else await HandleStatusTabClick(WatchlistStatus.Pending); }">
-                                    <i class="bi bi-list-nested mb-1 fs-5"></i>
-                                    <span style="font-size: 0.75rem;">Watchlist</span>
-                                </button>
-                                <button class="btn @(status == WatchlistStatus.Watching ? "btn-success shadow-none" : "btn-light border-0 text-success bg-transparent") flex-grow-1 py-3 rounded-2 fw-bold d-flex flex-column align-items-center justify-content-center transition-all" 
-                                        @onclick="async () => { if (libItem?.Status == WatchlistStatus.Watching) await RemoveItem(); else await HandleStatusTabClick(WatchlistStatus.Watching); }">
-                                    <i class="bi bi-play-fill mb-1 fs-4" style="margin: -4px 0 -2px 0;"></i> 
-                                    <span style="font-size: 0.75rem;">Watching</span>
-                                </button>
-                                <button class="btn @(status == WatchlistStatus.Watched ? "btn-primary shadow-none" : "btn-light border-0 text-primary bg-transparent") flex-grow-1 py-3 rounded-2 fw-bold d-flex flex-column align-items-center justify-content-center transition-all" 
-                                        @onclick="async () => { if (libItem?.Status == WatchlistStatus.Watched) await RemoveItem(); else await HandleStatusTabClick(WatchlistStatus.Watched); }">
-                                    <i class="bi bi-check-lg mb-1 fs-5"></i> 
-                                    <span style="font-size: 0.75rem;">Watched</span>
-                                </button>
-                            </div>
-
-                            @if (!string.IsNullOrEmpty(movie.TrailerKey))
-                            {
-                                <button class="btn btn-outline-dark w-100 py-3 rounded-3 fw-bold d-flex align-items-center justify-content-center text-uppercase tracking-wider transition-all" 
-                                        @onclick="() => isTrailerOpen = true">
-                                    <i class="bi bi-play-circle-fill me-2 fs-5 text-danger"></i> Trailer
-                                </button>
-                            }
-                        </div>
-                    </div>
+                    @if (!string.IsNullOrEmpty(movie.TrailerKey))
+                    {
+                        <button class="btn btn-outline-dark w-100 py-3 rounded-3 fw-bold d-flex align-items-center justify-content-center text-uppercase tracking-wider transition-all" 
+                                @onclick="() => isTrailerOpen = true">
+                            <i class="bi bi-play-circle-fill me-2 fs-5 text-danger"></i> Trailer
+                        </button>
+                    }
+                    
                 </div>
             </div>
         }
