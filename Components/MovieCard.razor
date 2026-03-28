@@ -227,7 +227,7 @@
     [Parameter] public bool IsSelected { get; set; } = false;
     [Parameter] public EventCallback OnToggleSelect { get; set; }
     [Parameter] public RenderFragment? SidePanel { get; set; }
-    private bool showSavedIndicator = true;
+
 
 
     private async Task ShowDetails()
@@ -246,7 +246,7 @@
     {
         if (r.HasValue) r = Math.Clamp(r.Value, 0, 100);
         await WatchlistSvc.UpdateRatingAsync(item, r);
-        if (r.HasValue) { showSavedIndicator = true; StateHasChanged(); await Task.Delay(1500); showSavedIndicator = false; StateHasChanged(); }
+        if (r.HasValue) { StateHasChanged(); await Task.Delay(1500); StateHasChanged(); }
     }
 
     private async Task ChangeEpisode(WatchlistItem Item, int d) { var n = (Item.CurrentEpisode ?? 1) + d; if (n >= 1) await WatchlistSvc.UpdateProgressAsync(Item, Item.CurrentSeason, n); }

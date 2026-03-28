@@ -130,7 +130,7 @@ internal static class WatchlistSyncData
             Rating20 = rating20,
             CurrentSeason = item.CurrentSeason,
             CurrentEpisode = item.CurrentEpisode,
-            Genres = item.Genres
+            Genres = item.Genres ?? ""
         };
     }
 

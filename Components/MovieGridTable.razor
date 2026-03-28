@@ -1,0 +1,240 @@
+@using MyPrivateWatchlist.Models
+
+<div class="watched-container">
+    @if (!Items.Any())
+    {
+        <div class="text-center py-5 text-secondary opacity-50 fst-italic">
+            No items to display.
+        </div>
+    }
+    else
+    {
+        var itemsPerCol = 20;
+            var pageSize = itemsPerCol * Columns;
+            var totalPages = (int)Math.Ceiling(Items.Count / (double)pageSize);
+            
+            // Ensure PageIndex is valid
+            if (PageIndex >= totalPages && totalPages > 0) PageIndex = totalPages - 1;
+            if (PageIndex < 0) PageIndex = 0;
+
+            var pagedItems = Items.Skip(PageIndex * pageSize).Take(pageSize).ToList();
+            var currentTotal = pagedItems.Count;
+            var effectiveCols = (int)Math.Ceiling(currentTotal / (double)itemsPerCol);
+
+        <div class="watched-grid">
+            @foreach (var item in pagedItems)
+            {
+                <div class="watched-entry" @onclick="() => OnItemClick.InvokeAsync(item)">
+                    @if (IsEditing)
+                    {
+                        <input type="checkbox" class="form-check-input me-2 shadow-none" 
+                               checked="@SelectedIds.Contains(item.ImdbId)" 
+                               @onchange="() => OnToggleSelect.InvokeAsync(item.ImdbId)" 
+                               @onclick:stopPropagation="true" 
+                               style="width:15px;height:15px;cursor:pointer;" />
+                    }
+                    <span class="entry-title">@item.Title</span>
+                    <span class="entry-dots"></span>
+                    <span class="entry-rating @(item.Rating20 == null ? "no-rating" : "")" 
+                          style="@(item.Rating20.HasValue ? $"color:{GetRatingColor(item.Rating20.Value)};" : "")">
+                        @(item.Rating20?.ToString() ?? "—")
+                    </span>
+                </div>
+            }
+        </div>
+
+        <!-- Pagination -->
+        @if (totalPages > 1)
+        {
+            <div class="pagination-wrap">
+                <div class="d-flex align-items-center justify-content-center gap-2 py-4">
+                    <button class="page-nav-btn" disabled="@(PageIndex == 0)" @onclick="() => SetPage(PageIndex - 1)">
+                        <i class="bi bi-chevron-left"></i>
+                    </button>
+                    
+                    @{
+                        // Show a limited number of page buttons if there are many
+                        int startPage = Math.Max(0, PageIndex - 2);
+                        int endPage = Math.Min(totalPages - 1, startPage + 4);
+                        if (endPage - startPage < 4) startPage = Math.Max(0, endPage - 4);
+                    }
+
+                    @if (startPage > 0)
+                    {
+                        <button class="page-num-btn" @onclick="() => SetPage(0)">1</button>
+                        @if (startPage > 1) { <span class="text-secondary px-1">...</span> }
+                    }
+
+                    @for (int i = startPage; i <= endPage; i++)
+                    {
+                        var p = i;
+                        <button class="page-num-btn @(PageIndex == p ? "active" : "")" @onclick="() => SetPage(p)">
+                            @(p + 1)
+                        </button>
+                    }
+
+                    @if (endPage < totalPages - 1)
+                    {
+                        @if (endPage < totalPages - 2) { <span class="text-secondary px-1">...</span> }
+                        <button class="page-num-btn" @onclick="() => SetPage(totalPages - 1)">@totalPages</button>
+                    }
+
+                    <button class="page-nav-btn" disabled="@(PageIndex == totalPages - 1)" @onclick="() => SetPage(PageIndex + 1)">
+                        <i class="bi bi-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+        }
+
+        @if (ShowSummary)
+        {
+            <div class="watched-summary">
+                Sorted by @(SortInfo ?? "Default") &bull; 
+                Showing @(PageIndex * pageSize + 1)–@(PageIndex * pageSize + currentTotal) of @TotalCount items
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public List<WatchlistItem> Items { get; set; } = new();
+    [Parameter] public int Columns { get; set; } = 3;
+    [Parameter] public string[] ColumnHeaders { get; set; } = new[] { "List I", "List II", "List III" };
+    [Parameter] public bool IsEditing { get; set; }
+    [Parameter] public HashSet<string> SelectedIds { get; set; } = new();
+    [Parameter] public EventCallback<WatchlistItem> OnItemClick { get; set; }
+    [Parameter] public EventCallback<string> OnToggleSelect { get; set; }
+    [Parameter] public bool ShowSummary { get; set; } = true;
+    [Parameter] public int TotalCount { get; set; }
+    [Parameter] public string? SortInfo { get; set; }
+
+    [Parameter] public int PageIndex { get; set; } = 0;
+    [Parameter] public EventCallback<int> PageIndexChanged { get; set; }
+
+    private async Task SetPage(int index)
+    {
+        PageIndex = index;
+        await PageIndexChanged.InvokeAsync(index);
+        StateHasChanged();
+    }
+
+    private string GetRatingColor(int val) { double hue = (val / 100.0) * 120; return $"hsl({hue},70%,45%)"; }
+}
+
+<style>
+    .watched-container { 
+        padding: 0; 
+        background: transparent; 
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+    .watched-grid { 
+        display: grid; 
+        /* Desktop: 3 columns, 20 rows each */
+        grid-template-columns: repeat(3, 1fr); 
+        grid-template-rows: repeat(20, auto);
+        grid-auto-flow: column;
+        gap: 0 40px; 
+        align-items: start;
+        padding: 20px 30px;
+        flex: 1;
+    }
+    .watched-entry { 
+        display: flex; 
+        align-items: center; 
+        padding: 4px 8px; 
+        cursor: pointer; 
+        transition: background 0.1s, transform 0.1s;
+        border-radius: 6px;
+        margin-bottom: 2px;
+        min-width: 0; /* Allow title to truncate */
+    }
+    .watched-entry:hover { 
+        background: rgba(0,0,0,0.03);
+        transform: translateX(4px);
+    }
+    .entry-title { 
+        font-size: 0.88rem; 
+        color: #333; 
+        white-space: nowrap; 
+        overflow: hidden; 
+        text-overflow: ellipsis; 
+        flex-shrink: 1;
+    }
+    .entry-dots { 
+        flex: 1; 
+        border-bottom: 1px dotted #ddd; 
+        margin: 0 8px; 
+        height: 14px; 
+        opacity: 0.5;
+    }
+    .entry-rating { 
+        font-size: 0.85rem; 
+        font-weight: 800; 
+        min-width: 26px; 
+        text-align: right; 
+        font-family: 'JetBrains Mono', 'Courier New', monospace;
+    }
+    .entry-rating.no-rating { 
+        color: #ccc !important; 
+        font-weight: 400; 
+    }
+
+    /* Pagination */
+    .page-nav-btn, .page-num-btn {
+        width: 32px; height: 32px;
+        border: 1px solid #dee2e6;
+        background: #fff;
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center; justify-content: center;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #555;
+        transition: all 0.2s;
+    }
+    .page-nav-btn:hover:not(:disabled), .page-num-btn:hover {
+        border-color: #adb5bd;
+        background: #f8f9fa;
+        color: #000;
+    }
+    .page-num-btn.active {
+        background: #212529;
+        border-color: #212529;
+        color: #fff;
+    }
+    .page-nav-btn:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+    }
+
+    .watched-summary { 
+        padding: 16px; 
+        border-top: 1px solid #f0f0f0; 
+        font-size: 0.8rem; 
+        color: #999; 
+        text-align: center; 
+        background: #fafafa;
+    }
+
+    @@media (max-width: 1200px) {
+        .watched-grid { 
+            grid-template-columns: repeat(2, 1fr); 
+            grid-template-rows: repeat(30, auto);
+            gap: 0 40px; 
+            padding: 15px 20px;
+        }
+    }
+
+    @@media (max-width: 850px) {
+        .watched-grid { 
+            grid-template-columns: 1fr; 
+            grid-template-rows: auto;
+            grid-auto-flow: row;
+            padding: 10px 15px; 
+            gap: 2px 0;
+        }
+        .watched-entry:hover { transform: none; background: rgba(0,0,0,0.04); }
+    }
+</style>

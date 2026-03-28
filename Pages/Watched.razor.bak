@@ -1,4 +1,4 @@
-@page "/watched"
+﻿@page "/watched"
 @using MyPrivateWatchlist.Models
 @using MyPrivateWatchlist.Components
 @inject MyPrivateWatchlist.Services.WatchlistService WatchlistSvc
@@ -187,14 +187,71 @@
             <div class="content-scroll">
                 @if (!isCardView)
                 {
-                    <MovieGridTable Items="_watchedItems" 
-                                   IsEditing="isEditing" 
-                                   SelectedIds="_selectedIds" 
-                                   OnItemClick="HandleRowClick" 
-                                   OnToggleSelect="ToggleSelect" 
-                                   TotalCount="@WatchlistSvc.WatchedItems.Where(i => i.Status == WatchlistStatus.Watched).Count()" 
-                                   SortInfo="@(WatchlistSvc.WatchedSortColumn + (WatchlistSvc.WatchedSortDescending ? " (Desc)" : " (Asc)"))"
-                                   @bind-PageIndex="gridPageIndex" />
+                    <!-- TABLE VIEW -->
+                    <div class="table-wrap">
+                <table class="table table-hover align-middle mb-0">
+                    <tbody>
+                        @if (!_watchedItems.Any())
+                        {
+                            <tr><td colspan="6" class="py-5 text-center text-secondary fst-italic opacity-50">No movies match your filters.</td></tr>
+                        }
+                        <Virtualize Items="_watchedItems" Context="item" ItemSize="72" OverscanCount="5">
+                            <tr @key="item.ImdbId" data-imdbid="@item.ImdbId" class="@(_selectedIds.Contains(item.ImdbId) ? "row-selected" : "")">
+                                @if (isEditing)
+                                {
+                                    <td class="px-3 text-center" style="width:1%;white-space:nowrap;" @onclick:stopPropagation="true">
+                                        <input type="checkbox" class="form-check-input shadow-none" style="width:17px;height:17px;cursor:pointer;"
+                                               checked="@_selectedIds.Contains(item.ImdbId)"
+                                               @onchange="() => ToggleSelect(item.ImdbId)" />
+                                    </td>
+                                }
+                                <td class="px-2 py-1" style="width:52px;">
+                                    <div class="poster-thumb">
+                                        @if (!string.IsNullOrEmpty(item.FullPosterUrl) && !item.FullPosterUrl.Contains("data:image/png;base64"))
+                                        {
+                                            <img src="@item.FullPosterUrl" alt="@item.Title" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+                                            <div class="poster-fallback" style="display:none;"><i class="bi bi-film"></i></div>
+                                        }
+                                        else { <div class="poster-fallback"><i class="bi bi-film"></i></div> }
+                                    </div>
+                                </td>
+                                <td class="px-3" style="cursor:pointer;" @onclick="() => HandleRowClick(item)">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="fw-bold text-dark title-hover">@item.Title</span>
+                                        <OpenOnMenu Item="item" />
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(item.Director))
+                                    {
+                                        <span class="d-block text-secondary" style="font-size:0.73rem;opacity:0.75;">@item.Director</span>
+                                    }
+                                    <span class="row-meta">@item.Year Â· @item.DateAdded.ToString("MMM dd, yyyy")</span>
+                                </td>
+                                <td class="text-center">
+                                    <div class="d-flex align-items-center justify-content-center gap-2 py-1">
+                                        <div class="rating-box @(item.Rating20 == null ? "rating-empty" : "")"
+                                             style="@(item.Rating20 != null ? $"background:{GetRatingColor(item.Rating20.Value)};" : "")">
+                                            <input type="number" class="rating-input @(item.Rating20 == null ? "" : "text-white")"
+                                                   min="0" max="100" placeholder="â€“"
+                                                   value="@item.Rating20"
+                                                   @onchange="(e) => UpdateRating20(item, string.IsNullOrEmpty(e.Value?.ToString()) ? null : int.Parse(e.Value.ToString()!))" />
+                                        </div>
+                                        @if (isEditing && item.Rating20 != null)
+                                        {
+                                            <button class="btn btn-link btn-sm p-0 text-secondary opacity-40" style="text-decoration:none;"
+                                                    @onclick="() => UpdateRating20(item, null)" title="Clear rating">
+                                                <i class="bi bi-x-circle"></i>
+                                            </button>
+                                        }
+                                    </div>
+                                </td>
+                                <td class="px-3 d-none d-lg-table-cell">
+                                    <span class="badge rounded-pill @(item.TitleType == "Movie" ? "bg-secondary" : "bg-light text-dark border")">@item.TitleType</span>
+                                </td>
+                            </tr>
+                        </Virtualize>
+                    </tbody>
+                </table>
+                    </div>
                 }
                 else
                 {
@@ -330,7 +387,6 @@
     private List<WatchlistItem> _watchedItems = new();
     private List<string> _availableGenres = new();
 
-    private int gridPageIndex = 0;
     private int activeFilterCount => (WatchlistSvc.FilterMinRating20 > 0 ? 1 : 0)
         + (WatchlistSvc.FilterMaxRating20 < 100 ? 1 : 0)
         + (!string.IsNullOrEmpty(WatchlistSvc.StartYear) ? 1 : 0)
@@ -387,7 +443,6 @@
     {
         SyncItems();
         _selectedIds.IntersectWith(_watchedItems.Select(i => i.ImdbId).ToHashSet());
-        gridPageIndex = 0;
         StateHasChanged();
     }
 
@@ -467,12 +522,98 @@
         min-width: 0;
     }
 
-    .content-scroll { 
-        flex: 1; 
-        overflow-y: auto; 
-        overflow-x: hidden; 
-        min-height: 0; 
-        min-width: 0; 
-        background: #fff;
+    .poster-thumb { width: 40px; height: 60px; border-radius: 4px; overflow: hidden; background: #f0f0f0; flex-shrink: 0; }
+    .poster-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .poster-fallback { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #ccc; font-size: 1rem; }
+
+    /* Row interactions */
+    .title-hover { transition: opacity 0.15s; }
+    .title-hover:hover { opacity: 0.6; }
+
+    /* Rating box */
+    .rating-box {
+        width: 50px; height: 50px; border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        border: 2px dashed #dee2e6; background: #f8f9fa;
+        transition: border-color 0.2s, background 0.2s, transform 0.15s;
     }
+    .rating-box:focus-within { transform: scale(1.08); border-style: solid; border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
+    .rating-box:not(.rating-empty) { border: none; }
+    .rating-input {
+        width: 50px; height: 50px; text-align: center; font-weight: 900;
+        font-size: 1.15rem; background: transparent; border: none; outline: none;
+        cursor: pointer; color: #555;
+    }
+    .rating-input.text-white { color: #fff !important; caret-color: #fff; }
+    input[type=number].rating-input::-webkit-inner-spin-button,
+    input[type=number].rating-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type=number].rating-input { -moz-appearance: textfield; }
+
+    @@keyframes fadeOutUp {
+        0%   { opacity:0; transform:translate(-50%,0); }
+        20%  { opacity:1; transform:translate(-50%,-4px); }
+        80%  { opacity:1; transform:translate(-50%,-4px); }
+        100% { opacity:0; transform:translate(-50%,-10px); }
+    }
+    .animate-fade-out { animation: fadeOutUp 1.5s ease-out forwards; }
+
+    /* Rating box (card view â€” smaller) */
+    .rating-box-sm {
+        width: 38px; height: 38px; border-radius: 8px;
+        display: flex; align-items: center; justify-content: center;
+        border: 2px dashed #dee2e6; background: #f8f9fa;
+        transition: border-color 0.2s, background 0.2s, transform 0.15s;
+    }
+    .rating-box-sm:focus-within { transform: scale(1.08); border-style: solid; border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
+    .rating-box-sm:not(.rating-empty) { border: none; }
+    .rating-input-sm {
+        width: 38px; height: 38px; text-align: center; font-weight: 900;
+        font-size: 0.9rem; background: transparent; border: none; outline: none;
+        cursor: pointer; color: #555;
+    }
+    .rating-input-sm.text-white { color: #fff !important; caret-color: #fff; }
+    input[type=number].rating-input-sm::-webkit-inner-spin-button,
+    input[type=number].rating-input-sm::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type=number].rating-input-sm { -moz-appearance: textfield; }
+
+    /* Card view styles */
+    .movie-card-w {
+        background: #fff;
+        border-radius: 10px !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.07), 0 2px 8px rgba(0,0,0,0.05);
+        transition: box-shadow 0.05s ease, transform 0.05s ease;
+    }
+    .movie-card-w:hover {
+        box-shadow: 0 4px 16px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.06) !important;
+        transform: translateY(-2px);
+    }
+    .movie-card-selected {
+        outline: 2px solid rgba(13, 110, 253, 0.5);
+        background-color: rgba(13, 110, 253, 0.03) !important;
+    }
+    .side-panel-w {
+        width: 44px; flex-shrink: 0;
+        border-right: 1px solid rgba(0,0,0,0.06);
+        background: #f7f7f7;
+        border-radius: 10px 0 0 10px;
+        cursor: pointer;
+        transition: background 0.15s;
+    }
+    .side-panel-w:hover { background: #ececec; }
+    .card-cb {
+        width: 22px; height: 22px; border-radius: 6px;
+        border: 2px solid #bbb; background: #fff;
+        display: flex; align-items: center; justify-content: center;
+        transition: all 0.15s ease;
+    }
+    .card-cb-on { background: #0d6efd; border-color: #0d6efd; }
+    .rating-badge-w {
+        display: inline-flex; align-items: center; justify-content: center;
+        min-width: 34px; height: 34px; padding: 0 7px;
+        border-radius: 8px; color: #fff;
+        font-size: 0.75rem; font-weight: 800;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+    }
+
+    /* Mobile handled by app.css */
 </style>
