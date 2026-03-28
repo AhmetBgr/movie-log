@@ -66,6 +66,13 @@ public class WatchlistService
     public bool IsSidePanelOpen { get; private set; }
     public bool UseSidePanel { get; set; } = true; // Toggle for side panel vs modal on desktop
 
+    // Cached mobile state to avoid JS interop delay on first click
+    private bool? _lastIsMobile = null;
+    private bool _showDetailsInProgress = false;
+
+    /// <summary>Seed the cached isMobile value from the layout on first render.</summary>
+    public void PrimeIsMobileCache(bool isMobile) => _lastIsMobile ??= isMobile;
+
     private string _selectedType = "All";
     public string SelectedType 
     { 
@@ -934,42 +941,55 @@ public class WatchlistService
     // Modal Control
     public async Task ShowDetailsAsync(WatchlistItem item)
     {
-        SelectedItem = item;
-        SelectedMovie = new TmdbMovie 
-        { 
-            Title = item.Title, 
-            OriginalTitle = item.OriginalTitle,
-            ReleaseDate = item.Year,
-            Overview = item.Overview ?? ""
-        };
+        // Guard against re-entrant calls (e.g., double-tap on mobile)
+        if (_showDetailsInProgress && SelectedItem == item) return;
+        _showDetailsInProgress = true;
 
-        // Determine if we should use side panel or modal
-        bool isMobile = await _js.InvokeAsync<bool>("uiHelpers.isMobile");
-        
-        if (isMobile)
+        try
         {
-            IsModalOpen = true;
-            IsSidePanelOpen = false;
-        }
-        else
-        {
-            IsModalOpen = false;
-            IsSidePanelOpen = true;
-        }
+            SelectedItem = item;
+            SelectedMovie = new TmdbMovie 
+            { 
+                Title = item.Title, 
+                OriginalTitle = item.OriginalTitle,
+                ReleaseDate = item.Year,
+                Overview = item.Overview ?? ""
+            };
 
-        IsLoadingDetails = true;
-        NotifyStateChanged(fullRefresh: false);
+            // Use cached mobile state for immediate open, then verify with JS
+            bool isMobile = _lastIsMobile ?? false;
+            if (isMobile) { IsModalOpen = true; IsSidePanelOpen = false; }
+            else { IsModalOpen = false; IsSidePanelOpen = true; }
 
-        var details = await GetTmdbDetailsAsync(item.ImdbId);
-        if (details != null && SelectedItem == item)
-        {
-            SelectedMovie = details;
-            
-            // Persist missing metadata if this is a real item in our collection
-            await HydrateMissingMetadataAsync(item, details);
-            
-            IsLoadingDetails = false;
+            IsLoadingDetails = true;
             NotifyStateChanged(fullRefresh: false);
+
+            // Get actual mobile state and correct if needed
+            bool actualIsMobile = await _js.InvokeAsync<bool>("uiHelpers.isMobile");
+            _lastIsMobile = actualIsMobile;
+
+            if (actualIsMobile != isMobile)
+            {
+                if (actualIsMobile) { IsModalOpen = true; IsSidePanelOpen = false; }
+                else { IsModalOpen = false; IsSidePanelOpen = true; }
+                NotifyStateChanged(fullRefresh: false);
+            }
+
+            var details = await GetTmdbDetailsAsync(item.ImdbId);
+            if (details != null && SelectedItem == item)
+            {
+                SelectedMovie = details;
+                
+                // Persist missing metadata if this is a real item in our collection
+                await HydrateMissingMetadataAsync(item, details);
+                
+                IsLoadingDetails = false;
+                NotifyStateChanged(fullRefresh: false);
+            }
+        }
+        finally
+        {
+            _showDetailsInProgress = false;
         }
     }
 
@@ -1112,48 +1132,61 @@ public class WatchlistService
 
     public async Task ShowDetailsAsync(TmdbSearchResultItem searchItem)
     {
-        var tempItem = new WatchlistItem
-        {
-            ImdbId = "",
-            Title = searchItem.DisplayTitle,
-            OriginalTitle = searchItem.DisplayOriginalTitle,
-            Year = searchItem.DisplayDate,
-            TitleType = searchItem.MediaType == "movie" ? "Movie" : "TV Series"
-        };
-        
-        SelectedItem = tempItem;
-        SelectedMovie = new TmdbMovie 
-        { 
-            Title = tempItem.Title, 
-            OriginalTitle = tempItem.OriginalTitle,
-            ReleaseDate = tempItem.Year,
-            PosterPath = searchItem.PosterPath
-        };
+        // Guard against re-entrant calls (e.g., double-tap on mobile)
+        if (_showDetailsInProgress) return;
+        _showDetailsInProgress = true;
 
-        // Determine if we should use side panel or modal
-        bool isMobile = await _js.InvokeAsync<bool>("uiHelpers.isMobile");
-        
-        if (isMobile)
+        try
         {
-            IsModalOpen = true;
-            IsSidePanelOpen = false;
-        }
-        else
-        {
-            IsModalOpen = false;
-            IsSidePanelOpen = true;
-        }
+            var tempItem = new WatchlistItem
+            {
+                ImdbId = "",
+                Title = searchItem.DisplayTitle,
+                OriginalTitle = searchItem.DisplayOriginalTitle,
+                Year = searchItem.DisplayDate,
+                TitleType = searchItem.MediaType == "movie" ? "Movie" : "TV Series"
+            };
+            
+            SelectedItem = tempItem;
+            SelectedMovie = new TmdbMovie 
+            { 
+                Title = tempItem.Title, 
+                OriginalTitle = tempItem.OriginalTitle,
+                ReleaseDate = tempItem.Year,
+                PosterPath = searchItem.PosterPath
+            };
 
-        IsLoadingDetails = true;
-        NotifyStateChanged(fullRefresh: false);
+            // Use cached mobile state for immediate open, then verify with JS
+            bool isMobile = _lastIsMobile ?? false;
+            if (isMobile) { IsModalOpen = true; IsSidePanelOpen = false; }
+            else { IsModalOpen = false; IsSidePanelOpen = true; }
 
-        var details = await GetTmdbDetailsByIdAsync(searchItem.Id, searchItem.MediaType);
-        if (details != null && SelectedItem == tempItem)
-        {
-            SelectedMovie = details;
-            SelectedItem.ImdbId = details.ImdbId ?? "";
-            IsLoadingDetails = false;
+            IsLoadingDetails = true;
             NotifyStateChanged(fullRefresh: false);
+
+            // Get actual mobile state and correct if needed
+            bool actualIsMobile = await _js.InvokeAsync<bool>("uiHelpers.isMobile");
+            _lastIsMobile = actualIsMobile;
+
+            if (actualIsMobile != isMobile)
+            {
+                if (actualIsMobile) { IsModalOpen = true; IsSidePanelOpen = false; }
+                else { IsModalOpen = false; IsSidePanelOpen = true; }
+                NotifyStateChanged(fullRefresh: false);
+            }
+
+            var details = await GetTmdbDetailsByIdAsync(searchItem.Id, searchItem.MediaType);
+            if (details != null && SelectedItem == tempItem)
+            {
+                SelectedMovie = details;
+                SelectedItem.ImdbId = details.ImdbId ?? "";
+                IsLoadingDetails = false;
+                NotifyStateChanged(fullRefresh: false);
+            }
+        }
+        finally
+        {
+            _showDetailsInProgress = false;
         }
     }
 

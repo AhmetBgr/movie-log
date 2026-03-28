@@ -24,7 +24,9 @@
         <div class="watched-grid">
             @foreach (var item in pagedItems)
             {
-                <div class="watched-entry" @onclick="() => OnItemClick.InvokeAsync(item)">
+                <div class="watched-entry" 
+                     data-holdselect-id="@item.ImdbId"
+                     @onclick="() => OnItemClick.InvokeAsync(item)">
                     @if (IsEditing)
                     {
                         <input type="checkbox" class="form-check-input me-2 shadow-none" 
@@ -38,9 +40,14 @@
                         @(!string.IsNullOrEmpty(item.Year) ? $"({item.Year})" : "")
                     </span>
                     <span class="entry-dots"></span>
-                    <span class="entry-rating @(item.Rating20 == null ? "no-rating" : "")" 
-                          style="@(item.Rating20.HasValue ? $"color:{GetRatingColor(item.Rating20.Value)};" : "")">
-                        @(item.Rating20?.ToString() ?? "—")
+                    @{
+                        // If ShowUserRatingOnly, only show rating if it is a real user rating (not TMDB avg)
+                        // User ratings come from Rating20 on the actual library item; TMDB avg is set separately
+                        var displayRating = ShowUserRatingOnly ? UserRatingForItem(item) : item.Rating20;
+                    }
+                    <span class="entry-rating @(displayRating == null ? "no-rating" : "")" 
+                          style="@(displayRating.HasValue ? $"color:{GetRatingColor(displayRating.Value)};" : "")">
+                        @(displayRating?.ToString() ?? "—")
                     </span>
                 </div>
             }
@@ -110,6 +117,17 @@
     [Parameter] public bool ShowSummary { get; set; } = true;
     [Parameter] public int TotalCount { get; set; }
     [Parameter] public string? SortInfo { get; set; }
+    /// <summary>
+    /// When true (default), only shows Rating20 if it was set as a user rating.
+    /// Items from search results that have Rating20 derived from TMDB vote average will show "—".
+    /// Pass false to always show whatever Rating20 is set to (e.g. for monitored library pages).
+    /// </summary>
+    [Parameter] public bool ShowUserRatingOnly { get; set; } = true;
+    /// <summary>
+    /// Optional set of ImdbIds that have real user ratings. When ShowUserRatingOnly=true,
+    /// only items in this set will show their rating.
+    /// </summary>
+    [Parameter] public HashSet<string>? UserRatedIds { get; set; }
 
     [Parameter] public int PageIndex { get; set; } = 0;
     [Parameter] public EventCallback<int> PageIndexChanged { get; set; }
@@ -122,6 +140,20 @@
     }
 
     private string GetRatingColor(int val) { double hue = (val / 100.0) * 120; return $"hsl({hue},70%,45%)"; }
+
+    /// <summary>
+    /// Returns the rating to display. If ShowUserRatingOnly=true, only returns a value
+    /// when the item is confirmed to be a user-rated library item.
+    /// </summary>
+    private int? UserRatingForItem(WatchlistItem item)
+    {
+        if (!ShowUserRatingOnly) return item.Rating20;
+        // If UserRatedIds is provided, use it; otherwise check if Rating20 was from user
+        // (not a TMDB average). We consider it a user rating if UserRatedIds is null (library mode)
+        // or if the item's ImdbId is in UserRatedIds.
+        if (UserRatedIds == null) return item.Rating20; // library mode - always show
+        return UserRatedIds.Contains(item.ImdbId) ? item.Rating20 : null;
+    }
 }
 
 <style>
@@ -250,6 +282,7 @@
             grid-auto-flow: row;
             padding: 10px 15px; 
             gap: 2px 0;
+            overflow-y: auto;
         }
         .watched-footer {
             flex-direction: column;

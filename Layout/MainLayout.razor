@@ -392,6 +392,8 @@
             _dotNetRef = DotNetObjectReference.Create(this);
             await JS.InvokeVoidAsync("registerUpdateCallback", _dotNetRef);
             await AutoSync.EnsureStartedAsync();
+            // Pre-cache isMobile state so ShowDetailsAsync opens correct panel immediately
+            try { WatchlistSvc.PrimeIsMobileCache(await JS.InvokeAsync<bool>("uiHelpers.isMobile")); } catch { }
         }
     }
     private void HandleWatchlistStateChanged()

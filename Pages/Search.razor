@@ -43,10 +43,10 @@
         <div class="tb-divider"></div>
         
         <!-- View toggle -->
-        <button class="tb-btn @(!isCardView ? "active" : "")" @onclick="() => isCardView = false" title="Table view">
+        <button class="tb-btn @(!isCardView ? "active" : "")" @onclick="() => SetViewTable()" title="Table view">
             <i class="bi bi-list-ul"></i>
         </button>
-        <button class="tb-btn @(isCardView ? "active" : "")" @onclick="() => isCardView = true" title="Card view">
+        <button class="tb-btn @(isCardView ? "active" : "")" @onclick="() => SetViewCard()" title="Card view">
             <i class="bi bi-grid-3x2-gap"></i>
         </button>
 
@@ -110,15 +110,17 @@
         <div class="page-content scroll-y">
             @if (!isCardView)
             {
-                <MovieGridTable Items="GridProxyItems"
-                               IsEditing="isEditing"
-                               SelectedIds="_selectedKeys"
-                               OnToggleSelect="ToggleSelect"
-                               OnItemClick="(item) => HandleRowClick(null, item.ImdbId)"
-                               ShowSummary="true"
-                               TotalCount="results?.Count ?? 0"
-                               SortInfo="@_searchSortColumn">
-                </MovieGridTable>
+            <MovieGridTable Items="GridProxyItems"
+                           IsEditing="isEditing"
+                           SelectedIds="_selectedKeys"
+                           OnToggleSelect="ToggleSelect"
+                           OnItemClick="(item) => HandleRowClick(null, item.ImdbId)"
+                           ShowSummary="true"
+                           TotalCount="results?.Count ?? 0"
+                           SortInfo="@_searchSortColumn"
+                           ShowUserRatingOnly="true"
+                           UserRatedIds="@UserRatedIdsSet">
+            </MovieGridTable>
             }
             else
             {
@@ -169,21 +171,37 @@
     private bool _searchSortDescending = true;
     private HashSet<string> _selectedKeys = new();
 
+    private void SetViewTable() { isCardView = false; _ = JS.InvokeVoidAsync("sessionStorage.setItem", "search_view", "table"); }
+    private void SetViewCard() { isCardView = true; _ = JS.InvokeVoidAsync("sessionStorage.setItem", "search_view", "card"); }
+
     private List<WatchlistItem> GridProxyItems => SortedResults.Select(r => 
     {
         var key = $"{r.MediaType}-{r.Id}";
         directorsMap.TryGetValue(key, out var dir);
+        // Find correspondent library item (if it exists) to get user's actual rating
+        var libItem = FindLibraryItem(r);
         return new WatchlistItem 
         {
             ImdbId = key,
             Title = r.DisplayTitle,
             Year = GetSearchResultYear(r),
             TitleType = r.MediaType == "movie" ? "Movie" : "TV Series",
-            Rating20 = (r.VoteAverage > 0) ? (int?)(r.VoteAverage * 10) : null,
+            // Do NOT use VoteAverage as Rating20 here — the grid will use UserRatedIds to filter
+            Rating20 = libItem?.Rating20,
             PosterPath = r.PosterPath,
             Director = dir
         };
     }).ToList();
+
+    // Set of ImdbIds (TMDB composite keys) that the user has actually rated
+    private HashSet<string> UserRatedIdsSet => 
+        SortedResults
+            .Where(r => {
+                var lib = FindLibraryItem(r);
+                return lib?.Rating20 != null;
+            })
+            .Select(r => $"{r.MediaType}-{r.Id}")
+            .ToHashSet();
 
     private bool IsAllSelected
     {
@@ -220,6 +238,18 @@
                 await JS.InvokeVoidAsync("holdSelect.init", _holdRef);
             }
             catch { }
+            // Restore session preferences
+            try
+            {
+                var savedSort = await JS.InvokeAsync<string?>("sessionStorage.getItem", "search_sort");
+                var savedSortDesc = await JS.InvokeAsync<string?>("sessionStorage.getItem", "search_sort_desc");
+                var savedView = await JS.InvokeAsync<string?>("sessionStorage.getItem", "search_view");
+                if (!string.IsNullOrEmpty(savedSort)) _searchSortColumn = savedSort;
+                if (!string.IsNullOrEmpty(savedSortDesc)) _searchSortDescending = savedSortDesc == "true";
+                if (!string.IsNullOrEmpty(savedView)) isCardView = savedView == "card";
+                StateHasChanged();
+            }
+            catch { }
         }
     }
 
@@ -245,7 +275,13 @@
                 : results.Where(r => r.MediaType == "movie" || r.MediaType == "tv").OrderBy(r => r.DisplayDate)
         });
 
-    private void ToggleSearchSort(string col) { if (_searchSortColumn == col) { if (col != "Relevance") _searchSortDescending = !_searchSortDescending; } else { _searchSortColumn = col; _searchSortDescending = col == "Year"; } }
+    private void ToggleSearchSort(string col) 
+    { 
+        if (_searchSortColumn == col) { if (col != "Relevance") _searchSortDescending = !_searchSortDescending; } 
+        else { _searchSortColumn = col; _searchSortDescending = col == "Year"; } 
+        _ = JS.InvokeVoidAsync("sessionStorage.setItem", "search_sort", _searchSortColumn);
+        _ = JS.InvokeVoidAsync("sessionStorage.setItem", "search_sort_desc", _searchSortDescending.ToString().ToLower());
+    }
 
     private async Task BulkAddToWatchlist()
     {
