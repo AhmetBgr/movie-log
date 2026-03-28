@@ -87,6 +87,9 @@ public class TmdbMovie
     [JsonPropertyName("imdb_id")]
     public string? ImdbId { get; set; }
 
+    [JsonPropertyName("runtime")]
+    public int? Runtime { get; set; }
+
     // --- NEW EXTENDED FIELDS ---
     public TmdbCredits? Credits { get; set; }
     public List<string> BackdropPaths { get; set; } = new();
@@ -128,6 +131,9 @@ public class TmdbTvResult
 
     [JsonPropertyName("genres")]
     public List<TmdbGenre> GenreList { get; set; } = new();
+
+    [JsonPropertyName("episode_run_time")]
+    public List<int> EpisodeRunTime { get; set; } = new();
 }
 
 // --- NEW TMDB CREDITS CLASSES ---

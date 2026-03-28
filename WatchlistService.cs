@@ -643,7 +643,8 @@ public class WatchlistService
                         PosterPath = tv.PosterPath,
                         VoteAverage = tv.VoteAverage,
                         ReleaseDate = tv.FirstAirDate,
-                        GenreList = tv.GenreList
+                        GenreList = tv.GenreList,
+                        Runtime = tv.EpisodeRunTime?.FirstOrDefault()
                     };
 
                     try

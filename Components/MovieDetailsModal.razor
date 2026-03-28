@@ -73,6 +73,13 @@
                                             <span class="badge bg-dark text-white fs-6 px-3 py-2 rounded-pill shadow-sm">
                                                 <i class="bi bi-star-fill text-warning me-1"></i> @movie.VoteAverage.ToString("0.0") / 10
                                             </span>
+
+                                            @if (movie.Runtime > 0)
+                                            {
+                                                <span class="badge bg-light text-dark border fs-6 px-3 py-2 rounded-pill shadow-sm">
+                                                    <i class="bi bi-clock-fill text-muted me-1"></i> @FormatRuntime(movie.Runtime.Value)
+                                                </span>
+                                            }
                                         
 
                                             @if (movie.Collection != null && movie.Collection.Id > 0)
@@ -533,6 +540,14 @@
         // 0 to 100 -> Hue 0 to 120
         double hue = (val / 100.0) * 120;
         return $"hsl({hue}, 70%, 45%)";
+    }
+
+    private string FormatRuntime(int minutes)
+    {
+        if (minutes < 60) return $"{minutes}m";
+        var h = minutes / 60;
+        var m = minutes % 60;
+        return m == 0 ? $"{h}h" : $"{h}h {m}m";
     }
 
     private async Task UpdateRating(int? ratingValue)
