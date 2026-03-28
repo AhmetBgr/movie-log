@@ -86,6 +86,7 @@
         </article>
 
         <MovieDetailsModal />
+        <SidePanel />
 
         @if (!string.IsNullOrEmpty(WatchlistSvc.ToastMessage))
         {
@@ -375,11 +376,11 @@
     {
         WatchlistSvc.OnStateChanged += HandleWatchlistStateChanged;
         NavManager.LocationChanged += HandleLocationChanged;
-        _wasModalOpen = WatchlistSvc.IsModalOpen;
+        _wasAnyOpen = WatchlistSvc.IsModalOpen || WatchlistSvc.IsSidePanelOpen;
         _ = WatchlistSvc.InitializeAsync();
     }
 
-    private bool _wasModalOpen;
+    private bool _wasAnyOpen;
     private bool _isClosingFromNav = false;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -393,28 +394,30 @@
     }
     private void HandleWatchlistStateChanged()
     {
-        // Handle Movie Details Modal
-        if (WatchlistSvc.IsModalOpen && !_wasModalOpen)
+        bool isAnyOpen = WatchlistSvc.IsModalOpen || WatchlistSvc.IsSidePanelOpen;
+        
+        // Handle Movie Details (Modal or Side Panel)
+        if (isAnyOpen && !_wasAnyOpen)
         {
             if (!NavManager.Uri.Contains("#details"))
                 NavManager.NavigateTo(NavManager.Uri + "#details");
         }
-        else if (!WatchlistSvc.IsModalOpen && _wasModalOpen)
+        else if (!isAnyOpen && _wasAnyOpen)
         {
             if (NavManager.Uri.Contains("#details") && !_isClosingFromNav)
                 _ = JS.InvokeVoidAsync("uiHelpers.historyBack");
         }
 
-        _wasModalOpen = WatchlistSvc.IsModalOpen;
+        _wasAnyOpen = isAnyOpen;
         _ = InvokeAsync(StateHasChanged);
     }
 
     private void HandleLocationChanged(object? sender, LocationChangedEventArgs e)
     {
-        if (WatchlistSvc.IsModalOpen && !NavManager.Uri.Contains("#details"))
+        if ((WatchlistSvc.IsModalOpen || WatchlistSvc.IsSidePanelOpen) && !NavManager.Uri.Contains("#details"))
         {
             _isClosingFromNav = true;
-            WatchlistSvc.CloseModal();
+            WatchlistSvc.CloseModal(); // This also closes side panel
             _isClosingFromNav = false;
         }
     }

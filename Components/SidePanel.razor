@@ -1,0 +1,484 @@
+@using MyPrivateWatchlist.Models
+@inject MyPrivateWatchlist.Services.WatchlistService WatchlistSvc
+@inject NavigationManager NavManager
+@inject IJSRuntime JS
+@implements IDisposable
+
+<div class="side-panel-overlay @(WatchlistSvc.IsSidePanelOpen ? "show" : "")" @onclick="ClosePanel">
+    <div class="side-panel @(WatchlistSvc.IsSidePanelOpen ? "open" : "")" @onclick:stopPropagation="true">
+        @if (WatchlistSvc.SelectedItem != null && WatchlistSvc.SelectedMovie != null)
+        {
+            var item = WatchlistSvc.SelectedItem;
+            var movie = WatchlistSvc.SelectedMovie;
+            var libItem = GetLibraryItem();
+
+            <div class="side-panel-header">
+                <button type="button" class="btn-close" aria-label="Close" @onclick="ClosePanel"></button>
+            </div>
+
+            <div class="side-panel-content custom-scrollbar">
+                <!-- Media Section (Poster or Gallery) -->
+                <div class="panel-media bg-black">
+                    @if (showScreenshots && movie.BackdropPaths.Any())
+                    {
+                        <div class="panel-gallery p-2 d-flex flex-column gap-2 overflow-auto" style="max-height: 500px;">
+                            @foreach (var path in movie.BackdropPaths)
+                            {
+                                <img src="https://image.tmdb.org/t/p/w780@(path)" 
+                                     class="img-fluid rounded shadow-sm backdrop-thumb" 
+                                     alt="Screenshot" 
+                                     @onclick="() => OpenLightbox(path)" 
+                                     @onclick:stopPropagation="true" />
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="panel-poster-wrap d-flex align-items-center justify-content-center overflow-hidden">
+                            <img src="@movie.FullPosterUrl" class="img-fluid px-0" alt="Poster" style="object-fit: cover; width: 100%;" />
+                        </div>
+                    }
+                    
+                    @if (movie.BackdropPaths.Any())
+                    {
+                        <div class="p-3 bg-dark border-top border-secondary border-opacity-25 d-flex justify-content-center">
+                            <div class="form-check form-switch d-flex align-items-center gap-2">
+                                <input class="form-check-input custom-switch" type="checkbox" id="sidePanelGalleryToggle" @bind="showScreenshots">
+                                <label class="form-check-label text-white small fw-bold mb-0" for="sidePanelGalleryToggle" style="min-width: 50px;">
+                                    Images
+                                </label>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <!-- Info Section -->
+                <div class="panel-info p-4">
+                    <div class="d-flex align-items-start justify-content-between gap-3 mb-1">
+                        <div class="flex-grow-1">
+                            <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                                <h3 class="fw-black text-dark mb-0">
+                                    <a href="https://www.imdb.com/title/@item.ImdbId/" target="_blank" class="text-decoration-none text-dark hover-opacity">@movie.Title</a>
+                                </h3>
+                                <OpenOnMenu Title="@movie.Title"
+                                            Year="@GetModalYear(movie, item)"
+                                            ImdbId="@GetModalImdbId(movie, item)" />
+                            </div>
+                            @if (!string.IsNullOrEmpty(movie.ReleaseDate))
+                            {
+                                <p class="text-secondary fw-semibold small mb-2 text-uppercase tracking-wide">Released: @movie.ReleaseDate</p>
+                            }
+
+                            <div class="d-flex align-items-center gap-2 flex-wrap mb-4">
+                                <span class="badge bg-dark text-white fs-6 px-3 py-2 rounded-pill shadow-sm">
+                                    <i class="bi bi-star-fill text-warning me-1"></i> @movie.VoteAverage.ToString("0.0") / 10
+                                </span>
+
+                                @if (movie.Runtime > 0)
+                                {
+                                    <span class="badge bg-light text-dark border fs-6 px-3 py-2 rounded-pill shadow-sm">
+                                        <i class="bi bi-clock-fill text-muted me-1"></i> @FormatRuntime(movie.Runtime.Value)
+                                    </span>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Rating Box -->
+                        <div class="d-flex flex-column align-items-center p-2 border rounded-4 bg-white shadow-sm flex-shrink-0 position-relative" style="min-width: 90px; transform: scale(0.9);">
+                            @if (showSavedIndicator)
+                            {
+                                <div class="position-absolute top-0 start-50 translate-middle-x z-3 mt-n2 animate-fade-out">
+                                    <span class="badge bg-success shadow-sm rounded-pill py-1 px-3 fw-bold border border-white" style="font-size: 0.65rem;">SAVED</span>
+                                </div>
+                            }
+
+                            <span class="small fw-bold text-secondary text-uppercase tracking-wider mb-2" style="font-size: 0.65rem;">Rating</span>
+                            <div class="rounded-3 d-flex flex-column align-items-center justify-content-center shadow-sm transition-all rating-box-indicator" 
+                                 style="width: 70px; height: 70px; background-color: @(libItem?.Rating20 == null ? "#fff" : GetRatingColor(libItem.Rating20.Value)); 
+                                        color: @(libItem?.Rating20 == null ? "#adb5bd" : "#fff"); 
+                                        border: @(libItem?.Rating20 == null ? "2px dashed #dee2e6" : "none")">
+                                <input type="number" class="form-control form-control-sm text-center fw-black p-0 border-0 bg-transparent fs-2 no-spinner shadow-none @(libItem?.Rating20 == null ? "text-dark" : "text-white")" 
+                                       style="width: 70px; height: 70px; cursor: pointer;"
+                                       min="0" max="100" 
+                                       placeholder="-"
+                                       value="@(libItem?.Rating20)" 
+                                       @onchange="(e) => HandleRatingEdit(e)" />
+                            </div>
+
+                            @if (libItem?.Rating20 != null)
+                            {
+                                <button class="btn btn-link btn-sm p-0 text-secondary opacity-50 hover-opacity-100 mt-1" 
+                                        @onclick="() => HandleRatingEdit(new ChangeEventArgs { Value = null })">
+                                    <i class="bi bi-trash3-fill fs-5"></i>
+                                </button>
+                            }
+                        </div>
+                    </div>
+
+                    @if (movie.Collection != null && movie.Collection.Id > 0)
+                    {
+                        <div class="mb-4">
+                            <button class="btn btn-sm btn-outline-primary rounded-pill fw-bold bg-opacity-10 d-flex align-items-center shadow-sm"
+                                    @onclick='() => { WatchlistSvc.CloseSidePanel(); NavManager.NavigateTo($"franchise/{movie.Collection.Id}"); }'>
+                                <i class="bi bi-collection-play-fill me-2 fs-6"></i> @movie.Collection.Name
+                            </button>
+                        </div>
+                    }
+
+                    @if (movie.Credits?.Crew?.Any(c => c.Job == "Director") == true)
+                    {
+                        <div class="mb-4">
+                            <h4 class="small-meta text-uppercase tracking-wider text-secondary mb-2">Director</h4>
+                            <div class="d-flex flex-wrap gap-2">
+                                @foreach (var dir in movie.Credits.Crew.Where(c => c.Job == "Director"))
+                                {
+                                    <button class="btn btn-sm btn-light border rounded-pill px-3 py-1.5 fw-bold d-flex align-items-center gap-2 hover-bg-dark transition-all"
+                                            @onclick="() => WatchlistSvc.OpenPersonProfileAsync(dir.Id)">
+                                        <img src="@dir.FullProfileUrl" class="rounded-circle shadow-sm" style="width: 24px; height: 24px; object-fit: cover;" />
+                                        <span>@dir.Name</span>
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    @if (movie.Credits?.Cast?.Any() == true)
+                    {
+                        <div class="mb-4">
+                            <h4 class="small-meta text-uppercase tracking-wider text-secondary mb-2">Top Cast</h4>
+                            <div class="d-flex flex-column gap-2">
+                                @foreach (var actor in movie.Credits.Cast.Take(6))
+                                {
+                                    <div class="cast-card d-flex align-items-center gap-3 p-2 rounded-3 border bg-light bg-opacity-50 hover-bg-white transition-all cursor-pointer shadow-sm"
+                                         @onclick="() => WatchlistSvc.OpenPersonProfileAsync(actor.Id)">
+                                        <img src="@actor.FullProfileUrl" class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover;" />
+                                        <div class="cast-info overflow-hidden">
+                                            <div class="small fw-bold text-dark text-truncate">@actor.Name</div>
+                                            <div class="smaller text-secondary text-truncate">@actor.Character</div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    <div class="mb-4">
+                        <h4 class="small-meta text-uppercase tracking-wider text-secondary mb-2">Overview</h4>
+                        <p class="text-secondary small" style="line-height: 1.6;">
+                            @if (WatchlistSvc.IsLoadingDetails && string.IsNullOrEmpty(movie.Overview))
+                            {
+                                <div class="d-flex align-items-center gap-2 py-2">
+                                    <div class="spinner-border spinner-border-sm" role="status"></div>
+                                    <span>Fetching cinematic details...</span>
+                                </div>
+                            }
+                            else
+                            {
+                                @(string.IsNullOrEmpty(movie.Overview) ? "No overview available." : movie.Overview)
+                            }
+                        </p>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="mt-5 pt-4 border-top">
+                        @{ var status = libItem?.Status; }
+                        <div class="d-flex flex-column gap-3">
+                            <div class="btn-group bg-light rounded-3 p-1 shadow-sm w-100">
+                                <button class="btn @(status == WatchlistStatus.Pending ? "btn-secondary" : "btn-light border-0 text-secondary bg-transparent") flex-grow-1 py-3 rounded-2 fw-bold d-flex flex-column align-items-center justify-content-center transition-all" 
+                                        @onclick="async () => { if (libItem?.Status == WatchlistStatus.Pending) await RemoveItem(); else await HandleStatusTabClick(WatchlistStatus.Pending); }">
+                                    <i class="bi bi-list-nested mb-1 fs-5"></i>
+                                    <span style="font-size: 0.75rem;">Watchlist</span>
+                                </button>
+                                <button class="btn @(status == WatchlistStatus.Watching ? "btn-success shadow-none" : "btn-light border-0 text-success bg-transparent") flex-grow-1 py-3 rounded-2 fw-bold d-flex flex-column align-items-center justify-content-center transition-all" 
+                                        @onclick="async () => { if (libItem?.Status == WatchlistStatus.Watching) await RemoveItem(); else await HandleStatusTabClick(WatchlistStatus.Watching); }">
+                                    <i class="bi bi-play-fill mb-1 fs-4" style="margin: -4px 0 -2px 0;"></i> 
+                                    <span style="font-size: 0.75rem;">Watching</span>
+                                </button>
+                                <button class="btn @(status == WatchlistStatus.Watched ? "btn-primary shadow-none" : "btn-light border-0 text-primary bg-transparent") flex-grow-1 py-3 rounded-2 fw-bold d-flex flex-column align-items-center justify-content-center transition-all" 
+                                        @onclick="async () => { if (libItem?.Status == WatchlistStatus.Watched) await RemoveItem(); else await HandleStatusTabClick(WatchlistStatus.Watched); }">
+                                    <i class="bi bi-check-lg mb-1 fs-5"></i> 
+                                    <span style="font-size: 0.75rem;">Watched</span>
+                                </button>
+                            </div>
+
+                            @if (!string.IsNullOrEmpty(movie.TrailerKey))
+                            {
+                                <button class="btn btn-outline-dark w-100 py-3 rounded-3 fw-bold d-flex align-items-center justify-content-center text-uppercase tracking-wider transition-all" 
+                                        @onclick="() => isTrailerOpen = true">
+                                    <i class="bi bi-play-circle-fill me-2 fs-5 text-danger"></i> Trailer
+                                </button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@if (selectedLightboxPath != null)
+{
+    <div class="panel-lightbox-overlay" @onclick="() => selectedLightboxPath = null">
+        <div class="panel-lightbox-content">
+            <img src="https://image.tmdb.org/t/p/original@(selectedLightboxPath)" class="img-fluid rounded shadow-lg" />
+            <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-4 shadow-lg p-2 rounded-circle bg-dark" @onclick="() => selectedLightboxPath = null"></button>
+        </div>
+    </div>
+}
+
+<TrailerPlayer VideoKey="@WatchlistSvc.SelectedMovie?.TrailerKey" IsOpen="isTrailerOpen" OnClose="() => isTrailerOpen = false" />
+
+<style>
+    .side-panel-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0,0,0,0.4);
+        z-index: 1050;
+        visibility: hidden;
+        opacity: 0;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(2px);
+    }
+    .side-panel-overlay.show {
+        visibility: visible;
+        opacity: 1;
+    }
+
+    .side-panel {
+        position: fixed;
+        top: 0;
+        right: -450px;
+        width: 450px;
+        height: 100vh;
+        background: #fff;
+        box-shadow: -10px 0 40px rgba(0,0,0,0.15);
+        z-index: 1051;
+        transition: right 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        display: flex;
+        flex-direction: column;
+    }
+    .side-panel.open {
+        right: 0;
+    }
+
+    .side-panel-header {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        z-index: 100;
+        background: rgba(255,255,255,0.8);
+        border-radius: 50%;
+        padding: 5px;
+    }
+
+    .side-panel-content {
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+
+    .panel-media {
+        position: relative;
+    }
+
+    .panel-poster-wrap img {
+        width: 100%;
+        height: auto;
+    }
+
+    .backdrop-thumb {
+        cursor: zoom-in;
+        transition: transform 0.2s ease;
+    }
+    .backdrop-thumb:hover { transform: scale(1.02); }
+
+    .fw-black { font-weight: 900; }
+    .small-meta { font-size: 0.68rem; font-weight: 800; letter-spacing: 0.05em; }
+    .smaller { font-size: 0.72rem; }
+
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
+    
+    .rating-box-indicator:focus-within {
+        border-color: #0d6efd !important;
+        transform: scale(1.05);
+    }
+
+    .animate-fade-out {
+        animation: fadeOutUp 1.5s ease-out forwards;
+    }
+    @@keyframes fadeOutUp {
+        0% { opacity: 0; transform: translate(-50%, 0px); }
+        20% { opacity: 1; transform: translate(-50%, -8px); }
+        100% { opacity: 0; transform: translate(-50%, -15px); }
+    }
+
+    .no-spinner::-webkit-outer-spin-button,
+    .no-spinner::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
+    .panel-lightbox-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0,0,0,0.92);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+        padding: 40px;
+    }
+    .panel-lightbox-content { position: relative; max-width: 90%; max-height: 90%; }
+
+    .hover-bg-dark:hover {
+        background-color: #1a1a2e !important;
+        color: #fff !important;
+    }
+
+    .cast-card {
+        border-radius: 12px !important;
+    }
+</style>
+
+@code {
+    private bool showScreenshots = false;
+    private string? selectedLightboxPath;
+    private bool isTrailerOpen = false;
+
+    private void ClosePanel() => WatchlistSvc.CloseSidePanel();
+    private void OpenLightbox(string path) => selectedLightboxPath = path;
+
+    protected override void OnInitialized()
+    {
+        WatchlistSvc.OnStateChanged += HandleStateChanged;
+    }
+
+    private void HandleStateChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        WatchlistSvc.OnStateChanged -= HandleStateChanged;
+    }
+
+    private bool showSavedIndicator = false;
+
+    private async Task HandleRatingEdit(ChangeEventArgs e)
+    {
+        var inputVal = e.Value?.ToString();
+        int? val = null;
+        if (int.TryParse(inputVal, out var parsed)) 
+        {
+            val = parsed;
+            if (val > 100) val = 100;
+            if (val < 0) val = 0;
+        }
+        
+        await UpdateRating(val);
+        
+        if (val.HasValue)
+        {
+            showSavedIndicator = true;
+            StateHasChanged();
+            await Task.Delay(1500);
+            showSavedIndicator = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task UpdateRating(int? val)
+    {
+        var libItem = GetLibraryItem();
+        if (libItem != null)
+        {
+            await WatchlistSvc.UpdateRatingAsync(libItem, val);
+        }
+        else if (val.HasValue && WatchlistSvc.SelectedMovie != null)
+        {
+            var movie = WatchlistSvc.SelectedMovie;
+            var newItem = new WatchlistItem
+            {
+                ImdbId = movie.ImdbId ?? "",
+                Title = movie.Title,
+                TitleType = WatchlistSvc.SelectedItem?.TitleType ?? "Movie",
+                Year = movie.ReleaseDate ?? "",
+                ParsedYear = int.TryParse(movie.ReleaseDate?.Split('-')[0], out var y) ? y : 0,
+                Status = WatchlistStatus.Watched,
+                Rating20 = val,
+                DateAdded = DateTime.Now,
+                Genres = string.Join(", ", movie.GenreList.Select(g => g.Name)),
+                Director = movie.Credits?.Crew?.FirstOrDefault(c => c.Job == "Director")?.Name,
+                Overview = movie.Overview,
+                PosterPath = movie.PosterPath
+            };
+            await WatchlistSvc.AddItemAsync(newItem);
+        }
+    }
+
+    private string GetRatingColor(int val)
+    {
+        double hue = (val / 100.0) * 120;
+        return $"hsl({hue}, 70%, 45%)";
+    }
+
+    private string FormatRuntime(int minutes)
+    {
+        if (minutes < 60) return $"{minutes}m";
+        var h = minutes / 60;
+        var m = minutes % 60;
+        return m == 0 ? $"{h}h" : $"{h}h {m}m";
+    }
+
+    private WatchlistItem? GetLibraryItem()
+    {
+        return WatchlistSvc.Items.FirstOrDefault(i => i.ImdbId == WatchlistSvc.SelectedItem?.ImdbId && !string.IsNullOrEmpty(i.ImdbId));
+    }
+
+    private async Task HandleStatusTabClick(WatchlistStatus status)
+    {
+        if (WatchlistSvc.SelectedItem != null && WatchlistSvc.SelectedMovie != null)
+        {
+            var libItem = GetLibraryItem();
+            if (libItem == null)
+            {
+                var movie = WatchlistSvc.SelectedMovie;
+                var item = WatchlistSvc.SelectedItem;
+                var newItem = new WatchlistItem {
+                    ImdbId = movie.ImdbId ?? item.ImdbId ?? "",
+                    Title = movie.Title,
+                    TitleType = item.TitleType,
+                    Year = movie.ReleaseDate ?? "",
+                    ParsedYear = int.TryParse(movie.ReleaseDate?.Split('-')[0], out var y) ? y : 0,
+                    Status = status,
+                    DateAdded = DateTime.Now
+                };
+                await WatchlistSvc.AddToWatchlistAsync(newItem);
+            }
+            else
+            {
+                await WatchlistSvc.UpdateStatusAsync(libItem, status);
+            }
+        }
+    }
+
+    private async Task RemoveItem()
+    {
+        var libItem = GetLibraryItem();
+        if (libItem != null) await WatchlistSvc.RemoveFromWatchlistAsync(libItem);
+    }
+
+    private string GetModalYear(TmdbMovie movie, WatchlistItem item)
+    {
+        if (!string.IsNullOrWhiteSpace(movie.ReleaseDate) && movie.ReleaseDate.Length >= 4) return movie.ReleaseDate[..4];
+        return item.Year ?? "";
+    }
+
+    private string GetModalImdbId(TmdbMovie movie, WatchlistItem item) => movie.ImdbId ?? item.ImdbId ?? "";
+}

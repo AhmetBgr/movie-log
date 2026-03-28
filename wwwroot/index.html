@@ -41,6 +41,9 @@
             isDesktop: function () {
                 return window.innerWidth >= 768;
             },
+            isMobile: function () {
+                return window.innerWidth < 768;
+            },
             historyBack: function () {
                 history.back();
             },

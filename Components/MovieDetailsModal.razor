@@ -499,15 +499,14 @@
 
     protected override void OnInitialized()
     {
-        WatchlistSvc.OnStateChanged += () => {
-            Console.WriteLine("OnStateChanged event fired!");
-            StateHasChanged();
-        };
+        WatchlistSvc.OnStateChanged += HandleStateChanged;
     }
+
+    private void HandleStateChanged() => InvokeAsync(StateHasChanged);
 
     public void Dispose()
     {
-        WatchlistSvc.OnStateChanged -= StateHasChanged;
+        WatchlistSvc.OnStateChanged -= HandleStateChanged;
     }
 
     private bool showSavedIndicator = false;

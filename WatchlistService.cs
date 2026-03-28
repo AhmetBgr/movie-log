@@ -62,6 +62,10 @@ public class WatchlistService
     public bool IsPersonProfileOpen { get; private set; }
     public bool IsLoadingPerson { get; private set; }
 
+    // Side Panel State
+    public bool IsSidePanelOpen { get; private set; }
+    public bool UseSidePanel { get; set; } = true; // Toggle for side panel vs modal on desktop
+
     private string _selectedType = "All";
     public string SelectedType 
     { 
@@ -938,7 +942,21 @@ public class WatchlistService
             ReleaseDate = item.Year,
             Overview = item.Overview ?? ""
         };
-        IsModalOpen = true;
+
+        // Determine if we should use side panel or modal
+        bool isMobile = await _js.InvokeAsync<bool>("uiHelpers.isMobile");
+        
+        if (isMobile)
+        {
+            IsModalOpen = true;
+            IsSidePanelOpen = false;
+        }
+        else
+        {
+            IsModalOpen = false;
+            IsSidePanelOpen = true;
+        }
+
         IsLoadingDetails = true;
         NotifyStateChanged(fullRefresh: false);
 
@@ -1111,7 +1129,21 @@ public class WatchlistService
             ReleaseDate = tempItem.Year,
             PosterPath = searchItem.PosterPath
         };
-        IsModalOpen = true;
+
+        // Determine if we should use side panel or modal
+        bool isMobile = await _js.InvokeAsync<bool>("uiHelpers.isMobile");
+        
+        if (isMobile)
+        {
+            IsModalOpen = true;
+            IsSidePanelOpen = false;
+        }
+        else
+        {
+            IsModalOpen = false;
+            IsSidePanelOpen = true;
+        }
+
         IsLoadingDetails = true;
         NotifyStateChanged(fullRefresh: false);
 
@@ -1173,6 +1205,15 @@ public class WatchlistService
     public void CloseModal()
     {
         IsModalOpen = false;
+        IsSidePanelOpen = false; // Also close side panel if it was open
+        SelectedItem = null;
+        SelectedMovie = null;
+        NotifyStateChanged(fullRefresh: false);
+    }
+
+    public void CloseSidePanel()
+    {
+        IsSidePanelOpen = false;
         SelectedItem = null;
         SelectedMovie = null;
         NotifyStateChanged(fullRefresh: false);
