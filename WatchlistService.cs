@@ -1193,7 +1193,7 @@ public class WatchlistService
 
     public async Task OpenPersonProfileAsync(int personId)
     {
-        _nav.NavigateTo($"/person/{personId}");
+        _nav.NavigateTo($"person/{personId}");
     }
 
     public void ClosePersonProfile()
