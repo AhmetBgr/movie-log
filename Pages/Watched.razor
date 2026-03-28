@@ -67,10 +67,10 @@
             <div class="tb-divider"></div>
 
             <!-- View toggle -->
-            <button class="tb-btn @(!isCardView ? "active" : "")" @onclick="() => isCardView = false" title="Table view">
+            <button class="tb-btn @(!isCardView ? "active" : "")" @onclick="SetViewTable" title="Table view">
                 <i class="bi bi-list-ul"></i>
             </button>
-            <button class="tb-btn @(isCardView ? "active" : "")" @onclick="() => isCardView = true" title="Card view">
+            <button class="tb-btn @(isCardView ? "active" : "")" @onclick="SetViewCard" title="Card view">
                 <i class="bi bi-grid-3x2-gap"></i>
             </button>
 
@@ -355,6 +355,9 @@
     private void ToggleFilters() => showFilters = !showFilters;
     private void ToggleEdit() { isEditing = !isEditing; if (!isEditing) _selectedIds.Clear(); }
 
+    private void SetViewTable() { isCardView = false; _ = JS.InvokeVoidAsync("sessionStorage.setItem", "watched_view", "table"); }
+    private void SetViewCard() { isCardView = true; _ = JS.InvokeVoidAsync("sessionStorage.setItem", "watched_view", "card"); }
+
     protected override void OnInitialized() { WatchlistSvc.OnStateChanged += HandleStateChanged; SyncItems(); }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -364,6 +367,14 @@
 
             var isDesktop = await JS.InvokeAsync<bool>("uiHelpers.isDesktop");
             if (isDesktop) { showFilters = true; StateHasChanged(); }
+
+            // Restore session preferences
+            try
+            {
+                var savedView = await JS.InvokeAsync<string?>("sessionStorage.getItem", "watched_view");
+                if (!string.IsNullOrEmpty(savedView)) { isCardView = savedView == "card"; StateHasChanged(); }
+            }
+            catch { }
         }
     }
 

@@ -65,7 +65,7 @@
                         <div class="mb-1">
                             <div class="d-flex align-items-start gap-2">
                                 <h6 class="card-title fw-bold mb-0 movie-title">@Item.Title</h6>
-                                <OpenOnMenu Item="@Item" />
+                                <OpenOnMenu Title="@Item.Title" Year="@Item.Year" ImdbId="@RealImdbId" FetchImdbIdAsync="FetchImdbIdOnDemand" />
                             </div>
                             @if (Item.DateAdded != default && Item.DateAdded != DateTime.MinValue)
                             {
@@ -196,14 +196,32 @@
     [Parameter] public bool IsSelected { get; set; } = false;
     [Parameter] public EventCallback OnToggleSelect { get; set; }
     [Parameter] public RenderFragment? SidePanel { get; set; }
+    [Parameter] public EventCallback<WatchlistItem> OnClick { get; set; }
 
-
+    private string? RealImdbId => (Item?.ImdbId != null && (Item.ImdbId.StartsWith("movie-") || Item.ImdbId.StartsWith("tv-"))) 
+        ? WatchlistSvc.Items.FirstOrDefault(i => string.Equals(i.Title, Item.Title, StringComparison.OrdinalIgnoreCase) && i.Year == Item.Year)?.ImdbId 
+        : Item?.ImdbId;
 
     private async Task ShowDetails()
     {
         if (Item == null) return;
         if (IsEditMode) await OnToggleSelect.InvokeAsync();
+        else if (OnClick.HasDelegate) await OnClick.InvokeAsync(Item);
         else await WatchlistSvc.ShowDetailsAsync(Item);
+    }
+
+    private async Task<string?> FetchImdbIdOnDemand()
+    {
+        if (Item?.ImdbId == null || RealImdbId != null) return null;
+        if (!Item.ImdbId.StartsWith("movie-") && !Item.ImdbId.StartsWith("tv-")) return null;
+        
+        var parts = Item.ImdbId.Split('-');
+        if (parts.Length == 2 && int.TryParse(parts[1], out int tmdbId))
+        {
+            var details = await WatchlistSvc.GetTmdbDetailsByIdAsync(tmdbId, parts[0]);
+            return details?.ImdbId;
+        }
+        return null;
     }
 
     private string GetRatingColor(int val)

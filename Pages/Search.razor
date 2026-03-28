@@ -133,6 +133,7 @@
                                            IsEditMode="@isEditing"
                                            IsSelected="@_selectedKeys.Contains(item.ImdbId)"
                                            OnToggleSelect="@(() => ToggleSelect(item.ImdbId))"
+                                           OnClick="@(itm => HandleRowClick(null, itm.ImdbId))"
                                            ShowActionButtons="false"
                                            ShowTracking="false"
                                            ShowRating="true"/>
