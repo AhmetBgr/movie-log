@@ -69,7 +69,8 @@
                                             <div class="discovery-open-on" @onclick:stopPropagation="true">
                                                 <OpenOnMenu Title="@item.DisplayTitle"
                                                             Year="@GetYear(item)"
-                                                            ImdbId="@ResolveDiscoveryImdbId(item)" />
+                                                            ImdbId="@ResolveDiscoveryImdbId(item)"
+                                                            FetchImdbIdAsync="() => FetchDiscoveryImdbIdOnDemand(item)" />
                                             </div>
                                         </div>
                                         @if (!string.IsNullOrEmpty(item.DisplayOriginalTitle))
@@ -332,6 +333,15 @@
 
     private string? ResolveDiscoveryImdbId(TmdbSearchResultItem item)
         => FindLibraryItem(item)?.ImdbId;
+
+    private async Task<string?> FetchDiscoveryImdbIdOnDemand(TmdbSearchResultItem item)
+    {
+        var existing = ResolveDiscoveryImdbId(item);
+        if (existing != null) return existing;
+
+        var details = await WatchlistSvc.GetTmdbDetailsByIdAsync(item.Id, item.MediaType ?? "movie");
+        return details?.ImdbId;
+    }
 
     private static string GetLibraryStatusText(WatchlistStatus status) => status switch
     {

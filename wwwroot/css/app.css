@@ -604,16 +604,39 @@ tr.row-selected td {
 
 /* ── Toolbar desktop: max-width + wrap if needed ───────────── */
 @media (min-width: 768px) {
-    .toolbar-primary,
+    .toolbar-primary {
+        max-width: 900px;
+        margin-left: auto;
+        margin-right: auto;
+        margin-top: 8px;
+        margin-bottom: 8px;
+        border-radius: 12px;
+        border: 1px solid #e8eaed;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+        overflow-x: visible;
+        flex-wrap: wrap;
+        row-gap: 4px;
+        padding-top: 6px;
+        padding-bottom: 6px;
+    }
+
     .toolbar-actions {
         max-width: 900px;
         margin-left: auto;
         margin-right: auto;
+        margin-bottom: 12px;
+        border-radius: 12px;
+        border: 1px solid #d0d9ff;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.03);
         overflow-x: visible;
         flex-wrap: wrap;
-        row-gap: 2px;
-        padding-top: 4px;
-        padding-bottom: 4px;
+        row-gap: 4px;
+        padding-top: 6px;
+        padding-bottom: 6px;
+    }
+
+    .toolbar-actions.has-selection {
+        border-color: #818cf8;
     }
 }
 

@@ -159,10 +159,15 @@
 <style>
     .watched-container { 
         padding: 0; 
-        background: transparent; 
+        background: #fff; 
         display: flex;
         flex-direction: column;
-        height: 100%;
+        margin: 16px auto;
+        max-width: 1200px;
+        border-radius: 12px;
+        border: 1px solid #e8eaed;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+        overflow: hidden;
         container-type: inline-size;
     }
     .watched-grid { 
@@ -276,6 +281,14 @@
     }
 
     @@container (max-width: 650px) {
+        .watched-container {
+            margin: 0;
+            border-radius: 0;
+            border-left: none;
+            border-right: none;
+            border-top: none;
+            box-shadow: none;
+        }
         .watched-grid { 
             grid-template-columns: 1fr; 
             grid-template-rows: auto;

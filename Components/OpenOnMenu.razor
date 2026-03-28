@@ -6,8 +6,15 @@
 @if (_availableLinks.Count > 0)
 {
     <details class="open-on-menu" @onclick:stopPropagation="true">
-        <summary class="open-on-trigger @(ButtonClass ?? "")" title="Open on" @onclick:stopPropagation="true">
-            <i class="bi bi-three-dots"></i>
+        <summary class="open-on-trigger @(ButtonClass ?? "")" title="Open on" @onclick="HandleOpen" @onclick:stopPropagation="true">
+            @if (_isFetching)
+            {
+                <span class="spinner-border spinner-border-sm" role="status" style="width: 12px; height: 12px; border-width: 2px;"></span>
+            }
+            else
+            {
+                <i class="bi bi-three-dots"></i>
+            }
         </summary>
         <div class="open-on-popover" @onclick:stopPropagation="true">
             <div class="d-flex align-items-center justify-content-between">
@@ -41,9 +48,31 @@
     [Parameter] public string? Year { get; set; }
     [Parameter] public string? ImdbId { get; set; }
     [Parameter] public string? ButtonClass { get; set; }
+    [Parameter] public Func<Task<string?>>? FetchImdbIdAsync { get; set; }
 
     private List<OpenOnLink> _availableLinks = new();
     private WatchlistItem? _resolvedItem;
+    private bool _isFetching = false;
+    private bool _hasFetched = false;
+
+    private async Task HandleOpen()
+    {
+        if (FetchImdbIdAsync != null && !_hasFetched && string.IsNullOrWhiteSpace(ImdbId))
+        {
+            _isFetching = true;
+            _hasFetched = true;
+            StateHasChanged();
+            
+            var fetchedImdbId = await FetchImdbIdAsync();
+            if (!string.IsNullOrWhiteSpace(fetchedImdbId))
+            {
+                ImdbId = fetchedImdbId;
+                RefreshLinks();
+            }
+            
+            _isFetching = false;
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
