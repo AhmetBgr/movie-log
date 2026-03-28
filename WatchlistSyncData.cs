@@ -98,7 +98,8 @@ internal static class WatchlistSyncData
                 UserRating = item.UserRating,
                 Rating20 = item.Rating20,
                 CurrentSeason = item.CurrentSeason,
-                CurrentEpisode = item.CurrentEpisode
+                CurrentEpisode = item.CurrentEpisode,
+                Genres = item.Genres
             })
             .ToList();
 
@@ -128,7 +129,8 @@ internal static class WatchlistSyncData
             UserRating = userRating,
             Rating20 = rating20,
             CurrentSeason = item.CurrentSeason,
-            CurrentEpisode = item.CurrentEpisode
+            CurrentEpisode = item.CurrentEpisode,
+            Genres = item.Genres
         };
     }
 
@@ -171,5 +173,6 @@ internal static class WatchlistSyncData
         public int? Rating20 { get; set; }
         public int? CurrentSeason { get; set; }
         public int? CurrentEpisode { get; set; }
+        public string? Genres { get; set; }
     }
 }
