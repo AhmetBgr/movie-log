@@ -1,13 +1,13 @@
 # Project Roadmap & Todo List
 
 ## TODO
-- [ ] **Cast & Crew Deep-Dive**: Clickable actors/directors to show profiles, bios, and their other work.
 - [ ] **Auto-Import Bookmarklet**: A browser tool to instantly add movies from IMDb/Letterboxd to your local Log.
 - [ ] **Export to CSV**: Export your filtered Watchlist view back to a file.
 - [ ] **Watchlist Statistics**: Pie charts or stats for genre distribution and year ranges.
 - [ ] **Dark/Light Mode Toggle**: Manual theme switcher (currently defaults to system/premium dark).
 - [ ] custom lists
 - [ ] private notes/reviews
+- [ ] movie page
 
 
 ## Known Issues & small improvements
@@ -18,3 +18,4 @@
 - [ ] advanced search
 - [ ] advanced filters
 - [ ] episode tracking??
+- [ ] palette?? colors=E36E40-161B4B-D8C5C5-FFFFFF-000000
