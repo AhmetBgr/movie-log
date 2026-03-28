@@ -323,6 +323,9 @@ public class TmdbSearchResultItem
     [JsonPropertyName("genre_ids")]
     public List<int>? GenreIds { get; set; }
 
+    [JsonPropertyName("vote_average")]
+    public double VoteAverage { get; set; }
+
     public string DisplayTitle => Title ?? Name ?? "Unknown";
 
     public string? DisplayOriginalTitle 

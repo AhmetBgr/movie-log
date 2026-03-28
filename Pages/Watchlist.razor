@@ -169,61 +169,16 @@
             <div class="content-scroll">
                 @if (!isCardView)
                 {
-                    <!-- TABLE VIEW -->
-                    <div class="table-wrap">
-                    <table class="table table-hover align-middle mb-0">
-                        <tbody>
-                            @if (!_filteredItems.Any())
-                            {
-                                <tr><td colspan="6" class="py-5 text-center text-secondary fst-italic opacity-50">No movies match your filters.</td></tr>
-                            }
-                            <Virtualize Items="_filteredItems" Context="item" ItemSize="72" OverscanCount="5">
-                                <tr @key="item.ImdbId" data-imdbid="@item.ImdbId" style="cursor:pointer;" class="@(_selectedIds.Contains(item.ImdbId) ? "row-selected" : "")" @onclick="() => HandleRowClick(item)">
-                                    @if (isEditing)
-                                    {
-                                        <td class="px-3 text-center" style="width:1%;white-space:nowrap;" @onclick:stopPropagation="true">
-                                            <input type="checkbox" class="form-check-input shadow-none" style="width:17px;height:17px;cursor:pointer;"
-                                                   checked="@_selectedIds.Contains(item.ImdbId)"
-                                                   @onchange="() => ToggleSelect(item.ImdbId)" />
-                                        </td>
-                                    }
-                                    <td class="px-2 py-1" style="width:52px;">
-                                        <div class="poster-thumb">
-                                            @if (!string.IsNullOrEmpty(item.FullPosterUrl) && !item.FullPosterUrl.Contains("data:image/png;base64"))
-                                            {
-                                                <img src="@item.FullPosterUrl" alt="@item.Title" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
-                                                <div class="poster-fallback" style="display:none;"><i class="bi bi-film"></i></div>
-                                            }
-                                            else { <div class="poster-fallback"><i class="bi bi-film"></i></div> }
-                                        </div>
-                                    </td>
-                                    <td class="px-3">
-                                        <div class="d-flex align-items-center gap-2">
-                                            <span class="fw-bold text-dark title-hover">@item.Title</span>
-                                            <OpenOnMenu Item="item" />
-                                        </div>
-                                        @if (!string.IsNullOrEmpty(item.Director))
-                                        {
-                                            <span class="text-secondary d-block" style="font-size:0.72rem;opacity:0.75;">@item.Director</span>
-                                        }
-                                        <span class="row-meta">@item.Year · Added @item.DateAdded.ToString("MMM dd, yyyy")</span>
-                                    </td>
-                                    <td class="px-3 d-none d-md-table-cell">
-                                        <span class="badge rounded-pill @(item.TitleType?.Contains("TV", StringComparison.OrdinalIgnoreCase) == true ? "bg-light text-dark border" : "bg-secondary text-white")">@item.TitleType</span>
-                                    </td>
-                                    <td class="px-3 d-none d-lg-table-cell">
-                                        <div class="d-flex flex-wrap gap-1">
-                                            @foreach (var genre in (item.Genres ?? "").Split(',').Take(3))
-                                            {
-                                                if (!string.IsNullOrWhiteSpace(genre)) { <span class="genre-pill">@genre.Trim()</span> }
-                                            }
-                                        </div>
-                                    </td>
-                                </tr>
-                            </Virtualize>
-                        </tbody>
-                    </table>
-                    </div>
+                    <!-- TABLE VIEW (Refactored to Grid) -->
+                    <MovieGridTable Items="_filteredItems"
+                                   IsEditing="@isEditing"
+                                   SelectedIds="@_selectedIds"
+                                   OnToggleSelect="ToggleSelect"
+                                   OnItemClick="HandleRowClick"
+                                   ShowSummary="true"
+                                   TotalCount="_filteredItems.Count"
+                                   SortInfo="@WatchlistSvc.SortColumn">
+                    </MovieGridTable>
                 }
                 else
                 {

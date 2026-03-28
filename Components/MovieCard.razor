@@ -94,57 +94,26 @@
                         </div>
 
                         <!--  -->
-                        @if (ShowTracking)
-                        {
-                            <td class="px-3 text-center d-none d-md-table-cell">
-                                @if (Item.TitleType.Contains("TV", StringComparison.OrdinalIgnoreCase) && ShowTracking)
-                                {
-                                    <div class="d-inline-flex align-items-center bg-light rounded-pill px-2 py-1 border shadow-sm tracking-pill">
-                                        <div class="d-flex align-items-center px-1">
-                                            @if (IsEditMode) { <button class="track-btn" @onclick="() => ChangeSeason(Item,-1)" @onclick:stopPropagation="true"><i class="bi bi-dash"></i></button> }
-                                            <span class="text-secondary small fw-bold mx-1">S</span>
-                                            <span class="fw-bolder text-dark" style="min-width:18px;">@Item.CurrentSeason</span>
-                                            @if (IsEditMode) { <button class="track-btn" @onclick="() => ChangeSeason(Item,1)" @onclick:stopPropagation="true"><i class="bi bi-plus"></i></button> }
-                                        </div>
-                                        <div class="vr mx-1 opacity-10" style="height:16px;"></div>
-                                        <div class="d-flex align-items-center px-1">
-                                            @if (IsEditMode) { <button class="track-btn" @onclick="() => ChangeEpisode(Item,-1)" @onclick:stopPropagation="true"><i class="bi bi-dash"></i></button> }
-                                            <span class="text-secondary small fw-bold mx-1">E</span>
-                                            <span class="fw-bolder text-dark" style="min-width:18px;">@Item.CurrentEpisode</span>
-                                            @if (IsEditMode) { <button class="track-btn" @onclick="() => ChangeEpisode(Item,1)" @onclick:stopPropagation="true"><i class="bi bi-plus"></i></button> }
-                                        </div>
-                                    </div>
-                                }
-                            </td>        
-                        }
-
-
+                        <!-- Tracking UI (Optimized for Card View) -->
                         @if (Item.TitleType.Contains("TV", StringComparison.OrdinalIgnoreCase) && ShowTracking)
                         {
-                            @if (IsEditMode)
-                            {
-                                <div class="d-md-none mt-1 tracking-pill-wrap" @onclick:stopPropagation="true">
-                                    <div class="d-inline-flex align-items-center bg-light rounded-pill px-2 py-1 border shadow-sm tracking-pill">
-                                        <div class="d-flex align-items-center px-1">
-                                            <button class="track-btn" @onclick="() => ChangeSeason(Item,-1)" @onclick:stopPropagation="true"><i class="bi bi-dash"></i></button>
-                                            <span class="text-secondary small fw-bold mx-1">S</span>
-                                            <span class="fw-bolder text-dark" style="min-width:18px;">@Item.CurrentSeason</span>
-                                            <button class="track-btn" @onclick="() => ChangeSeason(Item,1)" @onclick:stopPropagation="true"><i class="bi bi-plus"></i></button>
-                                        </div>
-                                        <div class="vr mx-1 opacity-10" style="height:16px;"></div>
-                                        <div class="d-flex align-items-center px-1">
-                                            <button class="track-btn" @onclick="() => ChangeEpisode(Item,-1)" @onclick:stopPropagation="true"><i class="bi bi-dash"></i></button>
-                                            <span class="text-secondary small fw-bold mx-1">E</span>
-                                            <span class="fw-bolder text-dark" style="min-width:18px;">@Item.CurrentEpisode</span>
-                                            <button class="track-btn" @onclick="() => ChangeEpisode(Item,1)" @onclick:stopPropagation="true"><i class="bi bi-plus"></i></button>
-                                        </div>
+                            <div class="mt-2 tracking-pill-wrap" @onclick:stopPropagation="true">
+                                <div class="d-inline-flex align-items-center bg-light rounded-pill px-2 py-1 border shadow-sm tracking-pill">
+                                    <div class="d-flex align-items-center px-1">
+                                        @if (IsEditMode) { <button class="track-btn" @onclick="() => ChangeSeason(Item,-1)" @onclick:stopPropagation="true"><i class="bi bi-dash"></i></button> }
+                                        <span class="text-secondary small fw-bold mx-1">S</span>
+                                        <span class="fw-bolder text-dark" style="min-width:18px;">@Item.CurrentSeason</span>
+                                        @if (IsEditMode) { <button class="track-btn" @onclick="() => ChangeSeason(Item,1)" @onclick:stopPropagation="true"><i class="bi bi-plus"></i></button> }
+                                    </div>
+                                    <div class="vr mx-1 opacity-10" style="height:16px;"></div>
+                                    <div class="d-flex align-items-center px-1">
+                                        @if (IsEditMode) { <button class="track-btn" @onclick="() => ChangeEpisode(Item,-1)" @onclick:stopPropagation="true"><i class="bi bi-dash"></i></button> }
+                                        <span class="text-secondary small fw-bold mx-1">E</span>
+                                        <span class="fw-bolder text-dark" style="min-width:18px;">@Item.CurrentEpisode</span>
+                                        @if (IsEditMode) { <button class="track-btn" @onclick="() => ChangeEpisode(Item,1)" @onclick:stopPropagation="true"><i class="bi bi-plus"></i></button> }
                                     </div>
                                 </div>
-                            }
-                            else
-                            {
-                                <span class="d-md-none text-secondary" style="font-size:0.72rem;">S@(Item.CurrentSeason) · E@(Item.CurrentEpisode)</span>
-                            }
+                            </div>
                         }
 
                         <!-- Inline rating editor -->

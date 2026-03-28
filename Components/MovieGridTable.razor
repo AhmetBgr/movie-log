@@ -33,7 +33,10 @@
                                @onclick:stopPropagation="true" 
                                style="width:15px;height:15px;cursor:pointer;" />
                     }
-                    <span class="entry-title">@item.Title</span>
+                    <span class="entry-title">
+                        <span class="fw-bold me-1">@item.Title</span>
+                        @(!string.IsNullOrEmpty(item.Year) ? $"({item.Year})" : "")
+                    </span>
                     <span class="entry-dots"></span>
                     <span class="entry-rating @(item.Rating20 == null ? "no-rating" : "")" 
                           style="@(item.Rating20.HasValue ? $"color:{GetRatingColor(item.Rating20.Value)};" : "")">
@@ -43,56 +46,56 @@
             }
         </div>
 
-        <!-- Pagination -->
-        @if (totalPages > 1)
-        {
-            <div class="pagination-wrap">
-                <div class="d-flex align-items-center justify-content-center gap-2 py-4">
-                    <button class="page-nav-btn" disabled="@(PageIndex == 0)" @onclick="() => SetPage(PageIndex - 1)">
-                        <i class="bi bi-chevron-left"></i>
-                    </button>
-                    
-                    @{
-                        // Show a limited number of page buttons if there are many
-                        int startPage = Math.Max(0, PageIndex - 2);
-                        int endPage = Math.Min(totalPages - 1, startPage + 4);
-                        if (endPage - startPage < 4) startPage = Math.Max(0, endPage - 4);
-                    }
-
-                    @if (startPage > 0)
-                    {
-                        <button class="page-num-btn" @onclick="() => SetPage(0)">1</button>
-                        @if (startPage > 1) { <span class="text-secondary px-1">...</span> }
-                    }
-
-                    @for (int i = startPage; i <= endPage; i++)
-                    {
-                        var p = i;
-                        <button class="page-num-btn @(PageIndex == p ? "active" : "")" @onclick="() => SetPage(p)">
-                            @(p + 1)
-                        </button>
-                    }
-
-                    @if (endPage < totalPages - 1)
-                    {
-                        @if (endPage < totalPages - 2) { <span class="text-secondary px-1">...</span> }
-                        <button class="page-num-btn" @onclick="() => SetPage(totalPages - 1)">@totalPages</button>
-                    }
-
-                    <button class="page-nav-btn" disabled="@(PageIndex == totalPages - 1)" @onclick="() => SetPage(PageIndex + 1)">
-                        <i class="bi bi-chevron-right"></i>
-                    </button>
-                </div>
-            </div>
-        }
-
-        @if (ShowSummary)
-        {
+        <!-- Footer: Summary (Left) & Pagination (Right) -->
+        <div class="watched-footer">
             <div class="watched-summary">
-                Sorted by @(SortInfo ?? "Default") &bull; 
-                Showing @(PageIndex * pageSize + 1)–@(PageIndex * pageSize + currentTotal) of @TotalCount items
+                @if (ShowSummary)
+                {
+                    <span class="text-secondary">Sorted by @(SortInfo ?? "Default") &bull; Showing @(PageIndex * pageSize + 1)–@(PageIndex * pageSize + currentTotal) of @TotalCount items</span>
+                }
             </div>
-        }
+
+            @if (totalPages > 1)
+            {
+                <div class="pagination-wrap">
+                    <div class="d-flex align-items-center gap-2">
+                        <button class="page-nav-btn" disabled="@(PageIndex == 0)" @onclick="() => SetPage(PageIndex - 1)">
+                            <i class="bi bi-chevron-left"></i>
+                        </button>
+                        
+                        @{
+                            int startPage = Math.Max(0, PageIndex - 2);
+                            int endPage = Math.Min(totalPages - 1, startPage + 4);
+                            if (endPage - startPage < 4) startPage = Math.Max(0, endPage - 4);
+                        }
+
+                        @if (startPage > 0)
+                        {
+                            <button class="page-num-btn" @onclick="() => SetPage(0)">1</button>
+                            @if (startPage > 1) { <span class="text-secondary small px-1">...</span> }
+                        }
+
+                        @for (int i = startPage; i <= endPage; i++)
+                        {
+                            var p = i;
+                            <button class="page-num-btn @(PageIndex == p ? "active" : "")" @onclick="() => SetPage(p)">
+                                @(p + 1)
+                            </button>
+                        }
+
+                        @if (endPage < totalPages - 1)
+                        {
+                            @if (endPage < totalPages - 2) { <span class="text-secondary small px-1">...</span> }
+                            <button class="page-num-btn" @onclick="() => SetPage(totalPages - 1)">@totalPages</button>
+                        }
+
+                        <button class="page-nav-btn" disabled="@(PageIndex == totalPages - 1)" @onclick="() => SetPage(PageIndex + 1)">
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            }
+        </div>
     }
 </div>
 
@@ -128,6 +131,7 @@
         display: flex;
         flex-direction: column;
         height: 100%;
+        container-type: inline-size;
     }
     .watched-grid { 
         display: grid; 
@@ -135,20 +139,21 @@
         grid-template-columns: repeat(3, 1fr); 
         grid-template-rows: repeat(20, auto);
         grid-auto-flow: column;
-        gap: 0 40px; 
+        gap: 0 24px; 
         align-items: start;
-        padding: 20px 30px;
+        align-content: start;
+        padding: 20px 24px;
         flex: 1;
     }
     .watched-entry { 
         display: flex; 
         align-items: center; 
-        padding: 4px 8px; 
+        padding: 4px 6px; 
         cursor: pointer; 
         transition: background 0.1s, transform 0.1s;
         border-radius: 6px;
-        margin-bottom: 2px;
-        min-width: 0; /* Allow title to truncate */
+        margin-bottom: 1px;
+        min-width: 0; 
     }
     .watched-entry:hover { 
         background: rgba(0,0,0,0.03);
@@ -170,26 +175,45 @@
         opacity: 0.5;
     }
     .entry-rating { 
-        font-size: 0.85rem; 
-        font-weight: 800; 
+        font-size: 0.88rem; 
+        font-weight: 900; 
         min-width: 26px; 
         text-align: right; 
         font-family: 'JetBrains Mono', 'Courier New', monospace;
     }
     .entry-rating.no-rating { 
         color: #ccc !important; 
-        font-weight: 400; 
+        font-weight: 900; 
+    }
+
+    /* Footer: Summary on left, Pages on right */
+    .watched-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 24px;
+        border-top: 1px solid #f0f0f0;
+        background: #fafafa;
+        gap: 20px;
+    }
+
+    .watched-summary {
+        font-size: 0.78rem;
+        color: #888;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     /* Pagination */
     .page-nav-btn, .page-num-btn {
-        width: 32px; height: 32px;
+        width: 30px; height: 30px;
         border: 1px solid #dee2e6;
         background: #fff;
-        border-radius: 8px;
+        border-radius: 6px;
         display: inline-flex;
         align-items: center; justify-content: center;
-        font-size: 0.85rem;
+        font-size: 0.8rem;
         font-weight: 600;
         color: #555;
         transition: all 0.2s;
@@ -197,7 +221,7 @@
     .page-nav-btn:hover:not(:disabled), .page-num-btn:hover {
         border-color: #adb5bd;
         background: #f8f9fa;
-        color: #000;
+        color: #111;
     }
     .page-num-btn.active {
         background: #212529;
@@ -209,25 +233,17 @@
         cursor: not-allowed;
     }
 
-    .watched-summary { 
-        padding: 16px; 
-        border-top: 1px solid #f0f0f0; 
-        font-size: 0.8rem; 
-        color: #999; 
-        text-align: center; 
-        background: #fafafa;
-    }
-
-    @@media (max-width: 1200px) {
+    /* SMART STACKING (Container Queries) */
+    @@container (max-width: 950px) {
         .watched-grid { 
             grid-template-columns: repeat(2, 1fr); 
             grid-template-rows: repeat(30, auto);
-            gap: 0 40px; 
+            gap: 0 24px; 
             padding: 15px 20px;
         }
     }
 
-    @@media (max-width: 850px) {
+    @@container (max-width: 650px) {
         .watched-grid { 
             grid-template-columns: 1fr; 
             grid-template-rows: auto;
@@ -235,6 +251,13 @@
             padding: 10px 15px; 
             gap: 2px 0;
         }
+        .watched-footer {
+            flex-direction: column;
+            gap: 12px;
+            align-items: center;
+            text-align: center;
+        }
+        .watched-summary { white-space: normal; }
         .watched-entry:hover { transform: none; background: rgba(0,0,0,0.04); }
     }
 </style>
