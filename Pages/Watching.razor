@@ -215,7 +215,7 @@
 @code {
     private bool isEditing = false;
     private DotNetObjectReference<Watching>? _holdRef;
-    private bool isCardView = false;
+    private bool isCardView = true;
     private HashSet<string> _selectedIds = new();
 
     private bool IsAllSelected { get { var items = WatchlistSvc.WatchingItems.ToList(); return items.Count > 0 && items.All(i => _selectedIds.Contains(i.ImdbId)); } }
