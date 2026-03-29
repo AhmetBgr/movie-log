@@ -4,7 +4,10 @@
 @inject IJSRuntime JS
 @implements IDisposable
 
-<div class="side-panel @(WatchlistSvc.IsSidePanelOpen ? "open" : "")" @onclick:stopPropagation="true">
+<div class="side-panel-container @(WatchlistSvc.IsSidePanelOpen ? "open" : "")">
+    <div class="side-panel-overlay" @onclick="ClosePanel"></div>
+    
+    <div class="side-panel" @onclick:stopPropagation="true">
         @if (WatchlistSvc.SelectedItem != null && WatchlistSvc.SelectedMovie != null)
         {
             var item = WatchlistSvc.SelectedItem;
@@ -12,76 +15,93 @@
             var libItem = GetLibraryItem();
 
             <div class="side-panel-header">
-                <button type="button" class="btn-close" aria-label="Close" @onclick="ClosePanel"></button>
+                <div class="header-content">
+                    <h3 class="movie-title-short text-truncate">@movie.Title</h3>
+                    <button type="button" class="btn-close-modern" aria-label="Close" @onclick="ClosePanel">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
             </div>
 
             <div class="side-panel-content custom-scrollbar">
-                <!-- Media Section (Poster or Gallery) -->
-                <div class="panel-media bg-black">
+                <!-- Media Section -->
+                <div class="panel-media position-relative">
                     @if (showScreenshots && movie.BackdropPaths.Any())
                     {
-                        <div class="panel-gallery p-2 d-flex flex-column gap-2 overflow-auto" style="max-height: 500px;">
+                        <div class="panel-gallery">
                             @foreach (var path in movie.BackdropPaths)
                             {
-                                <img src="https://image.tmdb.org/t/p/w780@(path)" 
-                                     class="img-fluid rounded shadow-sm backdrop-thumb" 
-                                     alt="Screenshot" 
-                                     @onclick="() => OpenLightbox(path)" 
-                                     @onclick:stopPropagation="true" />
+                                <div class="gallery-item" @onclick="() => OpenLightbox(path)">
+                                    <div class="gallery-img-shimmer"></div>
+                                    <img src="https://image.tmdb.org/t/p/w780@(path)" 
+                                         class="img-fluid rounded" 
+                                         alt="Screenshot" 
+                                         loading="lazy" />
+                                    <div class="gallery-hover-overlay">
+                                        <i class="bi bi-zoom-in"></i>
+                                    </div>
+                                </div>
                             }
                         </div>
                     }
                     else
                     {
-                        <div class="panel-poster-wrap d-flex align-items-center justify-content-center overflow-hidden">
-                            <img src="@movie.FullPosterUrl" class="img-fluid px-0" alt="Poster" style="object-fit: cover; width: 100%;" />
+                        <div class="panel-poster-wrap">
+                            <img src="@movie.FullPosterUrl" class="img-fluid" alt="Poster" />
+                            <div class="poster-gradient"></div>
                         </div>
                     }
                     
                     @if (movie.BackdropPaths.Any())
                     {
-                        <div class="p-3 bg-dark border-top border-secondary border-opacity-25 d-flex justify-content-center">
-                            <div class="form-check form-switch d-flex align-items-center gap-2">
-                                <input class="form-check-input custom-switch" type="checkbox" id="sidePanelGalleryToggle" @bind="showScreenshots">
-                                <label class="form-check-label text-white small fw-bold mb-0" for="sidePanelGalleryToggle" style="min-width: 50px;">
-                                    Images
-                                </label>
-                            </div>
+                        <div class="media-toggle-pill shadow-sm">
+                            <button class="toggle-btn @(!showScreenshots ? "active" : "")" @onclick="() => showScreenshots = false">
+                                <i class="bi bi-image"></i> Poster
+                            </button>
+                            <button class="toggle-btn @(showScreenshots ? "active" : "")" @onclick="() => showScreenshots = true">
+                                <i class="bi bi-images"></i> Photos
+                            </button>
                         </div>
                     }
                 </div>
 
                 <!-- Info Section -->
-                <div class="panel-info p-4">
-                    <div class="d-flex align-items-start justify-content-between gap-3 mb-1">
-                        <div class="flex-grow-1">
-                            <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
-                                <h3 class="fw-black text-dark mb-0">
-                                    <a href="https://www.imdb.com/title/@item.ImdbId/" target="_blank" class="text-decoration-none text-dark hover-opacity">@movie.Title</a>
-                                </h3>
-                                <OpenOnMenu Title="@movie.Title"
-                                            Year="@GetModalYear(movie, item)"
-                                            ImdbId="@GetModalImdbId(movie, item)" />
-                            </div>
-                            @if (!string.IsNullOrEmpty(movie.ReleaseDate))
-                            {
-                                <p class="text-secondary fw-semibold small mb-2 text-uppercase tracking-wide">Released: @movie.ReleaseDate</p>
-                            }
-
-                            <div class="d-flex align-items-center gap-2 flex-wrap mb-4">
-                                <span class="badge bg-dark text-white fs-6 px-3 py-2 rounded-pill shadow-sm">
-                                    <i class="bi bi-star-fill text-warning me-1"></i> @movie.VoteAverage.ToString("0.0") / 10
-                                </span>
-
-                                @if (movie.Runtime > 0)
-                                {
-                                    <span class="badge bg-light text-dark border fs-6 px-3 py-2 rounded-pill shadow-sm">
-                                        <i class="bi bi-clock-fill text-muted me-1"></i> @FormatRuntime(movie.Runtime.Value)
-                                    </span>
-                                }
-                            </div>
+                <div class="panel-info">
+                    <!-- Title & Basic Meta -->
+                    <div class="main-meta">
+                        <div class="d-flex align-items-center gap-2 flex-wrap mb-2">
+                            <h2 class="movie-title">
+                                <a href="https://www.imdb.com/title/@item.ImdbId/" target="_blank" class="title-link">@movie.Title</a>
+                            </h2>
+                            <OpenOnMenu Title="@movie.Title"
+                                        Year="@GetModalYear(movie, item)"
+                                        ImdbId="@GetModalImdbId(movie, item)" />
                         </div>
 
+                        <div class="meta-badges">
+                            @if (!string.IsNullOrEmpty(movie.ReleaseDate))
+                            {
+                                <span class="meta-badge year">
+                                    <i class="bi bi-calendar3"></i> @(movie.ReleaseDate.Length >= 4 ? movie.ReleaseDate[..4] : movie.ReleaseDate)
+                                </span>
+                            }
+                            @if (movie.Runtime > 0)
+                            {
+                                <span class="meta-badge runtime">
+                                    <i class="bi bi-clock"></i> @FormatRuntime(movie.Runtime.Value)
+                                </span>
+                            }
+                            <span class="meta-badge rating">
+                                <i class="bi bi-star-fill"></i> @movie.VoteAverage.ToString("0.0")
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- User Actions Card -->
+                    <div class="user-actions-card shadow-sm border">
+                        <div class="d-flex align-items-center gap-3">
+                            <!-- Old Rating Box -->
+                            
                         <!-- Rating Box -->
                         <div class="d-flex flex-column align-items-center p-2 border rounded-4 bg-white shadow-sm flex-shrink-0 position-relative" style="min-width: 90px; transform: scale(0.9);">
                             @if (showSavedIndicator)
@@ -90,20 +110,18 @@
                                     <span class="badge bg-success shadow-sm rounded-pill py-1 px-3 fw-bold border border-white" style="font-size: 0.65rem;">SAVED</span>
                                 </div>
                             }
-
                             <span class="small fw-bold text-secondary text-uppercase tracking-wider mb-2" style="font-size: 0.65rem;">Rating</span>
                             <div class="rounded-3 d-flex flex-column align-items-center justify-content-center shadow-sm transition-all rating-box-indicator" 
-                                 style="width: 70px; height: 70px; background-color: @(libItem?.Rating20 == null ? "#fff" : GetRatingColor(libItem.Rating20.Value)); 
+                                 style="width: 50px; height: 50px; background-color: @(libItem?.Rating20 == null ? "#fff" : GetRatingColor(libItem.Rating20.Value)); 
                                         color: @(libItem?.Rating20 == null ? "#adb5bd" : "#fff"); 
                                         border: @(libItem?.Rating20 == null ? "2px dashed #dee2e6" : "none")">
                                 <input type="number" class="form-control form-control-sm text-center fw-black p-0 border-0 bg-transparent fs-2 no-spinner shadow-none @(libItem?.Rating20 == null ? "text-dark" : "text-white")" 
-                                       style="width: 70px; height: 70px; cursor: pointer;"
+                                       style="width: 50px; height: 50px; cursor: pointer;"
                                        min="0" max="100" 
                                        placeholder="-"
                                        value="@(libItem?.Rating20)" 
                                        @onchange="(e) => HandleRatingEdit(e)" />
                             </div>
-
                             @if (libItem?.Rating20 != null)
                             {
                                 <button class="btn btn-link btn-sm p-0 text-secondary opacity-50 hover-opacity-100 mt-1" 
@@ -112,106 +130,73 @@
                                 </button>
                             }
                         </div>
-
-                        
-
+                            <div class="flex-grow-1">
+                                <span class="action-label d-block mb-2">Library Status</span>
+                                @{ var status = libItem?.Status; }
+                                <div class="status-compact-grid">
+                                    <button class="status-btn-compact @(status == WatchlistStatus.Pending ? "active pending" : "")"
+                                            @onclick="async () => await ToggleStatus(WatchlistStatus.Pending)">
+                                        <i class="bi bi-list-nested"></i> Watchlist
+                                    </button>
+                                    <button class="status-btn-compact @(status == WatchlistStatus.Watching ? "active watching" : "")"
+                                            @onclick="async () => await ToggleStatus(WatchlistStatus.Watching)">
+                                        <i class="bi bi-play-fill"></i> Watching
+                                    </button>
+                                    <button class="status-btn-compact @(status == WatchlistStatus.Watched ? "active watched" : "")"
+                                            @onclick="async () => await ToggleStatus(WatchlistStatus.Watched)">
+                                        <i class="bi bi-check-lg"></i> Watched
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    @if (movie.Collection != null && movie.Collection.Id > 0)
+                    @if (movie.GenreList?.Any() == true)
                     {
-                        <div class="mb-4 pt-2">
-                            <button class="btn btn-sm btn-outline-primary rounded-pill fw-bold bg-opacity-10 d-flex align-items-center shadow-sm"
-                                    @onclick='() => { WatchlistSvc.CloseSidePanel(); NavManager.NavigateTo($"franchise/{movie.Collection.Id}"); }'>
-                                <i class="bi bi-collection-play-fill me-2 fs-6"></i> @movie.Collection.Name
-                            </button>
+                        <div class="genre-chips mb-4">
+                            @foreach (var g in movie.GenreList)
+                            {
+                                <span class="genre-chip">@g.Name</span>
+                            }
                         </div>
                     }
 
-
-                    <!--Actions-->
-                    @{ var status = libItem?.Status; }
-                    <div class="d-flex flex-column gap-1">
-                        <div class="btn-group bg-light rounded-3 p-0 shadow-sm w-100">
-
-                            <button class="btn @(status == WatchlistStatus.Pending ? "btn-secondary" : "btn-light border-0 text-secondary bg-transparent") 
-                                           flex-grow-1 py-1 px-1 rounded-2 fw-bold 
-                                           d-flex align-items-center justify-content-center gap-1"
-                                    @onclick="async () => { 
-                                        if (libItem?.Status == WatchlistStatus.Pending) 
-                                            await RemoveItem(); 
-                                        else 
-                                            await HandleStatusTabClick(WatchlistStatus.Pending); 
-                                    }">
-                                <i class="bi bi-list-nested fs-6"></i>
-                                <span style="font-size: 0.7rem;">Watchlist</span>
-                            </button>
-
-                            <button class="btn @(status == WatchlistStatus.Watching ? "btn-success shadow-none" : "btn-light border-0 text-success bg-transparent") 
-                                           flex-grow-1 py-1 px-1 rounded-2 fw-bold 
-                                           d-flex align-items-center justify-content-center gap-1"
-                                    @onclick="async () => { 
-                                        if (libItem?.Status == WatchlistStatus.Watching) 
-                                            await RemoveItem(); 
-                                        else 
-                                            await HandleStatusTabClick(WatchlistStatus.Watching); 
-                                    }">
-                                <i class="bi bi-play-fill fs-6"></i>
-                                <span style="font-size: 0.7rem;">Watching</span>
-                            </button>
-
-                            <button class="btn @(status == WatchlistStatus.Watched ? "btn-primary shadow-none" : "btn-light border-0 text-primary bg-transparent") 
-                                           flex-grow-1 py-1 px-1 rounded-2 fw-bold 
-                                           d-flex align-items-center justify-content-center gap-1"
-                                    @onclick="async () => { 
-                                        if (libItem?.Status == WatchlistStatus.Watched) 
-                                            await RemoveItem(); 
-                                        else 
-                                            await HandleStatusTabClick(WatchlistStatus.Watched); 
-                                    }">
-                                <i class="bi bi-check-lg fs-6"></i>
-                                <span style="font-size: 0.7rem;">Watched</span>
-                            </button>
-
+                    @if (movie.Collection != null && movie.Collection.Id > 0)
+                    {
+                        <div class="collection-box mb-4" @onclick='() => NavManager.NavigateTo($"franchise/{movie.Collection.Id}")'>
+                            <div class="collection-inner">
+                                <i class="bi bi-collection-play-fill"></i>
+                                <div class="collection-text">
+                                    <span class="label">Part of Collection</span>
+                                    <span class="name">@movie.Collection.Name</span>
+                                </div>
+                                <i class="bi bi-chevron-right ms-auto"></i>
+                            </div>
                         </div>
+                    }
+
+                    <div class="info-section">
+                        <label class="section-label">Overview</label>
+                        <p class="overview-text">
+                            @if (WatchlistSvc.IsLoadingDetails && string.IsNullOrEmpty(movie.Overview))
+                            {
+                                <span class="loading-shimmer d-block" style="height: 100px;"></span>
+                            }
+                            else
+                            {
+                                @(string.IsNullOrEmpty(movie.Overview) ? "No overview available." : movie.Overview)
+                            }
+                        </p>
                     </div>
-
-
-
-                    <div class="mt-1 pt-2 border-top">
-                        <div class="mb-4">
-                            <h4 class="small-meta text-uppercase tracking-wider text-secondary mb-2">Overview</h4>
-                            <p class="text-secondary small" style="line-height: 1.6;">
-                                @if (WatchlistSvc.IsLoadingDetails && string.IsNullOrEmpty(movie.Overview))
-                                {
-                                    <div class="d-flex align-items-center gap-2 py-2">
-                                        <div class="spinner-border spinner-border-sm" role="status"></div>
-                                        <span>Fetching cinematic details...</span>
-                                    </div>
-                                }
-                                else
-                                {
-                                    @(string.IsNullOrEmpty(movie.Overview) ? "No overview available." : movie.Overview)
-                                }
-                            </p>
-                        </div>
-                    </div>
-
-
-
-
 
                     @if (movie.Credits?.Crew?.Any(c => c.Job == "Director") == true)
                     {
-                        <div class="mb-4">
-                            <h4 class="small-meta text-uppercase tracking-wider text-secondary mb-2">Director</h4>
-                            <div class="d-flex flex-wrap gap-2">
+                        <div class="info-section">
+                            <label class="section-label">Director</label>
+                            <div class="person-text-list">
                                 @foreach (var dir in movie.Credits.Crew.Where(c => c.Job == "Director"))
                                 {
-                                    <button class="btn btn-sm btn-light border rounded-pill px-3 py-1.5 fw-bold d-flex align-items-center gap-2 hover-bg-dark transition-all"
-                                            @onclick="() => WatchlistSvc.OpenPersonProfileAsync(dir.Id)">
-                                        <img src="@dir.FullProfileUrl" class="rounded-circle shadow-sm" style="width: 24px; height: 24px; object-fit: cover;" />
-                                        <span>@dir.Name</span>
-                                    </button>
+                                    <span class="person-link" @onclick="() => WatchlistSvc.OpenPersonProfileAsync(dir.Id)">@dir.Name</span>
                                 }
                             </div>
                         </div>
@@ -219,44 +204,40 @@
 
                     @if (movie.Credits?.Cast?.Any() == true)
                     {
-                        <div class="mb-4">
-                            <h4 class="small-meta text-uppercase tracking-wider text-secondary mb-2">Top Cast</h4>
-                            <div class="d-flex flex-column gap-2">
-                                @foreach (var actor in movie.Credits.Cast.Take(6))
+                        <div class="info-section">
+                            <label class="section-label">Top Cast</label>
+                            <div class="person-text-list flex-wrap">
+                                @foreach (var actor in movie.Credits.Cast.Take(12))
                                 {
-                                    <div class="cast-card d-flex align-items-center gap-3 p-2 rounded-3 border bg-light bg-opacity-50 hover-bg-white transition-all cursor-pointer shadow-sm"
-                                         @onclick="() => WatchlistSvc.OpenPersonProfileAsync(actor.Id)">
-                                        <img src="@actor.FullProfileUrl" class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover;" />
-                                        <div class="cast-info overflow-hidden">
-                                            <div class="small fw-bold text-dark text-truncate">@actor.Name</div>
-                                            <div class="smaller text-secondary text-truncate">@actor.Character</div>
-                                        </div>
-                                    </div>
+                                    <span class="person-link" @onclick="() => WatchlistSvc.OpenPersonProfileAsync(actor.Id)">
+                                        @actor.Name <small class="text-secondary opacity-75">(@actor.Character)</small>
+                                    </span>
                                 }
                             </div>
                         </div>
                     }
 
-
                     @if (!string.IsNullOrEmpty(movie.TrailerKey))
                     {
-                        <button class="btn btn-outline-dark w-100 py-3 rounded-3 fw-bold d-flex align-items-center justify-content-center text-uppercase tracking-wider transition-all" 
-                                @onclick="() => isTrailerOpen = true">
-                            <i class="bi bi-play-circle-fill me-2 fs-5 text-danger"></i> Trailer
-                        </button>
+                        <a href="https://www.youtube.com/watch?v=@movie.TrailerKey" target="_blank" class="btn-trailer-modern w-100 text-decoration-none">
+                            <i class="bi bi-play-circle-fill"></i> Watch Trailer on YouTube
+                        </a>
                     }
                     
                 </div>
             </div>
         }
     </div>
+</div>
 
 @if (selectedLightboxPath != null)
 {
     <div class="panel-lightbox-overlay" @onclick="() => selectedLightboxPath = null">
         <div class="panel-lightbox-content">
             <img src="https://image.tmdb.org/t/p/original@(selectedLightboxPath)" class="img-fluid rounded shadow-lg" />
-            <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-4 shadow-lg p-2 rounded-circle bg-dark" @onclick="() => selectedLightboxPath = null"></button>
+            <button type="button" class="btn-close-lightbox" @onclick="() => selectedLightboxPath = null">
+                <i class="bi bi-x-lg"></i>
+            </button>
         </div>
     </div>
 }
@@ -264,107 +245,516 @@
 <TrailerPlayer VideoKey="@WatchlistSvc.SelectedMovie?.TrailerKey" IsOpen="isTrailerOpen" OnClose="() => isTrailerOpen = false" />
 
 <style>
-    .side-panel {
-        width: 0;
-        height: 100%;
-        background: #fff;
-        border-right: 0px solid #e8eaed;
-        z-index: 10;
-        transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-width 0.4s;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-        flex-shrink: 0;
-    }
-    .side-panel.open {
-        width: 450px;
-        border-left: 1px solid #e8eaed;
-        box-shadow: -5px 0 20px rgba(0,0,0,0.05);
+    :root {
+        --panel-width: 450px;
+        --glass-bg: rgba(255, 255, 255, 0.85);
+        --glass-border: rgba(255, 255, 255, 0.3);
+        --accent-primary: #6366f1;
     }
 
+    .side-panel-container {
+        position: relative;
+        display: flex;
+        height: 100%;
+        overflow: hidden;
+        flex-shrink: 0;
+        transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        width: 0;
+    }
+
+    .side-panel-container.open {
+        width: var(--panel-width);
+    }
+
+    .side-panel-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.3);
+        backdrop-filter: blur(4px);
+        z-index: 1999; /* Just below panel's 2000 */
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.4s;
+    }
+
+    .side-panel {
+        position: relative;
+        width: var(--panel-width);
+        height: 100%;
+        background: #fff;
+        display: flex;
+        flex-direction: column;
+        z-index: 10;
+        border-left: 1px solid rgba(0,0,0,0.08);
+        box-shadow: -10px 0 30px rgba(0,0,0,0.05);
+    }
+
+    /* Header */
     .side-panel-header {
         position: sticky;
         top: 0;
         z-index: 100;
-        background: rgba(255,255,255,0.95);
-        backdrop-filter: blur(8px);
-        padding: 12px 15px;
-        display: flex;
-        justify-content: flex-end;
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
         border-bottom: 1px solid rgba(0,0,0,0.05);
+        padding: 12px 20px;
+    }
+
+    .header-content {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+    }
+
+    .movie-title-short {
+        font-size: 0.95rem;
+        font-weight: 800;
+        color: #1e293b;
+        margin: 0;
+        /* opacity: 0; Hide for now until we have scroll-detection, or just show it */
     }
 
     .side-panel-content {
         flex: 1;
         overflow-y: auto;
-        overflow-x: hidden;
+        padding-bottom: 40px;
     }
 
+    /* Shimmer effect for titles when scrolling? Maybe not now. 
+       Let's show title in header only when scrolled down. */
+    
+    .btn-close-modern {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        border: none;
+        background: rgba(0,0,0,0.05);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #64748b;
+        transition: all 0.2s;
+    }
+    .btn-close-modern:hover {
+        background: #ef4444;
+        color: #fff;
+        transform: rotate(90deg);
+    }
+
+    /* Media Section */
     .panel-media {
-        position: relative;
+        min-height: 250px;
+        background: #000;
+        overflow: hidden;
     }
 
+    .panel-poster-wrap {
+        position: relative;
+        display: flex;
+        justify-content: center;
+    }
     .panel-poster-wrap img {
         width: 100%;
         height: auto;
+        object-fit: cover;
+    }
+    .poster-gradient {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(to bottom, transparent 60%, rgba(0,0,0,0.4));
     }
 
-    .backdrop-thumb {
-        cursor: zoom-in;
-        transition: transform 0.2s ease;
+    .panel-gallery {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        padding: 12px;
     }
-    .backdrop-thumb:hover { transform: scale(1.02); }
+    .gallery-item {
+        position: relative;
+        border-radius: 8px;
+        overflow: hidden;
+        cursor: pointer;
+        background: #1e293b;
+    }
+    .gallery-item img {
+        width: 100%;
+        height: 120px;
+        object-fit: cover;
+        transition: transform 0.3s;
+    }
+    .gallery-hover-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(99, 102, 241, 0.4);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        color: #fff;
+        font-size: 1.5rem;
+        transition: opacity 0.2s;
+    }
+    .gallery-item:hover .gallery-hover-overlay { opacity: 1; }
+    .gallery-item:hover img { transform: scale(1.1); }
 
-    .fw-black { font-weight: 900; }
-    .small-meta { font-size: 0.68rem; font-weight: 800; letter-spacing: 0.05em; }
-    .smaller { font-size: 0.72rem; }
+    .media-toggle-pill {
+        position: absolute;
+        bottom: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(255,255,255,0.9);
+        backdrop-filter: blur(8px);
+        padding: 4px;
+        border-radius: 999px;
+        display: flex;
+        gap: 4px;
+        z-index: 5;
+    }
+    .toggle-btn {
+        padding: 6px 16px;
+        border-radius: 999px;
+        border: none;
+        background: transparent;
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: #64748b;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .toggle-btn.active {
+        background: var(--accent-primary);
+        color: #fff;
+        box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3);
+    }
 
-    .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-    .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
+    /* Info Section */
+    .panel-info {
+        padding: 24px;
+    }
+
+    .movie-title {
+        font-size: 1.75rem;
+        font-weight: 900;
+        line-height: 1.1;
+        margin: 0;
+    }
+    .title-link {
+        color: #1e293b;
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+    .title-link:hover { color: var(--accent-primary); }
+
+    .meta-badges {
+        display: flex;
+        gap: 12px;
+        margin-top: 12px;
+    }
+    .meta-badge {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #64748b;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    .meta-badge.rating { color: #f59e0b; }
+
+    /* Actions Card */
+    .user-actions-card {
+        margin: 24px 0;
+        padding: 16px;
+        border-radius: 16px;
+        background: #f8fafc;
+    }
+    .action-label {
+        font-size: 0.75rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #94a3b8;
+    }
+
+    /* User Rating Old Style */
+    .user-rating-box-old {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        position: relative;
+    }
+    .rating-circle {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        border: 3px solid var(--rating-color);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #fff;
+        position: relative;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    }
+    .rating-input-old {
+        width: 100%;
+        border: none;
+        background: transparent;
+        text-align: center;
+        font-weight: 900;
+        font-size: 1.25rem;
+        color: #1e293b;
+        outline: none;
+    }
+    .rating-label {
+        font-size: 0.65rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        color: #94a3b8;
+    }
+    .saved-badge {
+        position: absolute;
+        top: -12px;
+        background: #10b981;
+        color: #fff;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 0.55rem;
+        font-weight: 900;
+        z-index: 10;
+        box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+    }
+    .btn-clear-rating-old {
+        position: absolute;
+        bottom: -5px;
+        right: -5px;
+        background: #fff;
+        border: none;
+        color: #cbd5e1;
+        border-radius: 50%;
+        padding: 0;
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .btn-clear-rating-old:hover { color: #ef4444; }
+
+    /* Compact Status Buttons */
+    .status-compact-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px; /* Increased from 6px */
+    }
+    .status-btn-compact {
+        padding: 10px 4px;
+        border-radius: 12px; /* Smoother corners */
+        border: 1px solid #e2e8f0;
+        background: #fff;
+        font-size: 0.65rem; /* Small but legible */
+        font-weight: 800;
+        text-transform: uppercase;
+        color: #64748b;
+        transition: all 0.2s;
+        display: flex;
+        flex-direction: column; /* Column layout to save horizontal space */
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        white-space: nowrap;
+    }
+    .status-btn-compact i { font-size: 1.1rem; }
+    .status-btn-compact.active { border-color: transparent; color: #fff; }
+    .status-btn-compact.active.pending { background: #64748b; }
+    .status-btn-compact.active.watching { background: #10b981; }
+    .status-btn-compact.active.watched { background: #6366f1; }
     
-    .rating-box-indicator:focus-within {
-        border-color: #0d6efd !important;
-        transform: scale(1.05);
+    /* Person Text List */
+    .person-text-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .person-link {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: #1e293b;
+        cursor: pointer;
+        display: inline-block;
+        width: fit-content;
+        transition: color 0.2s;
+    }
+    .person-link:hover { color: var(--accent-primary); text-decoration: underline; }
+    .person-link small { font-weight: 400; }
+
+    /* Genres */
+    .genre-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+    .genre-chip {
+        background: #f1f5f9;
+        color: #475569;
+        padding: 4px 12px;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        border: 1px solid #e2e8f0;
     }
 
-    .animate-fade-out {
-        animation: fadeOutUp 1.5s ease-out forwards;
+    /* Collection */
+    .collection-box {
+        background: linear-gradient(135deg, #1e293b, #0f172a);
+        color: #fff;
+        padding: 12px 16px;
+        border-radius: 16px;
+        cursor: pointer;
+        transition: transform 0.2s;
     }
-    @@keyframes fadeOutUp {
-        0% { opacity: 0; transform: translate(-50%, 0px); }
-        20% { opacity: 1; transform: translate(-50%, -8px); }
-        100% { opacity: 0; transform: translate(-50%, -15px); }
+    .collection-box:hover { transform: translateY(-2px); }
+    .collection-inner { display: flex; align-items: center; gap: 15px; }
+    .collection-inner i { font-size: 1.5rem; color: #818cf8; }
+    .collection-text { display: flex; flex-direction: column; }
+    .collection-text .name { font-weight: 700; font-size: 0.9rem; }
+    .collection-text .label { font-size: 0.65rem; text-transform: uppercase; opacity: 0.6; font-weight: 700; }
+
+    /* Sections */
+    .info-section {
+        margin-bottom: 24px;
+    }
+    .section-label {
+        display: block;
+        font-size: 0.75rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        color: #94a3b8;
+        margin-bottom: 10px;
+        letter-spacing: 0.5px;
+    }
+    .overview-text {
+        font-size: 0.95rem;
+        line-height: 1.6;
+        color: #475569;
+        margin: 0;
     }
 
+    /* Cast List */
+    .cast-grid {
+        display: flex;
+        gap: 15px;
+        overflow-x: auto;
+        padding-bottom: 10px;
+    }
+
+    /* Trailer Button */
+    .btn-trailer-modern {
+        background: #1e293b;
+        color: #fff;
+        border: none;
+        border-radius: 12px;
+        padding: 16px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        transition: all 0.2s;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .btn-trailer-modern:hover { background: #000; transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0,0,0,0.15); }
+    .btn-trailer-modern i { color: #ef4444; font-size: 1.2rem; }
+
+    /* Scrollbars */
+    .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    
+    .custom-scrollbar-horizontal::-webkit-scrollbar { height: 5px; }
+    .custom-scrollbar-horizontal::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar-horizontal::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+    /* Animation */
+    .animate-float-up {
+        animation: floatUp 1.5s ease-out forwards;
+    }
+    @@keyframes floatUp {
+        0% { opacity: 0; transform: translate(-50%, 10px); }
+        20% { opacity: 1; transform: translate(-50%, 0); }
+        100% { opacity: 0; transform: translate(-50%, -10px); }
+    }
+
+    .loading-shimmer {
+        background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+        background-size: 200% 100%;
+        animation: shimmer 1.5s infinite;
+        border-radius: 8px;
+    }
+    @@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    /* Lightbox */
+    .panel-lightbox-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.95);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+        padding: 20px;
+    }
+    .panel-lightbox-content { position: relative; max-width: 100%; max-height: 100%; }
+    .btn-close-lightbox {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: rgba(0,0,0,0.5);
+        border: 2px solid #fff;
+        color: #fff;
+        border-radius: 50%;
+        width: 44px;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        z-index: 10001;
+    }
+    .btn-close-lightbox:hover { background: #ef4444; border-color: #ef4444; transform: scale(1.1); }
+
+    /* Shared no-spinner */
     .no-spinner::-webkit-outer-spin-button,
     .no-spinner::-webkit-inner-spin-button {
         -webkit-appearance: none;
         margin: 0;
     }
 
-    .panel-lightbox-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        background: rgba(0,0,0,0.92);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 10000;
-        padding: 40px;
-    }
-    .panel-lightbox-content { position: relative; max-width: 90%; max-height: 90%; }
-
-    .hover-bg-dark:hover {
-        background-color: #1a1a2e !important;
-        color: #fff !important;
-    }
-
-    .cast-card {
-        border-radius: 12px !important;
+    /* Responsive */
+    @@media (max-width: 576px) {
+        :root { --panel-width: 100vw; }
+        .side-panel-container.open .side-panel-overlay { opacity: 1; pointer-events: auto; }
+        .side-panel { 
+            position: fixed;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            box-shadow: none;
+            border-left: none;
+            transform: translateX(100%);
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 2000; /* Higher than search bar (1001) */
+        }
+        .side-panel-container.open .side-panel {
+            transform: translateX(0);
+        }
     }
 </style>
 
@@ -445,7 +835,7 @@
     private string GetRatingColor(int val)
     {
         double hue = (val / 100.0) * 120;
-        return $"hsl({hue}, 70%, 45%)";
+        return $"hsl({hue}, 75%, 45%)";
     }
 
     private string FormatRuntime(int minutes)
@@ -461,7 +851,7 @@
         return WatchlistSvc.Items.FirstOrDefault(i => i.ImdbId == WatchlistSvc.SelectedItem?.ImdbId && !string.IsNullOrEmpty(i.ImdbId));
     }
 
-    private async Task HandleStatusTabClick(WatchlistStatus status)
+    private async Task ToggleStatus(WatchlistStatus status)
     {
         if (WatchlistSvc.SelectedItem != null && WatchlistSvc.SelectedMovie != null)
         {
@@ -483,15 +873,16 @@
             }
             else
             {
-                await WatchlistSvc.UpdateStatusAsync(libItem, status);
+                if (libItem.Status == status)
+                {
+                    await WatchlistSvc.RemoveFromWatchlistAsync(libItem);
+                }
+                else
+                {
+                    await WatchlistSvc.UpdateStatusAsync(libItem, status);
+                }
             }
         }
-    }
-
-    private async Task RemoveItem()
-    {
-        var libItem = GetLibraryItem();
-        if (libItem != null) await WatchlistSvc.RemoveFromWatchlistAsync(libItem);
     }
 
     private string GetModalYear(TmdbMovie movie, WatchlistItem item)
@@ -502,3 +893,4 @@
 
     private string GetModalImdbId(TmdbMovie movie, WatchlistItem item) => movie.ImdbId ?? item.ImdbId ?? "";
 }
+

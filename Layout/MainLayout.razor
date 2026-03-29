@@ -397,6 +397,7 @@
     }
     private List<AutocompleteRes> _autocompleteResults = new();
     private CancellationTokenSource? _searchCts;
+    private string _lastUri = "";
 
     private async Task HandleSearchInput()
     {
@@ -513,6 +514,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        _lastUri = NavManager.Uri;
         WatchlistSvc.OnStateChanged += HandleWatchlistStateChanged;
         NavManager.LocationChanged += HandleLocationChanged;
         _wasAnyOpen = WatchlistSvc.IsModalOpen || WatchlistSvc.IsSidePanelOpen;
@@ -552,6 +554,10 @@
 
     private void HandleLocationChanged(object? sender, LocationChangedEventArgs e)
     {
+        var currentUri = NavManager.Uri;
+        var currentBase = currentUri.Split('#')[0].Split('?')[0];
+        var lastBase = _lastUri.Split('#')[0].Split('?')[0];
+
         // Handle Search Overlay
         if (_isOverlayOpen && !NavManager.Uri.Contains("#search"))
         {
@@ -561,13 +567,27 @@
             StateHasChanged();
         }
 
-        // Handle Details
-        if ((WatchlistSvc.IsModalOpen || WatchlistSvc.IsSidePanelOpen) && !NavManager.Uri.Contains("#details"))
+        // Handle Details - Navigation behavior
+        // Modal (mobile): always close if #details hash is missing
+        if (WatchlistSvc.IsModalOpen && !NavManager.Uri.Contains("#details"))
         {
             _isClosingFromNav = true;
             WatchlistSvc.CloseModal();
             _isClosingFromNav = false;
         }
+        // SidePanel (desktop): only close if hash was removed on the SAME page
+        else if (WatchlistSvc.IsSidePanelOpen && !NavManager.Uri.Contains("#details"))
+        {
+            if (currentBase == lastBase)
+            {
+                _isClosingFromNav = true;
+                WatchlistSvc.CloseSidePanel();
+                _isClosingFromNav = false;
+            }
+        }
+
+        _lastUri = currentUri;
+        StateHasChanged();
     }
 
     [Microsoft.JSInterop.JSInvokable]
