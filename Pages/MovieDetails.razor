@@ -1,0 +1,653 @@
+@page "/movie/{imdbId}"
+@using MyPrivateWatchlist.Models
+@inject MyPrivateWatchlist.Services.WatchlistService WatchlistSvc
+@inject NavigationManager NavManager
+@inject IJSRuntime JS
+
+<PageTitle>@(movie?.Title ?? "Loading...") - Movie Log</PageTitle>
+
+<div class="movie-page-container">
+    @if (isLoading)
+    {
+        <div class="loading-state">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-3 fw-bold text-secondary">Fetching cinematic details...</p>
+        </div>
+    }
+    else if (movie == null)
+    {
+        <div class="error-state">
+            <i class="bi bi-exclamation-triangle fs-1 text-warning"></i>
+            <h2 class="mt-3">Movie Not Found</h2>
+            <p>We couldn't find the details for this movie. It might have been removed or the ID is incorrect.</p>
+            <button class="btn btn-primary mt-3" @onclick='() => NavManager.NavigateTo("/")'>Return Home</button>
+        </div>
+    }
+    else
+    {
+        <!-- Hero Section -->
+        <div class="movie-hero">
+            <div class="hero-backdrop" style="background-image: url('https://image.tmdb.org/t/p/original@(movie.BackdropPaths.FirstOrDefault() ?? movie.PosterPath)')"></div>
+            <div class="hero-overlay"></div>
+            
+            <div class="container hero-content">
+                <div class="row align-items-end">
+                    <div class="col-md-3 d-none d-md-block">
+                        <div class="hero-poster shadow-lg">
+                            <img src="@movie.FullPosterUrl" class="img-fluid rounded-4" alt="@movie.Title" />
+                        </div>
+                    </div>
+                    <div class="col-md-9 pb-4">
+                        <div class="hero-text">
+                            <h1 class="display-4 fw-black text-white mb-2">@movie.Title</h1>
+                            @if (!string.IsNullOrEmpty(movie.OriginalTitle) && movie.OriginalTitle != movie.Title)
+                            {
+                                <h4 class="text-white-50 mb-3">@movie.OriginalTitle</h4>
+                            }
+                            
+                            <div class="d-flex align-items-center gap-3 flex-wrap mb-4 hero-meta">
+                                <span class="badge bg-white text-dark shadow-sm px-3 py-2">
+                                    <i class="bi bi-calendar3 me-1"></i> @(movie.ReleaseDate?.Length >= 4 ? movie.ReleaseDate[..4] : "N/A")
+                                </span>
+                                @if (movie.Runtime.HasValue)
+                                {
+                                    <span class="badge bg-white text-dark shadow-sm px-3 py-2">
+                                        <i class="bi bi-clock me-1"></i> @FormatRuntime(movie.Runtime.Value)
+                                    </span>
+                                }
+                                <div class="tmdb-rating-pill shadow-sm">
+                                    <i class="bi bi-star-fill text-warning"></i>
+                                    <span class="fw-bold">@movie.VoteAverage.ToString("0.0")</span>
+                                    <small class="opacity-50 ms-1">TMDB</small>
+                                </div>
+                            </div>
+
+                            @if (movie.GenreList.Any())
+                            {
+                                <div class="genre-list-hero mb-4">
+                                    @foreach (var genre in movie.GenreList)
+                                    {
+                                        <span class="badge rounded-pill bg-blur-white me-2">@genre.Name</span>
+                                    }
+                                </div>
+                            }
+
+                            <div class="d-flex gap-3 mt-4">
+                                @if (!string.IsNullOrEmpty(movie.TrailerKey))
+                                {
+                                    <a href="https://www.youtube.com/watch?v=@movie.TrailerKey" target="_blank" class="btn btn-danger btn-lg rounded-pill shadow-lg px-4">
+                                        <i class="bi bi-play-circle-fill me-2"></i> Watch Trailer
+                                    </a>
+                                }
+                                <OpenOnMenu Title="@movie.Title" Year="@(movie.ReleaseDate?.Length >= 4 ? movie.ReleaseDate[..4] : "")" ImdbId="@imdbId" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="container main-content-wrapper mt-n5 position-relative z-3">
+            <div class="row g-4">
+                <!-- Left Column (Overview & Cast) -->
+                <div class="col-lg-8">
+                    <div class="content-card shadow-sm mb-4">
+                        <h3 class="section-title mb-3">Overview</h3>
+                        <p class="overview-text pe-md-4">@movie.Overview</p>
+                    </div>
+
+                    @if (movie.Credits?.Cast?.Any() == true)
+                    {
+                        <div class="content-card shadow-sm mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h3 class="section-title m-0">Top Cast</h3>
+                            </div>
+                            <div class="cast-row-wrapper custom-scrollbar-horizontal">
+                                @foreach (var actor in movie.Credits.Cast.Take(15))
+                                {
+                                    <div class="cast-item-card" @onclick="() => WatchlistSvc.OpenPersonProfileAsync(actor.Id)">
+                                        <div class="cast-avatar">
+                                            <img src="@actor.FullProfileUrl" alt="@actor.Name" />
+                                        </div>
+                                        <div class="cast-info">
+                                            <span class="actor-name">@actor.Name</span>
+                                            <span class="character-name text-truncate">@actor.Character</span>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    @if (movie.BackdropPaths.Count > 1)
+                    {
+                        <div class="content-card shadow-sm mb-4">
+                            <h3 class="section-title mb-4">Media Gallery</h3>
+                            <div class="row g-3">
+                                @foreach (var path in movie.BackdropPaths.Skip(1).Take(6))
+                                {
+                                    <div class="col-md-4 col-6">
+                                        <div class="gallery-preview rounded-3 overflow-hidden shadow-sm clickable" @onclick="() => OpenLightbox(path)">
+                                            <img src="https://image.tmdb.org/t/p/w780@(path)" class="img-fluid" alt="Gallery image" />
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <!-- Right Column (Details & Collection) -->
+                <div class="col-lg-4">
+                    <!-- Library Status Block -->
+                    <div class="content-card shadow-sm mb-4 accent-card">
+                        <h4 class="section-title-sm mb-3">Your Library</h4>
+                        
+                        <div class="d-flex align-items-center gap-4 mb-4">
+                            <!-- Rating Circle Reused Logic -->
+                            <div class="d-flex flex-column align-items-center">
+                                <div class="rating-circle-lg shadow-sm" style="--rating-color: @(libItem?.Rating20 == null ? "#adb5bd" : GetRatingColor(libItem.Rating20.Value))">
+                                    <input type="number" 
+                                           class="rating-input-lg no-spinner" 
+                                           min="0" max="100" 
+                                           placeholder="-"
+                                           value="@(libItem?.Rating20)" 
+                                           @onchange="(e) => HandleRatingEdit(e)" />
+                                    @if (libItem?.Rating20 != null)
+                                    {
+                                        <button class="btn-clear-rating-lg" @onclick="() => HandleRatingEdit(new ChangeEventArgs { Value = null })">
+                                            <i class="bi bi-x-circle-fill"></i>
+                                        </button>
+                                    }
+                                </div>
+                                <span class="action-label-sm mt-2">Personal Score</span>
+                            </div>
+
+                            <div class="flex-grow-1">
+                                <span class="action-label-sm d-block mb-2">Status</span>
+                                @{ var status = libItem?.Status; }
+                                <div class="status-grid-page">
+                                    <button class="status-btn-page @(status == WatchlistStatus.Pending ? "active pending" : "")"
+                                            @onclick="async () => await ToggleStatus(WatchlistStatus.Pending)">
+                                        <i class="bi bi-list-nested"></i> @(status == WatchlistStatus.Pending ? "On Watchlist" : "Watchlist")
+                                    </button>
+                                    <button class="status-btn-page @(status == WatchlistStatus.Watching ? "active watching" : "")"
+                                            @onclick="async () => await ToggleStatus(WatchlistStatus.Watching)">
+                                        <i class="bi bi-play-fill"></i> @(status == WatchlistStatus.Watching ? "Watching Now" : "Watching")
+                                    </button>
+                                    <button class="status-btn-page @(status == WatchlistStatus.Watched ? "active watched" : "")"
+                                            @onclick="async () => await ToggleStatus(WatchlistStatus.Watched)">
+                                        <i class="bi bi-check-lg"></i> @(status == WatchlistStatus.Watched ? "Watched" : "Mark Seen")
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        @if (showSavedIndicator)
+                        {
+                            <div class="alert alert-success py-2 px-3 m-0 rounded-3 text-center animate-fade-in" style="font-size: 0.8rem;">
+                                <i class="bi bi-check-circle-fill me-2"></i> Changes saved locally
+                            </div>
+                        }
+                    </div>
+
+                    @if (movie.Collection != null)
+                    {
+                        <div class="content-card shadow-sm mb-4 collection-card clickable" @onclick='() => NavManager.NavigateTo($"franchise/{movie.Collection.Id}")'>
+                            <div class="collection-overlay"></div>
+                            <div class="collection-content">
+                                <span class="text-uppercase fw-bold text-white-50" style="font-size: 0.7rem;">Part of Cinematic Universe</span>
+                                <h4 class="m-0 text-white fw-bold">@movie.Collection.Name</h4>
+                                <div class="mt-3 text-white-50 small">Take a deep dive into the collection <i class="bi bi-arrow-right-short"></i></div>
+                            </div>
+                        </div>
+                    }
+
+                    <div class="content-card shadow-sm">
+                        <h4 class="section-title-sm mb-3">Additional Information</h4>
+                        <div class="detail-item-row">
+                            <span class="label">Original Title</span>
+                            <span class="value">@(movie.OriginalTitle ?? movie.Title)</span>
+                        </div>
+                        @if (movie.Credits?.Crew?.Any(c => c.Job == "Director") == true)
+                        {
+                            <div class="detail-item-row">
+                                <span class="label">Director</span>
+                                <span class="value">
+                                    @foreach (var dir in movie.Credits.Crew.Where(c => c.Job == "Director"))
+                                    {
+                                        <span class="link-dark fw-bold clickable" @onclick="() => WatchlistSvc.OpenPersonProfileAsync(dir.Id)">@dir.Name</span>@(", ")
+                                    }
+                                </span>
+                            </div>
+                        }
+                        <div class="detail-item-row">
+                            <span class="label">Release Status</span>
+                            <span class="value text-success fw-bold">Released</span>
+                        </div>
+                        <div class="detail-item-row">
+                            <span class="label">TMDB ID</span>
+                            <span class="value">@movie.Id</span>
+                        </div>
+                        <div class="detail-item-row border-0">
+                            <span class="label">IMDB ID</span>
+                            <span class="value">@imdbId</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@if (selectedLightboxPath != null)
+{
+    <div class="panel-lightbox-overlay" @onclick="() => selectedLightboxPath = null">
+        <div class="panel-lightbox-content">
+            <img src="https://image.tmdb.org/t/p/original@(selectedLightboxPath)" class="img-fluid rounded shadow-lg" />
+            <button type="button" class="btn-close-lightbox" @onclick="() => selectedLightboxPath = null">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+    </div>
+}
+
+<style>
+    .movie-page-container {
+        min-height: 100vh;
+        background: #f8fafc;
+        padding-bottom: 80px;
+    }
+
+    .loading-state, .error-state {
+        height: 60vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 20px;
+    }
+
+    /* Hero Section */
+    .movie-hero {
+        position: relative;
+        height: 550px;
+        width: 100%;
+        overflow: hidden;
+        background: #0f172a;
+    }
+    .hero-backdrop {
+        position: absolute;
+        inset: 0;
+        background-size: cover;
+        background-position: center 20%;
+        filter: blur(5px) scale(1.05) brightness(0.6);
+        opacity: 0.8;
+    }
+    .hero-overlay {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(to top, #f8fafc 0%, rgba(15, 23, 42, 0.4) 60%, transparent 100%);
+    }
+    .hero-content {
+        position: relative;
+        height: 100%;
+        display: flex;
+        align-items: flex-end;
+        z-index: 5;
+    }
+    .hero-poster {
+        border: 4px solid rgba(255,255,255,0.1);
+        border-radius: 20px;
+        transform: translateY(20px);
+        overflow: hidden;
+    }
+    .hero-meta .badge {
+        font-size: 0.9rem;
+        background: rgba(255,255,255,0.9) !important;
+        color: #1e293b !important;
+        backdrop-filter: blur(8px);
+    }
+    .bg-blur-white {
+        background: rgba(255,255,255,0.2);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255,255,255,0.3);
+        color: #fff;
+        padding: 6px 14px;
+        font-weight: 600;
+    }
+    .tmdb-rating-pill {
+        background: rgba(0,0,0,0.5);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255,255,255,0.1);
+        color: #fff;
+        padding: 5px 15px;
+        border-radius: 999px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    /* Content Cards */
+    .content-card {
+        background: #fff;
+        border-radius: 24px;
+        padding: 30px;
+        border: 1px solid rgba(0,0,0,0.05);
+    }
+    .accent-card {
+        background: linear-gradient(135deg, #ffffff, #f1f5f9);
+        border-right: 4px solid #6366f1;
+    }
+    .section-title {
+        font-weight: 900;
+        color: #0f172a;
+        font-size: 1.5rem;
+        letter-spacing: -0.5px;
+    }
+    .section-title-sm {
+        font-weight: 800;
+        color: #334155;
+        font-size: 1.1rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .overview-text {
+        font-size: 1.1rem;
+        line-height: 1.8;
+        color: #475569;
+    }
+
+    /* Cast Rows */
+    .cast-row-wrapper {
+        display: flex;
+        gap: 20px;
+        overflow-x: auto;
+        padding-bottom: 20px;
+    }
+    .cast-item-card {
+        flex-shrink: 0;
+        width: 130px;
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+    .cast-item-card:hover { transform: translateY(-5px); }
+    .cast-avatar {
+        width: 130px;
+        height: 170px;
+        border-radius: 16px;
+        overflow: hidden;
+        margin-bottom: 12px;
+        background: #f1f5f9;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    .cast-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .actor-name { display: block; font-weight: 800; font-size: 0.85rem; color: #1e293b; margin-bottom: 2px; }
+    .character-name { display: block; font-size: 0.75rem; color: #64748b; }
+
+    /* Action Circle */
+    .rating-circle-lg {
+        width: 84px;
+        height: 84px;
+        border-radius: 50%;
+        border: 4px solid var(--rating-color);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #fff;
+        position: relative;
+    }
+    .rating-input-lg {
+        width: 100%;
+        border: none;
+        background: transparent;
+        text-align: center;
+        font-weight: 900;
+        font-size: 1.75rem;
+        color: #1e293b;
+        outline: none;
+    }
+    .btn-clear-rating-lg {
+        position: absolute;
+        bottom: -5px;
+        right: -5px;
+        background: #fff;
+        border: none;
+        color: #cbd5e1;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .action-label-sm { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; color: #94a3b8; }
+
+    /* Status Page Buttons */
+    .status-grid-page { display: flex; flex-direction: column; gap: 8px; }
+    .status-btn-page {
+        padding: 10px 16px;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        background: #fff;
+        font-size: 0.8rem;
+        font-weight: 800;
+        color: #64748b;
+        text-align: left;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        transition: all 0.2s;
+    }
+    .status-btn-page.active { border-color: transparent; color: #fff; }
+    .status-btn-page.active.pending { background: #64748b; }
+    .status-btn-page.active.watching { background: #10b981; }
+    .status-btn-page.active.watched { background: #6366f1; }
+
+    /* Collection Card */
+    .collection-card {
+        position: relative;
+        background: #1e293b;
+        overflow: hidden;
+        min-height: 180px;
+        display: flex;
+        align-items: flex-end;
+    }
+    .collection-overlay {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.4) 0%, rgba(30, 41, 59, 0.95) 80%);
+        z-index: 1;
+    }
+    .collection-content { position: relative; z-index: 2; width: 100%; }
+
+    /* Details Rows */
+    .detail-item-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 12px 0;
+        border-bottom: 1px solid #f1f5f9;
+        font-size: 0.9rem;
+    }
+    .detail-item-row .label { color: #94a3b8; font-weight: 600; }
+    .detail-item-row .value { color: #1e293b; font-weight: 700; text-align: right; max-width: 60%; }
+
+    /* Shared Utils */
+    .clickable { cursor: pointer; }
+    .no-spinner::-webkit-outer-spin-button, .no-spinner::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    .custom-scrollbar-horizontal::-webkit-scrollbar { height: 6px; }
+    .custom-scrollbar-horizontal::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+    /* Responsive adjustments */
+    @@media (max-width: 768px) {
+        .movie-hero { height: auto; padding-top: 60px; padding-bottom: 30px; }
+        .hero-poster { width: 150px; margin: 0 auto 20px; }
+        .hero-text { text-align: center; }
+        .hero-meta { justify-content: center; }
+        .genre-list-hero { justify-content: center; display: flex; flex-wrap: wrap; }
+        .main-content-wrapper { mt-3 !important; }
+        .content-card { padding: 20px; }
+    }
+
+    /* Animation Reused */
+    .animate-fade-in { animation: fadeIn 0.4s ease-out; }
+    @@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Lightbox Reused */
+    .panel-lightbox-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.95);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+        padding: 20px;
+    }
+    .panel-lightbox-content { position: relative; max-width: 100%; max-height: 100%; }
+    .btn-close-lightbox {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: rgba(0,0,0,0.5);
+        border: 2px solid #fff;
+        color: #fff;
+        border-radius: 50%;
+        width: 44px;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        cursor: pointer;
+        z-index: 10001;
+    }
+</style>
+
+@code {
+    [Parameter] public string imdbId { get; set; } = "";
+    private TmdbMovie? movie;
+    private bool isLoading = true;
+    private WatchlistItem? libItem;
+    private bool showSavedIndicator = false;
+    private string? selectedLightboxPath;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        isLoading = true;
+        movie = null;
+        StateHasChanged();
+
+        movie = await WatchlistSvc.GetTmdbDetailsAsync(imdbId);
+        
+        if (movie != null)
+        {
+            libItem = WatchlistSvc.Items.FirstOrDefault(i => i.ImdbId == imdbId);
+            if (libItem == null)
+            {
+                // Create a temporary item for the UI if not in library
+                libItem = new WatchlistItem 
+                { 
+                    ImdbId = imdbId, 
+                    Title = movie.Title,
+                    Status = WatchlistStatus.Pending,
+                    TmdbId = movie.Id
+                };
+            }
+        }
+
+        isLoading = false;
+    }
+
+    private string FormatRuntime(int minutes)
+    {
+        var h = minutes / 60;
+        var m = minutes % 60;
+        return h > 0 ? $"{h}h {m}m" : $"{m}m";
+    }
+
+    private string GetRatingColor(int val)
+    {
+        if (val >= 80) return "#10b981"; // Green
+        if (val >= 60) return "#3b82f6"; // Blue
+        if (val >= 40) return "#f59e0b"; // Orange
+        return "#ef4444"; // Red
+    }
+
+    private void OpenLightbox(string path) => selectedLightboxPath = path;
+
+    private async Task ToggleStatus(WatchlistStatus newStatus)
+    {
+        var existing = WatchlistSvc.Items.FirstOrDefault(i => i.ImdbId == imdbId);
+        if (existing == null)
+        {
+            // Add new
+            var newItem = new WatchlistItem
+            {
+                ImdbId = imdbId,
+                Title = movie!.Title,
+                Status = newStatus,
+                TmdbId = movie.Id,
+                PosterPath = movie.PosterPath,
+                Year = movie.ReleaseDate,
+                Runtime = movie.Runtime,
+                VoteAverage = movie.VoteAverage,
+                Rating20 = null,
+                Genres = string.Join(", ", movie.GenreList.Select(g => g.Name))
+            };
+            WatchlistSvc.Items.Add(newItem);
+            libItem = newItem;
+        }
+        else
+        {
+            existing.Status = newStatus;
+            libItem = existing;
+        }
+
+        await WatchlistSvc.UpdateListAsync(WatchlistSvc.Items);
+        WatchlistSvc.NotifyStateChanged(fullRefresh: true);
+        
+        showSavedIndicator = true;
+        StateHasChanged();
+        await Task.Delay(2000);
+        showSavedIndicator = false;
+        StateHasChanged();
+    }
+
+    private async Task HandleRatingEdit(ChangeEventArgs e)
+    {
+        var inputVal = e.Value?.ToString();
+        int? val = null;
+        if (int.TryParse(inputVal, out var parsed)) 
+        {
+            val = parsed;
+            if (val > 100) val = 100;
+            if (val < 0) val = 0;
+        }
+        
+        var existing = WatchlistSvc.Items.FirstOrDefault(i => i.ImdbId == imdbId);
+        if (existing != null)
+        {
+            existing.Rating20 = val;
+            libItem = existing;
+            await WatchlistSvc.UpdateListAsync(WatchlistSvc.Items);
+            WatchlistSvc.NotifyStateChanged(fullRefresh: true);
+            
+            showSavedIndicator = true;
+            StateHasChanged();
+            await Task.Delay(2000);
+            showSavedIndicator = false;
+            StateHasChanged();
+        }
+        else
+        {
+            // If movie is not in library, we might want to add it as 'Watched' or just 'Pending' when rating
+            // For now, let's just toast
+            await WatchlistSvc.ShowToastAsync("Add the movie to your library first to set a rating!");
+        }
+    }
+}

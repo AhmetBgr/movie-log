@@ -71,7 +71,7 @@
                     <div class="main-meta">
                         <div class="d-flex align-items-center gap-2 flex-wrap mb-2">
                             <h2 class="movie-title">
-                                <a href="https://www.imdb.com/title/@item.ImdbId/" target="_blank" class="title-link">@movie.Title</a>
+                                <a href="movie/@(item.ImdbId ?? movie.ImdbId)" class="title-link">@movie.Title</a>
                             </h2>
                             <OpenOnMenu Title="@movie.Title"
                                         Year="@GetModalYear(movie, item)"
@@ -219,11 +219,16 @@
 
                     @if (!string.IsNullOrEmpty(movie.TrailerKey))
                     {
-                        <a href="https://www.youtube.com/watch?v=@movie.TrailerKey" target="_blank" class="btn-trailer-modern w-100 text-decoration-none">
+                        <a href="https://www.youtube.com/watch?v=@movie.TrailerKey" target="_blank" class="btn-trailer-modern w-100 text-decoration-none mb-3">
                             <i class="bi bi-play-circle-fill"></i> Watch Trailer on YouTube
                         </a>
                     }
-                    
+
+                    <div class="mt-2">
+                        <button class="btn btn-outline-secondary w-100 rounded-3 py-2 fw-bold" @onclick='() => { ClosePanel(); NavManager.NavigateTo($"movie/{(item.ImdbId ?? movie.ImdbId)}"); }'>
+                            <i class="bi bi-info-circle me-2"></i> View Full Details
+                        </button>
+                    </div>
                 </div>
             </div>
         }
