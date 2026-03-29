@@ -1,0 +1,396 @@
+@using MyPrivateWatchlist.Models
+@inject MyPrivateWatchlist.Services.WatchlistService WatchlistSvc
+@inject IJSRuntime JS
+
+<div class="advanced-filter-sidebar" @ontouchstart="OnTouchStart" @ontouchend="OnTouchEnd">
+    <div class="filter-drag-handle d-sm-none"><span></span></div>
+    
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h5 class="fw-bold m-0" style="color:var(--bs-primary);">Advanced Filters</h5>
+        <div class="form-check form-switch m-0">
+            <input class="form-check-input" type="checkbox" role="switch" @bind="WatchlistSvc.AdvancedFilter.IsActive" @bind:after="OnStateChanged">
+        </div>
+    </div>
+
+    @if (WatchlistSvc.AdvancedFilter.IsActive)
+    {
+        <!-- Person Search -->
+        <div class="filter-section mb-3">
+             <div class="filter-label d-flex justify-content-between align-items-center" @onclick="TogglePerson">
+                <span>Director / Actor</span>
+                <i class="bi @(_showPerson ? "bi-chevron-up" : "bi-chevron-down")"></i>
+            </div>
+            @if (_showPerson)
+            {
+                <div class="position-relative mt-2">
+                    <div class="input-group input-group-sm mb-2">
+                        <span class="input-group-text bg-light border-end-0"><i class="bi bi-person-search text-secondary"></i></span>
+                        <input type="text" class="form-control border-start-0 bg-light shadow-none" 
+                               placeholder="Search TMDB Person..."
+                               @bind="_personQuery" @bind:event="oninput" @onkeyup="HandlePersonKeyUp" />
+                    </div>
+                    
+                    @if (_personResults.Any())
+                    {
+                        <div class="person-dropdown shadow transition-all">
+                            @foreach (var p in _personResults)
+                            {
+                                <div class="person-item p-2 d-flex align-items-center gap-2" @onclick="() => SelectPerson(p)">
+                                    <div class="person-img @(string.IsNullOrEmpty(p.ProfilePath) ? "no-img" : "")" 
+                                         style="background-image: url(@(string.IsNullOrEmpty(p.ProfilePath) ? "" : $"https://image.tmdb.org/t/p/w45{p.ProfilePath}"));">
+                                    </div>
+                                    <div class="flex-grow-1 text-truncate" style="font-size:0.85rem;">@p.Name</div>
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    @if (WatchlistSvc.AdvancedFilter.SelectedPersonId.HasValue)
+                    {
+                        <div class="selected-person d-flex align-items-center justify-content-between p-2 mt-2 rounded bg-light border">
+                            <span class="small fw-semibold text-primary" style="font-size: 0.75rem;"><i class="bi bi-check-circle-fill me-1"></i> @WatchlistSvc.AdvancedFilter.SelectedPersonName</span>
+                            <button class="btn btn-sm p-0 border-0" @onclick="ClearPerson"><i class="bi bi-x-circle text-danger"></i></button>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+        <!-- Genre Matrix -->
+        <div class="filter-section mb-3">
+            <div class="filter-label d-flex justify-content-between align-items-center" @onclick="ToggleGenre">
+                <span>Genres</span>
+                <i class="bi @(_showGenre ? "bi-chevron-up" : "bi-chevron-down")"></i>
+            </div>
+            @if (_showGenre)
+            {
+                <div class="mt-2">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span class="text-secondary" style="font-size:0.65rem;">Logic:</span>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <input type="radio" class="btn-check" name="genlogic" id="glany" checked="@(WatchlistSvc.AdvancedFilter.GenreLogic == GenreLogic.Any)" @onclick="() => SetGenreLogic(GenreLogic.Any)">
+                            <label class="btn btn-outline-secondary" for="glany" style="font-size:0.6rem;">ANY</label>
+                            
+                            <input type="radio" class="btn-check" name="genlogic" id="glall" checked="@(WatchlistSvc.AdvancedFilter.GenreLogic == GenreLogic.All)" @onclick="() => SetGenreLogic(GenreLogic.All)">
+                            <label class="btn btn-outline-secondary" for="glall" style="font-size:0.6rem;">ALL</label>
+                        </div>
+                    </div>
+                    <div class="genre-grid">
+                        @foreach (var g in AvailableGenres)
+                        {
+                            var state = GetGenreState(g);
+                            <button class="genre-btn @(state == 1 ? "genre-inc" : state == 2 ? "genre-exc" : "")"
+                                    @onclick="() => CycleGenre(g)">
+                                @if (state == 1) { <i class="bi bi-plus-circle-fill me-1"></i> }
+                                @if (state == 2) { <i class="bi bi-dash-circle-fill me-1"></i> }
+                                @g
+                            </button>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Year / Runtime / Ratings -->
+        <div class="filter-section mb-3">
+             <div class="filter-label d-flex justify-content-between align-items-center" @onclick="ToggleRanges">
+                <span>Ranges & Ratings</span>
+                <i class="bi @(_showRanges ? "bi-chevron-up" : "bi-chevron-down")"></i>
+            </div>
+            @if (_showRanges)
+            {
+                <div class="mt-2">
+                    <label class="small text-secondary fw-bold mb-1" style="font-size: 0.65rem;">Release Year</label>
+                    <div class="d-flex gap-2 mb-3">
+                        <input type="number" class="form-control form-control-sm bg-light shadow-none" placeholder="Min" 
+                               value="@WatchlistSvc.AdvancedFilter.MinYear" @onchange="@(e => { int.TryParse(e.Value?.ToString(), out var v); WatchlistSvc.AdvancedFilter.MinYear = v > 0 ? v : null; OnStateChanged(); })" />
+                        <input type="number" class="form-control form-control-sm bg-light shadow-none" placeholder="Max" 
+                               value="@WatchlistSvc.AdvancedFilter.MaxYear" @onchange="@(e => { int.TryParse(e.Value?.ToString(), out var v); WatchlistSvc.AdvancedFilter.MaxYear = v > 0 ? v : null; OnStateChanged(); })" />
+                    </div>
+
+                    <label class="small text-secondary fw-bold mb-1" style="font-size: 0.65rem;">Runtime (min)</label>
+                    <div class="d-flex gap-2 mb-3">
+                        <input type="number" class="form-control form-control-sm bg-light shadow-none" placeholder="Min" 
+                               value="@WatchlistSvc.AdvancedFilter.MinRuntime" @onchange="@(e => { int.TryParse(e.Value?.ToString(), out var v); WatchlistSvc.AdvancedFilter.MinRuntime = v > 0 ? v : null; OnStateChanged(); })" />
+                        <input type="number" class="form-control form-control-sm bg-light shadow-none" placeholder="Max" 
+                               value="@WatchlistSvc.AdvancedFilter.MaxRuntime" @onchange="@(e => { int.TryParse(e.Value?.ToString(), out var v); WatchlistSvc.AdvancedFilter.MaxRuntime = v > 0 ? v : null; OnStateChanged(); })" />
+                    </div>
+
+                    @if (ShowUserRatingFilter)
+                    {
+                        <label class="small text-secondary fw-bold mb-1" style="font-size: 0.65rem;">User Rating</label>
+                        <div class="d-flex gap-2 mb-3">
+                            <input type="number" class="form-control form-control-sm bg-light shadow-none" placeholder="Min" 
+                                   value="@WatchlistSvc.AdvancedFilter.MinUserRating" @onchange="@(e => { int.TryParse(e.Value?.ToString(), out var v); WatchlistSvc.AdvancedFilter.MinUserRating = v >= 0 ? v : null; OnStateChanged(); })" />
+                            <input type="number" class="form-control form-control-sm bg-light shadow-none" placeholder="Max" 
+                                   value="@WatchlistSvc.AdvancedFilter.MaxUserRating" @onchange="@(e => { int.TryParse(e.Value?.ToString(), out var v); WatchlistSvc.AdvancedFilter.MaxUserRating = v >= 0 ? v : null; OnStateChanged(); })" />
+                        </div>
+                    }
+
+                    @if (ShowTmdbRatingFilter)
+                    {
+                        <label class="small text-secondary fw-bold mb-1" style="font-size: 0.65rem;">TMDB Rating</label>
+                        <div class="d-flex gap-2">
+                            <input type="number" class="form-control form-control-sm bg-light shadow-none" placeholder="Min" step="0.5"
+                                   value="@WatchlistSvc.AdvancedFilter.MinTmdbRating" @onchange="@(e => { double.TryParse(e.Value?.ToString(), out var v); WatchlistSvc.AdvancedFilter.MinTmdbRating = v >= 0 ? v : null; OnStateChanged(); })" />
+                            <input type="number" class="form-control form-control-sm bg-light shadow-none" placeholder="Max" step="0.5"
+                                   value="@WatchlistSvc.AdvancedFilter.MaxTmdbRating" @onchange="@(e => { double.TryParse(e.Value?.ToString(), out var v); WatchlistSvc.AdvancedFilter.MaxTmdbRating = v >= 0 ? v : null; OnStateChanged(); })" />
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+        <!-- Quick Toggles -->
+        <div class="filter-section mb-4">
+             <div class="filter-label d-flex justify-content-between align-items-center" @onclick="ToggleQuick">
+                <span>Quick Filters</span>
+                <i class="bi @(_showQuick ? "bi-chevron-up" : "bi-chevron-down")"></i>
+            </div>
+            @if (_showQuick)
+            {
+                <div class="d-flex flex-wrap gap-2 mt-2">
+                    <button class="btn btn-sm @(WatchlistSvc.AdvancedFilter.UnratedOnly ? "btn-primary" : "btn-outline-secondary") rounded-pill px-3"
+                            @onclick="() => { WatchlistSvc.AdvancedFilter.UnratedOnly = !WatchlistSvc.AdvancedFilter.UnratedOnly; OnStateChanged(); }">
+                        Not Rated
+                    </button>
+                    <button class="btn btn-sm @(WatchlistSvc.AdvancedFilter.ShortFilmsOnly ? "btn-primary" : "btn-outline-secondary") rounded-pill px-3"
+                            @onclick="() => { WatchlistSvc.AdvancedFilter.ShortFilmsOnly = !WatchlistSvc.AdvancedFilter.ShortFilmsOnly; OnStateChanged(); }">
+                        Shorts &lt;85m
+                    </button>
+                </div>
+            }
+        </div>
+
+        <div class="d-flex gap-2 mt-2">
+            <button class="btn btn-outline-danger btn-sm flex-grow-1" @onclick="ResetFilters">
+                <i class="bi bi-trash me-1"></i> Reset
+            </button>
+            <button class="btn btn-dark btn-sm flex-grow-1" @onclick="ResetBasicThenAdvanced">
+                <i class="bi bi-eraser me-1"></i> Clear All
+            </button>
+        </div>
+    }
+    else
+    {
+        <div class="text-center py-4 text-secondary opacity-50">
+            <i class="bi bi-sliders2 h2 mb-3 d-block"></i>
+            <p class="small m-0">Advanced filters are disabled.<br/>Turn on the switch to begin.</p>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "Advanced Filters";
+    [Parameter] public List<string> AvailableGenres { get; set; } = new();
+    [Parameter] public bool ShowUserRatingFilter { get; set; }
+    [Parameter] public bool ShowTmdbRatingFilter { get; set; }
+    [Parameter] public EventCallback OnClearFilters { get; set; }
+    [Parameter] public EventCallback<TouchEventArgs> OnTouchStart { get; set; }
+    [Parameter] public EventCallback<TouchEventArgs> OnTouchEnd { get; set; }
+
+    private bool _showPerson = false;
+    private bool _showGenre = false;
+    private bool _showRanges = false;
+    private bool _showQuick = false;
+
+    private string _personQuery = "";
+    private List<TmdbCast> _personResults = new();
+    private CancellationTokenSource? _searchCts;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                var sPerson = await JS.InvokeAsync<string>("sessionStorage.getItem", $"afp_{Title}_person");
+                if (sPerson != null) _showPerson = sPerson == "1";
+
+                var sGenre = await JS.InvokeAsync<string>("sessionStorage.getItem", $"afp_{Title}_genre");
+                if (sGenre != null) _showGenre = sGenre == "1";
+
+                var sRanges = await JS.InvokeAsync<string>("sessionStorage.getItem", $"afp_{Title}_ranges");
+                if (sRanges != null) _showRanges = sRanges == "1";
+
+                var sQuick = await JS.InvokeAsync<string>("sessionStorage.getItem", $"afp_{Title}_quick");
+                if (sQuick != null) _showQuick = sQuick == "1";
+
+                StateHasChanged();
+            }
+            catch { }
+        }
+    }
+
+    private async Task TogglePerson() { _showPerson = !_showPerson; await JS.InvokeVoidAsync("sessionStorage.setItem", $"afp_{Title}_person", _showPerson ? "1" : "0"); }
+    private async Task ToggleGenre() { _showGenre = !_showGenre; await JS.InvokeVoidAsync("sessionStorage.setItem", $"afp_{Title}_genre", _showGenre ? "1" : "0"); }
+    private async Task ToggleRanges() { _showRanges = !_showRanges; await JS.InvokeVoidAsync("sessionStorage.setItem", $"afp_{Title}_ranges", _showRanges ? "1" : "0"); }
+    private async Task ToggleQuick() { _showQuick = !_showQuick; await JS.InvokeVoidAsync("sessionStorage.setItem", $"afp_{Title}_quick", _showQuick ? "1" : "0"); }
+
+    private int GetGenreState(string g)
+    {
+        if (WatchlistSvc.AdvancedFilter.IncludedGenres.Contains(g)) return 1;
+        if (WatchlistSvc.AdvancedFilter.ExcludedGenres.Contains(g)) return 2;
+        return 0;
+    }
+
+    private void CycleGenre(string g)
+    {
+        var state = GetGenreState(g);
+        if (state == 0) { WatchlistSvc.AdvancedFilter.IncludedGenres.Add(g); }
+        else if (state == 1) { WatchlistSvc.AdvancedFilter.IncludedGenres.Remove(g); WatchlistSvc.AdvancedFilter.ExcludedGenres.Add(g); }
+        else { WatchlistSvc.AdvancedFilter.ExcludedGenres.Remove(g); }
+        OnStateChanged();
+    }
+
+    private void SetGenreLogic(GenreLogic l)
+    {
+        WatchlistSvc.AdvancedFilter.GenreLogic = l;
+        OnStateChanged();
+    }
+
+    private async Task HandlePersonKeyUp(KeyboardEventArgs e)
+    {
+        _searchCts?.Cancel();
+        _searchCts = new();
+        var token = _searchCts.Token;
+
+        try
+        {
+            await Task.Delay(400, token);
+            if (string.IsNullOrWhiteSpace(_personQuery))
+            {
+                _personResults.Clear();
+                StateHasChanged();
+                return;
+            }
+            _personResults = await WatchlistSvc.SearchTmdbPeopleAsync(_personQuery);
+            StateHasChanged();
+        }
+        catch (TaskCanceledException) { }
+    }
+
+    private async Task SelectPerson(TmdbCast person)
+    {
+        WatchlistSvc.AdvancedFilter.SelectedPersonId = person.Id;
+        WatchlistSvc.AdvancedFilter.SelectedPersonName = person.Name;
+        _personResults.Clear();
+        _personQuery = "";
+        
+        // Fetch credits
+        WatchlistSvc.AdvancedFilter.PersonMovieIds = await WatchlistSvc.GetPersonCreditsIdsAsync(person.Id);
+        OnStateChanged();
+    }
+
+    private void ClearPerson()
+    {
+        WatchlistSvc.AdvancedFilter.SelectedPersonId = null;
+        WatchlistSvc.AdvancedFilter.SelectedPersonName = null;
+        WatchlistSvc.AdvancedFilter.PersonMovieIds.Clear();
+        OnStateChanged();
+    }
+
+    private void ResetFilters()
+    {
+        var active = WatchlistSvc.AdvancedFilter.IsActive; // preserve active state
+        WatchlistSvc.AdvancedFilter = new AdvancedFilterState { IsActive = active };
+        OnStateChanged();
+    }
+
+    private async Task ResetBasicThenAdvanced()
+    {
+        await OnClearFilters.InvokeAsync();
+        ResetFilters();
+    }
+
+    private void OnStateChanged()
+    {
+        WatchlistSvc.NotifyStateChanged();
+    }
+}
+
+<style>
+    .advanced-filter-sidebar {
+        width: 374px;
+        flex-shrink: 0;
+        padding: 24px 16px;
+        background: #fff;
+        align-self: flex-start;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+    }
+    
+    .filter-label {
+        display: flex;
+        align-items: center;
+        margin: 0;
+        font-size: 0.67rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #aaa;
+        cursor: pointer;
+        transition: color 0.2s;
+        border-bottom: 1px solid rgba(0,0,0,0.03);
+        padding-bottom: 6px;
+    }
+    .filter-label:hover { color: #666; }
+
+    .genre-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+    }
+    .genre-btn {
+        background: #f8f9fa;
+        border: 1px solid #eee;
+        border-radius: 6px;
+        padding: 4px 8px;
+        font-size: 0.72rem;
+        text-align: left;
+        transition: all 0.2s;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: #555;
+    }
+    .genre-btn:hover { background: #eee; }
+    .genre-inc { background: #e7f5ec; border-color: #badcc3; color: #198754; font-weight: 600; }
+    .genre-exc { background: #fdf2f2; border-color: #fbd5d5; color: #dc3545; font-weight: 600; }
+
+    .person-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: #fff;
+        z-index: 1000;
+        border-radius: 8px;
+        max-height: 240px;
+        overflow-y: auto;
+        border: 1px solid #eee;
+    }
+    .person-item {
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    .person-item:hover { background: #f8f9fa; }
+    .person-img {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background-size: cover;
+        background-position: center;
+        flex-shrink: 0;
+        background-color: #eee;
+    }
+    .no-img { background-image: url('https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-4-user-grey-d8fe574e3425d038c5d392ed9342517a9494391.svg'); opacity: 0.3; }
+
+    @@media (max-width: 650px) {
+        .advanced-filter-sidebar {
+            width: 100%;
+            border-radius: 20px 20px 0 0;
+            padding-bottom: 40px;
+        }
+    }
+</style>

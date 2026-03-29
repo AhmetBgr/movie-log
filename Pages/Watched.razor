@@ -122,12 +122,12 @@
             <!-- Filter sidebar -->
             @if (showFilters)
             {
-                <FilterPanel Title="Refine History"
-                             AvailableGenres="@AvailableGenres"
-                             ShowUserRatingFilter="true"
-                             OnClearFilters="ClearFilters"
-                             OnTouchStart="OnFilterTouchStart"
-                             OnTouchEnd="OnFilterTouchEnd" />
+                <AdvancedFilterPanel Title="Refine History"
+                                     AvailableGenres="@AvailableGenres"
+                                     ShowUserRatingFilter="true"
+                                     OnClearFilters="ClearFilters"
+                                     OnTouchStart="OnFilterTouchStart"
+                                     OnTouchEnd="OnFilterTouchEnd" />
             }
 
             <!-- Main: table or card -->

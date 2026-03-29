@@ -20,6 +20,12 @@ public enum WatchlistStatus
     Watched
 }
 
+public enum GenreLogic
+{
+    Any, // OR
+    All  // AND
+}
+
 public class WatchlistItem
 {
     public string ImdbId { get; set; } = null!;
@@ -38,6 +44,8 @@ public class WatchlistItem
     public int? Rating20 { get; set; }
     public string? Overview { get; set; }
     public string? PosterPath { get; set; }
+    public int? TmdbId { get; set; }
+    public int? Runtime { get; set; }
     public double? VoteAverage { get; set; }
     public TmdbCollection? Collection { get; set; }
 
@@ -346,6 +354,24 @@ public class TmdbSearchResultItem
         : $"https://image.tmdb.org/t/p/w300{PosterPath}";
 }
 
+public class TmdbPersonSearchResponse
+{
+    [JsonPropertyName("results")]
+    public List<TmdbPersonSearchItem>? Results { get; set; }
+}
+
+public class TmdbPersonSearchItem
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = "";
+    [JsonPropertyName("profile_path")]
+    public string? ProfilePath { get; set; }
+
+    public string FullProfileUrl => string.IsNullOrEmpty(ProfilePath)
+        ? "https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-4-user-grey-d8fe574e3425d038c5d392ed9342517a9494391.svg"
+        : $"https://image.tmdb.org/t/p/w185{ProfilePath}";
+}
+
 public class TmdbGenre
 {
     [JsonPropertyName("id")]
@@ -412,7 +438,30 @@ public class WatchlistItemSlim
     public DateTime DateAdded { get; set; } = DateTime.Now;
     public int? UserRating { get; set; }
     public int? Rating20 { get; set; }
+    public int? TmdbId { get; set; }
+    public int? Runtime { get; set; }
     public TmdbCollection? Collection { get; set; }
+}
+
+public class AdvancedFilterState
+{
+    public bool IsActive { get; set; }
+    public HashSet<string> IncludedGenres { get; set; } = new();
+    public HashSet<string> ExcludedGenres { get; set; } = new();
+    public GenreLogic GenreLogic { get; set; } = GenreLogic.Any;
+    public int? SelectedPersonId { get; set; }
+    public string? SelectedPersonName { get; set; }
+    public HashSet<int> PersonMovieIds { get; set; } = new();
+    public int? MinYear { get; set; }
+    public int? MaxYear { get; set; }
+    public int? MinRuntime { get; set; }
+    public int? MaxRuntime { get; set; }
+    public int? MinUserRating { get; set; }
+    public int? MaxUserRating { get; set; }
+    public double? MinTmdbRating { get; set; }
+    public double? MaxTmdbRating { get; set; }
+    public bool UnratedOnly { get; set; }
+    public bool ShortFilmsOnly { get; set; }
 }
 
 /// <summary>

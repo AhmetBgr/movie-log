@@ -155,6 +155,8 @@ public class WatchlistService
         set { _filterMaxVote = value; NotifyStateChanged(); } 
     }
 
+    public AdvancedFilterState AdvancedFilter { get; set; } = new();
+
     private RatingSystem _ratingSystem = RatingSystem.HundredPoint;
     public RatingSystem RatingSystem 
     { 
@@ -249,6 +251,61 @@ public class WatchlistService
                 !item.Title.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase) &&
                 !(item.Director != null && item.Director.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase)))
                 continue;
+
+            // Advanced Filtering
+            if (AdvancedFilter.IsActive)
+            {
+                // Genre Logic (AND / OR)
+                if (AdvancedFilter.IncludedGenres.Any())
+                {
+                    var itemGenreList = (item.Genres ?? "").Split(',').Select(g => g.Trim()).ToList();
+                    if (AdvancedFilter.GenreLogic == GenreLogic.All)
+                    {
+                        if (!AdvancedFilter.IncludedGenres.All(ig => itemGenreList.Contains(ig, StringComparer.OrdinalIgnoreCase)))
+                            continue;
+                    }
+                    else
+                    {
+                        if (!AdvancedFilter.IncludedGenres.Any(ig => itemGenreList.Contains(ig, StringComparer.OrdinalIgnoreCase)))
+                            continue;
+                    }
+                }
+
+                // Exclusion logic
+                if (AdvancedFilter.ExcludedGenres.Any())
+                {
+                    var itemGenreList = (item.Genres ?? "").Split(',').Select(g => g.Trim()).ToList();
+                    if (AdvancedFilter.ExcludedGenres.Any(eg => itemGenreList.Contains(eg, StringComparer.OrdinalIgnoreCase)))
+                        continue;
+                }
+
+                // Person ID Intersection
+                if (AdvancedFilter.SelectedPersonId.HasValue && item.TmdbId.HasValue)
+                {
+                    if (!AdvancedFilter.PersonMovieIds.Contains(item.TmdbId.Value))
+                        continue;
+                }
+
+                // Year Range
+                if (AdvancedFilter.MinYear.HasValue && item.ParsedYear < AdvancedFilter.MinYear.Value) continue;
+                if (AdvancedFilter.MaxYear.HasValue && item.ParsedYear > AdvancedFilter.MaxYear.Value) continue;
+
+                // Runtime Range
+                if (AdvancedFilter.MinRuntime.HasValue && (item.Runtime ?? 0) < AdvancedFilter.MinRuntime.Value) continue;
+                if (AdvancedFilter.MaxRuntime.HasValue && (item.Runtime ?? 0) > AdvancedFilter.MaxRuntime.Value) continue;
+
+                // User Rating Range
+                if (AdvancedFilter.MinUserRating.HasValue && (item.Rating20 ?? 0) < AdvancedFilter.MinUserRating.Value) continue;
+                if (AdvancedFilter.MaxUserRating.HasValue && (item.Rating20 ?? 100) > AdvancedFilter.MaxUserRating.Value) continue;
+
+                // TMDB Rating Range
+                if (AdvancedFilter.MinTmdbRating.HasValue && (item.VoteAverage ?? 0) < AdvancedFilter.MinTmdbRating.Value) continue;
+                if (AdvancedFilter.MaxTmdbRating.HasValue && (item.VoteAverage ?? 10) > AdvancedFilter.MaxTmdbRating.Value) continue;
+
+                // Quick Toggles
+                if (AdvancedFilter.UnratedOnly && item.Rating20.HasValue) continue;
+                if (AdvancedFilter.ShortFilmsOnly && (item.Runtime ?? 999) >= 85) continue;
+            }
 
             if (item.Status == WatchlistStatus.Pending)
             {
@@ -359,6 +416,8 @@ public class WatchlistService
                         DateAdded     = s.DateAdded,
                         UserRating    = s.UserRating,
                         Rating20      = s.Rating20,
+                        TmdbId        = s.TmdbId,
+                        Runtime       = s.Runtime,
                         OriginalTitle = det?.OriginalTitle,
                         Overview      = det?.Overview,
                         VoteAverage   = det?.VoteAverage,
@@ -377,6 +436,26 @@ public class WatchlistService
                     return item;
                 }).ToList();
                 LogStep("Reconstruct Items from slim + details");
+
+                // Background Migration: Populate TmdbId and Runtime from details
+                _ = Task.Run(async () => {
+                    bool changed = false;
+                    int migratedCount = 0;
+                    foreach(var item in Items) {
+                        if (migratedCount >= 40) break; // Limit per session to prevent API spam
+                        if (!item.TmdbId.HasValue || !item.Runtime.HasValue) {
+                            var d = await GetTmdbDetailsByImdbIdAsync(item.ImdbId);
+                            if (d != null) {
+                                item.TmdbId = d.Id;
+                                item.Runtime = d.Runtime;
+                                changed = true;
+                                migratedCount++;
+                                await Task.Delay(250); // Be nice to the TMDB API
+                            }
+                        }
+                    }
+                    if (changed) await PersistAsync();
+                });
             }
 
             RefreshCalculatedLists();
@@ -701,6 +780,67 @@ public class WatchlistService
         return null;
     }
 
+    public async Task<TmdbMovie?> GetTmdbDetailsByImdbIdAsync(string imdbId)
+    {
+        if (string.IsNullOrEmpty(imdbId) || imdbId.StartsWith("movie-") || imdbId.StartsWith("tv-")) return null;
+        var apiKey = _config["TmdbApiKey"];
+        var url = $"https://api.themoviedb.org/3/find/{imdbId}?api_key={apiKey}&external_source=imdb_id";
+        try
+        {
+            var res = await _http.GetFromJsonAsync<TmdbFindResult>(url);
+            var m = res?.MovieResults?.FirstOrDefault();
+            if (m != null) return await GetTmdbDetailsByIdAsync(m.Id, "movie");
+            var t = res?.TvResults?.FirstOrDefault();
+            if (t != null) return await GetTmdbDetailsByIdAsync(t.Id, "tv");
+        }
+        catch { }
+        return null;
+    }
+
+    public async Task<List<TmdbCast>> SearchTmdbPeopleAsync(string query)
+    {
+        if (string.IsNullOrWhiteSpace(query)) return new();
+        var apiKey = _config["TmdbApiKey"];
+        var url = $"https://api.themoviedb.org/3/search/person?api_key={apiKey}&query={Uri.EscapeDataString(query)}";
+        try
+        {
+            var res = await _http.GetFromJsonAsync<TmdbPersonSearchResponse>(url);
+            return res?.Results?.Select(r => new TmdbCast { Id = r.Id, Name = r.Name, ProfilePath = r.ProfilePath }).ToList() ?? new();
+        }
+        catch { return new(); }
+    }
+
+    public async Task<List<TmdbSearchResultItem>> SearchTmdbMultiAsync(string query)
+    {
+        if (string.IsNullOrWhiteSpace(query)) return new();
+        var apiKey = _config["TmdbApiKey"];
+        var url = $"https://api.themoviedb.org/3/search/multi?api_key={apiKey}&query={Uri.EscapeDataString(query)}&include_adult=false";
+        try
+        {
+            var res = await _http.GetFromJsonAsync<TmdbSearchResponse>(url);
+            return res?.Results?.Where(r => r.MediaType == "movie" || r.MediaType == "tv").ToList() ?? new();
+        }
+        catch { return new(); }
+    }
+
+    public async Task<HashSet<int>> GetPersonCreditsIdsAsync(int personId)
+    {
+        var apiKey = _config["TmdbApiKey"];
+        var url = $"https://api.themoviedb.org/3/person/{personId}/combined_credits?api_key={apiKey}";
+        try
+        {
+            var res = await _http.GetFromJsonAsync<TmdbPersonCombinedCredits>(url);
+            var ids = new HashSet<int>();
+            if (res != null)
+            {
+                foreach (var c in res.Cast) ids.Add(c.Id);
+                foreach (var c in res.Crew) ids.Add(c.Id);
+            }
+            return ids;
+        }
+        catch { return new(); }
+    }
+
     public async Task<TmdbCollection?> GetTmdbCollectionAsync(int collectionId)
     {
         if (_collectionCache.TryGetValue(collectionId, out var cached)) return cached;
@@ -787,6 +927,8 @@ public class WatchlistService
             DateAdded      = i.DateAdded,
             UserRating     = i.UserRating,
             Rating20       = i.Rating20,
+            TmdbId         = i.TmdbId,
+            Runtime        = i.Runtime,
             Collection     = i.Collection
         }).ToList();
 

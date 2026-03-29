@@ -5,6 +5,7 @@
 @inject AutoSyncService AutoSync
 @inject IJSRuntime JS
 @using MyPrivateWatchlist.Components
+@using MyPrivateWatchlist.Models
 
 <div class="page">
 
@@ -29,50 +30,105 @@
         <!-- Search bar — always fixed to top -->
         <div class="search-bar-wrap">
             <div class="search-bar-inner d-flex align-items-center gap-2">
-                <form class="search-form flex-grow-1" @onsubmit="PerformSearch" @onsubmit:preventDefault="true">
-                    <i class="bi bi-search search-icon"></i>
-                    <input type="text"
-                           class="search-input"
-                           placeholder="Search movies, shows..."
-                           @bind="SearchText"
-                           @bind:event="oninput"
-                           @onfocus="() => isSearchFocused = true"
-                           @onblur="HandleBlur" />
-                    <button type="submit" class="search-btn">
-                        <i class="bi bi-search d-sm-none"></i>
-                        <span class="d-none d-sm-inline">Search</span>
-                    </button>
-                </form>
+                <div class="search-container flex-grow-1 shadow-sm">
+                    <form class="search-form" @onsubmit="PerformSearch" @onsubmit:preventDefault="true">
+                        <div class="search-type-toggle" @onclick="CycleSearchMode" title="Switch search mode">
+                            @if (_searchMode == SearchMode.Multi) { <i class="bi bi-film"></i><span class="d-none d-md-inline ms-2">Movies</span> }
+                            else { <i class="bi bi-person-circle"></i><span class="d-none d-md-inline ms-2">Person</span> }
+                        </div>
+                        
+                        <div class="search-input-wrap">
+                            <input type="text"
+                                   class="search-input"
+                                   placeholder="@(_searchMode == SearchMode.Multi ? "Search movies & shows..." : "Search people...")"
+                                   @bind="SearchText"
+                                   @bind:event="oninput"
+                                   @onfocus="HandleFocus" />
+                            
+                            @if (!string.IsNullOrEmpty(SearchText))
+                            {
+                                <button type="button" class="clear-btn" @onclick="ClearSearch" aria-label="Clear search">
+                                    <i class="bi bi-x-circle-fill"></i>
+                                </button>
+                            }
+                        </div>
+
+                        <button type="submit" class="search-btn d-none d-sm-flex">
+                            Search
+                        </button>
+                    </form>
+
+                    @if (_isOverlayOpen)
+                    {
+                        <div class="search-overlay-dropdown">
+                            <!-- Recent Searches (shown when empty) -->
+                            @if (string.IsNullOrEmpty(SearchText))
+                            {
+                                @if (WatchlistSvc.EnableSearchHistory && WatchlistSvc.SearchHistory.Any())
+                                {
+                                    <div class="search-section-header">
+                                        <span>Recent Searches</span>
+                                        <button class="text-danger border-0 bg-transparent p-0 small fw-bold" @onclick="WatchlistSvc.ClearSearchHistory">Clear</button>
+                                    </div>
+                                    @foreach (var query in WatchlistSvc.SearchHistory.Take(6))
+                                    {
+                                        <div class="search-result-item" @onclick="() => QuickSearch(query)">
+                                            <i class="bi bi-clock-history text-secondary me-2"></i>
+                                            <span class="flex-grow-1 text-truncate">@query</span>
+                                        </div>
+                                    }
+                                }
+                                else
+                                {
+                                    <div class="p-4 text-center text-secondary opacity-50">
+                                        <i class="bi bi-search h3 d-block mb-2"></i>
+                                        <p class="small m-0">Start typing to search TMDB...</p>
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <!-- Autocomplete Results -->
+                                @if (_isSearching)
+                                {
+                                    <div class="p-3 text-center">
+                                        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                                    </div>
+                                }
+                                else if (_autocompleteResults.Any())
+                                {
+                                    <div class="search-section-header">Suggested Results</div>
+                                    @foreach (var res in _autocompleteResults)
+                                    {
+                                        <div class="search-result-item d-flex align-items-center gap-3" @onclick="() => HandleResultClick(res)">
+                                            <div class="result-img" style="background-image: url('@res.ImageUrl')"></div>
+                                            <div class="flex-grow-1 overflow-hidden">
+                                                <div class="fw-bold text-truncate" style="font-size: 0.9rem;">@res.Title</div>
+                                                <div class="text-secondary small d-flex align-items-center gap-1">
+                                                    @if (res.Type == "movie") { <i class="bi bi-film"></i> }
+                                                    else if (res.Type == "tv") { <i class="bi bi-tv"></i> }
+                                                    else { <i class="bi bi-person"></i> }
+                                                    @res.Subtitle
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                }
+                            }
+                        </div>
+                    }
+                </div>
 
                 <button type="button" class="random-btn shadow-sm" @onclick="WatchlistSvc.ShowGlobalRandomMovieAsync" title="Feeling lucky? Show random movie outside library">
                     <i class="bi bi-dice-5-fill"></i>
                 </button>
-
-                @if (isSearchFocused && WatchlistSvc.EnableSearchHistory && WatchlistSvc.SearchHistory.Any(s => string.IsNullOrEmpty(SearchText) || s.Contains(SearchText, StringComparison.OrdinalIgnoreCase)))
-                {
-                    <div class="search-history-dropdown">
-                        <div class="search-history-header">
-                            <span>Recent Searches</span>
-                            <button @onclick="WatchlistSvc.ClearSearchHistory">Clear all</button>
-                        </div>
-                        @foreach (var query in WatchlistSvc.SearchHistory.Where(s => string.IsNullOrEmpty(SearchText) || s.Contains(SearchText, StringComparison.OrdinalIgnoreCase)))
-                        {
-                            <div class="search-history-item" @onclick="() => QuickSearch(query)">
-                                <div class="d-flex align-items-center gap-2">
-                                    <i class="bi bi-clock-history"></i>
-                                    <span>@query</span>
-                                </div>
-                                <button class="search-history-remove"
-                                        @onclick:stopPropagation="true"
-                                        @onclick="() => WatchlistSvc.RemoveFromSearchHistory(query)">
-                                    <i class="bi bi-x-lg"></i>
-                                </button>
-                            </div>
-                        }
-                    </div>
-                }
             </div>
         </div>
+
+        @if (_isOverlayOpen)
+        {
+            <div class="search-backdrop" @onclick="CloseOverlay"></div>
+        }
 
         @if (WatchlistSvc.IsInitializing)
         {
@@ -112,47 +168,73 @@
 </div>
 
 <style>
-    /* ── Search bar wrapper — always sticky to top ─────────── */
+    /* ── Search bar wrapper ────────────────────────────────── */
     .search-bar-wrap {
         position: sticky;
         top: 0;
-        z-index: 100;
+        z-index: 1001;
         background: #fff;
         border-bottom: 1px solid #e8eaed;
-        box-shadow: 0 4px 14px rgba(0,0,0,0.06);
-        padding: 6px 16px;
+        padding: 8px 16px;
     }
 
     .search-bar-inner {
-        position: relative;
+        width: 100%;
         max-width: 720px;
         margin: 0 auto;
     }
 
-    /* ── Search form ────────────────────────────────────────── */
+    .search-container {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        border-radius: 20px;
+        background: #f1f3f4;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .search-container:focus-within {
+        background: #fff;
+        border-radius: 20px 20px 0 0;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
     .search-form {
         display: flex;
         align-items: center;
-        background: #f1f3f4;
-        border-radius: 999px;
-        border: 2px solid transparent;
-        padding: 0 4px 0 14px;
-        transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
-        height: 40px;
+        height: 44px;
+        padding: 0 4px;
     }
 
-    .search-form:focus-within {
-        background: #fff;
-        border-color: #1a73e8;
-        box-shadow: 0 2px 8px rgba(26,115,232,0.15);
+    .search-type-toggle {
+        display: flex;
+        align-items: center;
+        background: transparent;
+        font-size: 0.85rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        color: #555;
+        padding: 0 14px;
+        border-right: 1px solid rgba(0,0,0,0.1);
+        cursor: pointer;
+        height: 28px;
+        transition: color 0.2s;
+        flex-shrink: 0;
+    }
+    .search-type-toggle:hover { color: var(--primary); }
+    .search-type-toggle i { font-size: 1.1rem; }
+
+    .search-input-wrap {
+        display: flex;
+        align-items: center;
+        flex: 1;
+        position: relative;
+        padding: 0 12px;
     }
 
     .search-icon {
-        color: #888;
-        font-size: 0.9rem;
-        flex-shrink: 0;
-        margin-right: 8px;
-        transition: color 0.2s;
+        display: none; /* Icon is now part of toggle */
     }
 
     .search-input {
@@ -160,34 +242,38 @@
         border: none;
         background: transparent;
         outline: none;
-        font-size: 0.9rem;
+        font-size: 0.95rem;
         color: #202124;
-        min-width: 0;
+        padding: 10px 0;
     }
 
+    .clear-btn {
+        background: none;
+        border: none;
+        color: #bbb;
+        padding: 4px;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: color 0.15s;
+    }
+    .clear-btn:hover { color: #888; }
+
     .search-btn {
-        flex-shrink: 0;
-        background: #1a1a2e;
+        background: var(--primary, #1a1a2e);
         color: #fff;
         border: none;
         border-radius: 999px;
-        padding: 4px 14px;
+        padding: 4px 20px;
         font-size: 0.75rem;
         font-weight: 700;
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
-        cursor: pointer;
-        transition: background 0.2s, transform 0.1s;
         height: 32px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        margin-right: 2px;
     }
 
     .random-btn {
         flex-shrink: 0;
-        width: 40px;
-        height: 40px;
+        width: 44px;
+        height: 44px;
         background: #f1f3f4;
         color: #1a1a2e;
         border: none;
@@ -197,181 +283,232 @@
         justify-content: center;
         cursor: pointer;
         transition: all 0.2s ease;
-        font-size: 1.1rem;
     }
 
     .random-btn:hover {
         background: var(--primary);
         color: #fff;
-        transform: rotate(15deg) scale(1.08);
+        transform: rotate(15deg);
     }
 
-    /* ── Mobile adjustments ────────────────────────────────── */
-    @@media (max-width: 576px) {
-        .search-bar-wrap {
-            padding: 6px 10px;
-        }
-        .search-form {
-            padding-left: 10px;
-        }
-        .search-icon {
-            display: none; /* Hide the left icon to save space on tiny screens */
-        }
-        .search-btn {
-            width: 32px; /* Make it square-ish icon-only button */
-            padding: 0;
-            font-size: 1rem;
-        }
-        .random-btn {
-            width: 36px;
-            height: 36px;
-            font-size: 1rem;
-        }
-    }
-
-    /* ── History dropdown ───────────────────────────────────── */
-    .search-history-dropdown {
+    /* ── Dropdown ─────────────────────────────────────────── */
+    .search-overlay-dropdown {
         position: absolute;
-        top: calc(100% + 8px);
+        top: 100%;
         left: 0;
         right: 0;
         background: #fff;
-        border-radius: 16px;
-        border: 1px solid #e8eaed;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+        border-radius: 0 0 20px 20px;
+        box-shadow: 0 8px 16px rgba(0,0,0,0.1);
         overflow: hidden;
-        z-index: 200;
+        border: 1px solid #e8eaed;
+        border-top: none;
+        max-height: 80vh;
+        overflow-y: auto;
     }
 
-    .search-history-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 8px 16px;
-        border-bottom: 1px solid #f1f3f4;
-        font-size: 0.7rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-        color: #888;
-    }
-
-    .search-history-header button {
-        background: none;
-        border: none;
-        color: #e53935;
-        font-size: 0.7rem;
-        font-weight: 600;
-        cursor: pointer;
-        padding: 0;
-    }
-
-    .search-history-item {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 10px 16px;
-        cursor: pointer;
-        font-size: 0.88rem;
-        color: #202124;
-        transition: background 0.12s;
-    }
-
-    .search-history-item:hover {
+    .search-section-header {
         background: #f8f9fa;
+        padding: 8px 16px;
+        font-size: 0.65rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #888;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
     }
 
-    .search-history-item .bi-clock-history {
-        color: #aaa;
-        font-size: 0.85rem;
-    }
-
-    .search-history-remove {
-        background: none;
-        border: none;
-        color: #bbb;
-        padding: 2px 4px;
+    .search-result-item {
+        display: flex;
+        align-items: center;
+        padding: 12px 16px;
         cursor: pointer;
-        font-size: 0.75rem;
+        transition: background 0.1s;
+    }
+    .search-result-item:hover { background: #f1f3f4; }
+
+    .result-img {
+        width: 38px;
+        height: 54px;
+        background-size: cover;
+        background-position: center;
         border-radius: 4px;
-        transition: color 0.15s;
+        background-color: #eee;
+        flex-shrink: 0;
     }
 
-    .search-history-remove:hover {
-        color: #e53935;
-    }
-    /* ── Update banner ─────────────────────────────────────── */
-    .update-banner {
+    .search-backdrop {
         position: fixed;
         top: 0;
         left: 0;
         right: 0;
-        z-index: 9999;
-        background: #1a1a2e;
-        color: #fff;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 12px;
-        padding: 6px 16px;
-        font-size: 0.82rem;
-        font-weight: 500;
-        min-height: 36px;
+        bottom: 0;
+        z-index: 1000;
+        background: rgba(0,0,0,0.05);
+        backdrop-filter: blur(2px);
     }
 
-    .update-banner-text {
-        opacity: 0.9;
+    @@media (max-width: 576px) {
+        .search-bar-wrap { padding: 6px 10px; }
+        .search-type-toggle { padding: 0 10px; border-right: none; }
+        .search-input-wrap { padding: 0 8px; }
+        .search-input { font-size: 0.9rem; }
+        .random-btn { width: 38px; height: 38px; font-size: 1.1rem; }
+        .search-overlay-dropdown { 
+            position: fixed;
+            top: 56px;
+            left: 10px;
+            right: 10px;
+            border-radius: 16px;
+            max-height: 70vh;
+        }
     }
-
-    .update-banner-btn {
-        background: #fff;
-        color: #1a1a2e;
-        border: none;
-        border-radius: 999px;
-        padding: 3px 14px;
-        font-size: 0.78rem;
-        font-weight: 700;
-        cursor: pointer;
-        transition: opacity 0.15s;
-        white-space: nowrap;
-    }
-
-    .update-banner-btn:hover { opacity: 0.85; }
-
-    .update-banner-dismiss {
-        background: none;
-        border: none;
-        color: rgba(255,255,255,0.6);
-        font-size: 1rem;
-        cursor: pointer;
-        padding: 0 2px;
-        line-height: 1;
-        margin-left: 4px;
-        transition: color 0.15s;
-    }
-
-    .update-banner-dismiss:hover { color: #fff; }
-
 </style>
 
 @code {
-    private string SearchText = "";
+    private enum SearchMode { Multi, Person }
+    private SearchMode _searchMode = SearchMode.Multi;
+    
+    private string _searchText = "";
+    private string SearchText 
+    { 
+        get => _searchText; 
+        set 
+        { 
+            _searchText = value; 
+            _ = HandleSearchInput(); 
+        } 
+    }
+
     private bool _showUpdateBanner = false;
     private DotNetObjectReference<MainLayout>? _dotNetRef;
-    private bool isSearchFocused = false;
+    private bool _isOverlayOpen = false;
+    private bool _isSearching = false;
 
-    private async Task HandleBlur()
+    private class AutocompleteRes
     {
-        await Task.Delay(200);
-        isSearchFocused = false;
-        StateHasChanged();
+        public int Id { get; set; }
+        public string Title { get; set; } = "";
+        public string Subtitle { get; set; } = "";
+        public string Type { get; set; } = "";
+        public string ImageUrl { get; set; } = "";
+    }
+    private List<AutocompleteRes> _autocompleteResults = new();
+    private CancellationTokenSource? _searchCts;
+
+    private async Task HandleSearchInput()
+    {
+        if (string.IsNullOrWhiteSpace(SearchText))
+        {
+            _autocompleteResults.Clear();
+            StateHasChanged();
+            return;
+        }
+
+        _searchCts?.Cancel();
+        _searchCts = new();
+        var token = _searchCts.Token;
+
+        try
+        {
+            await Task.Delay(400, token);
+            _isSearching = true;
+            StateHasChanged();
+
+            if (_searchMode == SearchMode.Multi)
+            {
+                var apiRes = await WatchlistSvc.SearchTmdbMultiAsync(SearchText);
+                _autocompleteResults = apiRes.Take(8).Select(r => new AutocompleteRes
+                {
+                    Id = r.Id,
+                    Title = r.DisplayTitle,
+                    Subtitle = r.DisplayDate,
+                    Type = r.MediaType,
+                    ImageUrl = r.FullPosterUrl
+                }).ToList();
+            }
+            else
+            {
+                var apiRes = await WatchlistSvc.SearchTmdbPeopleAsync(SearchText);
+                _autocompleteResults = apiRes.Take(8).Select(r => new AutocompleteRes
+                {
+                    Id = r.Id,
+                    Title = r.Name,
+                    Subtitle = "Person",
+                    Type = "person",
+                    ImageUrl = "https://image.tmdb.org/t/p/w185" + r.ProfilePath
+                }).ToList();
+            }
+        }
+        catch (TaskCanceledException) { }
+        finally
+        {
+            _isSearching = false;
+            StateHasChanged();
+        }
+    }
+    private void CycleSearchMode()
+    {
+        _searchMode = _searchMode == SearchMode.Multi ? SearchMode.Person : SearchMode.Multi;
+        _ = HandleSearchInput();
+    }
+    private void HandleFocus()
+    {
+        OpenOverlay();
+    }
+
+    private void OpenOverlay()
+    {
+        if (!_isOverlayOpen)
+        {
+            _isOverlayOpen = true;
+            if (!NavManager.Uri.Contains("#search"))
+                NavManager.NavigateTo(NavManager.Uri + "#search");
+        }
+    }
+
+    private void CloseOverlay()
+    {
+        if (_isOverlayOpen)
+        {
+            _isOverlayOpen = false;
+            if (NavManager.Uri.Contains("#search") && !_isClosingFromNav)
+                _ = JS.InvokeVoidAsync("uiHelpers.historyBack");
+        }
+    }
+
+    private void ClearSearch()
+    {
+        SearchText = "";
+        _autocompleteResults.Clear();
     }
 
     private void QuickSearch(string query)
     {
         SearchText = query;
-        isSearchFocused = false;
+        _isOverlayOpen = false;
         PerformSearch();
+    }
+
+    private async Task HandleResultClick(AutocompleteRes res)
+    {
+        _isOverlayOpen = false;
+        if (res.Type == "person")
+        {
+            WatchlistSvc.AddToSearchHistory(res.Title);
+            await WatchlistSvc.OpenPersonProfileAsync(res.Id);
+        }
+        else
+        {
+            SearchText = "";
+            WatchlistSvc.AddToSearchHistory(res.Title);
+            await WatchlistSvc.ShowDetailsAsync(new TmdbSearchResultItem { Id = res.Id, MediaType = res.Type, Title = res.Title });
+        }
+        
+        if (NavManager.Uri.Contains("#search"))
+            _ = JS.InvokeVoidAsync("uiHelpers.historyBack");
     }
 
     protected override async Task OnInitializedAsync()
@@ -392,15 +529,13 @@
             _dotNetRef = DotNetObjectReference.Create(this);
             await JS.InvokeVoidAsync("registerUpdateCallback", _dotNetRef);
             await AutoSync.EnsureStartedAsync();
-            // Pre-cache isMobile state so ShowDetailsAsync opens correct panel immediately
             try { WatchlistSvc.PrimeIsMobileCache(await JS.InvokeAsync<bool>("uiHelpers.isMobile")); } catch { }
         }
     }
+
     private void HandleWatchlistStateChanged()
     {
         bool isAnyOpen = WatchlistSvc.IsModalOpen || WatchlistSvc.IsSidePanelOpen;
-        
-        // Handle Movie Details (Modal or Side Panel)
         if (isAnyOpen && !_wasAnyOpen)
         {
             if (!NavManager.Uri.Contains("#details"))
@@ -411,17 +546,26 @@
             if (NavManager.Uri.Contains("#details") && !_isClosingFromNav)
                 _ = JS.InvokeVoidAsync("uiHelpers.historyBack");
         }
-
         _wasAnyOpen = isAnyOpen;
         _ = InvokeAsync(StateHasChanged);
     }
 
     private void HandleLocationChanged(object? sender, LocationChangedEventArgs e)
     {
+        // Handle Search Overlay
+        if (_isOverlayOpen && !NavManager.Uri.Contains("#search"))
+        {
+            _isClosingFromNav = true;
+            _isOverlayOpen = false;
+            _isClosingFromNav = false;
+            StateHasChanged();
+        }
+
+        // Handle Details
         if ((WatchlistSvc.IsModalOpen || WatchlistSvc.IsSidePanelOpen) && !NavManager.Uri.Contains("#details"))
         {
             _isClosingFromNav = true;
-            WatchlistSvc.CloseModal(); // This also closes side panel
+            WatchlistSvc.CloseModal();
             _isClosingFromNav = false;
         }
     }
@@ -433,10 +577,7 @@
         _ = InvokeAsync(StateHasChanged);
     }
 
-    private async Task ApplyUpdate()
-    {
-        await JS.InvokeVoidAsync("applyUpdate");
-    }
+    private async Task ApplyUpdate() => await JS.InvokeVoidAsync("applyUpdate");
 
     public void Dispose()
     {
@@ -449,7 +590,7 @@
     {
         if (!string.IsNullOrWhiteSpace(SearchText))
         {
-            isSearchFocused = false;
+            _isOverlayOpen = false;
             WatchlistSvc.AddToSearchHistory(SearchText);
             NavManager.NavigateTo($"search/{Uri.EscapeDataString(SearchText)}");
         }
