@@ -109,78 +109,25 @@
             </div>
         }
 
-        <!-- â”€â”€ Content: filter sidebar + table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+        <!-- ──────────────────────── Content: filter sidebar + table ──────────────────────── -->
         <div class="page-content" style="position:relative;">
 
             @if (showSavedIndicator)
             {
                 <div style="position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:50;pointer-events:none;">
-                    <span class="badge bg-success shadow rounded-pill px-3 py-2 animate-fade-out" style="font-size:0.72rem;">âœ“ Rating saved</span>
+                    <span class="badge bg-success shadow rounded-pill px-3 py-2 animate-fade-out" style="font-size:0.72rem;">✓ Rating saved</span>
                 </div>
             }
 
             <!-- Filter sidebar -->
             @if (showFilters)
             {
-                <div class="filter-sidebar" @ontouchstart="OnFilterTouchStart" @ontouchend="OnFilterTouchEnd">
-                    <div class="filter-drag-handle d-sm-none"><span></span></div>
-                    <h6 class="fw-bold mb-3">Refine History</h6>
-
-                    <div class="mb-3">
-                        <label class="filter-label">Search</label>
-                        <div class="input-group input-group-sm">
-                            <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-secondary"></i></span>
-                            <input type="text" class="form-control border-start-0 bg-light shadow-none" placeholder="Title or directorâ€¦"
-                                   @bind="WatchlistSvc.SearchQuery" @bind:event="oninput" />
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="filter-label">Rating range</label>
-                        <div class="d-flex gap-2 align-items-center">
-                            <select class="form-select form-select-sm bg-light shadow-none"
-                                    value="@WatchlistSvc.FilterMinRating20"
-                                    @onchange="@(e => WatchlistSvc.FilterMinRating20 = int.Parse(e.Value?.ToString() ?? "0"))">
-                                @for (int i = 0; i <= 100; i += 5) { <option value="@i">@(i == 0 ? "Min" : i.ToString())</option> }
-                            </select>
-                            <span class="text-secondary" style="font-size:0.75rem;">â€“</span>
-                            <select class="form-select form-select-sm bg-light shadow-none"
-                                    value="@WatchlistSvc.FilterMaxRating20"
-                                    @onchange="@(e => WatchlistSvc.FilterMaxRating20 = int.Parse(e.Value?.ToString() ?? "100"))">
-                                @for (int i = 0; i <= 100; i += 5) { <option value="@i">@(i == 100 ? "Max" : i.ToString())</option> }
-                            </select>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="filter-label">Genre</label>
-                        <select class="form-select form-select-sm bg-light shadow-none" @bind="WatchlistSvc.SelectedGenre">
-                            <option value="All">All genres</option>
-                            @foreach (var g in AvailableGenres) { <option value="@g">@g</option> }
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="filter-label">Type</label>
-                        <select class="form-select form-select-sm bg-light shadow-none" @bind="WatchlistSvc.SelectedType">
-                            <option value="All">All types</option>
-                            <option value="Movie">Movies</option>
-                            <option value="TV Series">TV Series</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="filter-label">Year range</label>
-                        <div class="d-flex gap-2">
-                            <input type="number" class="form-control form-control-sm bg-light shadow-none" placeholder="From" @bind="WatchlistSvc.StartYear" />
-                            <input type="number" class="form-control form-control-sm bg-light shadow-none" placeholder="To" @bind="WatchlistSvc.EndYear" />
-                        </div>
-                    </div>
-                    <div class="d-grid gap-2 mt-4">
-                        <button class="btn btn-dark btn-sm rounded-pill fw-semibold" @onclick="WatchlistSvc.ShowRandomMovieAsync">
-                            <i class="bi bi-dice-5 me-1"></i> Random pick
-                        </button>
-                        <button class="btn btn-outline-secondary btn-sm" @onclick="ClearFilters">
-                            <i class="bi bi-eraser me-1"></i> Clear filters
-                        </button>
-                    </div>
-                </div>
+                <FilterPanel Title="Refine History"
+                             AvailableGenres="@AvailableGenres"
+                             ShowUserRatingFilter="true"
+                             OnClearFilters="ClearFilters"
+                             OnTouchStart="OnFilterTouchStart"
+                             OnTouchEnd="OnFilterTouchEnd" />
             }
 
             <!-- Main: table or card -->
@@ -219,98 +166,6 @@
                             </Virtualize>
                         </div>
                     </div>
-
-                    <!-- CARD VIEW -->
-                    <!-- 
-                    @if (!_watchedItems.Any())
-                    {
-                        <p class="text-center text-secondary opacity-50 fst-italic py-5">No movies match your filters.</p>
-                    }
-                    <div class="table-wrap table-wrap--wide p-3">
-                        <div class="row row-cols-1 g-3">
-                            @foreach (var item in _watchedItems)
-                            {
-                                <div class="col">
-                                    <div class="card border-0 movie-card-w @(_selectedIds.Contains(item.ImdbId) ? "movie-card-selected" : "")"
-                                         data-holdselect-id="@item.ImdbId"
-                                         style="cursor:pointer;" @onclick="() => HandleRowClick(item)">
-                                        <div class="d-flex">
-                                            @if (isEditing)
-                                            {
-                                                <div class="side-panel-w d-flex align-items-center justify-content-center"
-                                                     @onclick:stopPropagation="true"
-                                                     @onclick="() => ToggleSelect(item.ImdbId)">
-                                                    <div class="card-cb @(_selectedIds.Contains(item.ImdbId) ? "card-cb-on" : "")">
-                                                        @if (_selectedIds.Contains(item.ImdbId))
-                                                        { <i class="bi bi-check-lg text-white" style="font-size:0.85rem;line-height:1;"></i> }
-                                                    </div>
-                                                </div>
-                                            }
-
-
-                                            <div style="width:80px;flex-shrink:0;overflow:hidden;background:#f0f0f0;">
-                                                @if (!string.IsNullOrEmpty(item.FullPosterUrl) && !item.FullPosterUrl.Contains("data:image/png;base64"))
-                                                {
-                                                    <img src="@item.FullPosterUrl" alt="@item.Title"
-                                                         style="width:100%;height:100%;object-fit:cover;display:block;min-height:110px;"
-                                                         onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
-                                                    <div style="display:none;width:100%;min-height:110px;align-items:center;justify-content:center;color:#ccc;font-size:1.4rem;"><i class="bi bi-film"></i></div>
-                                                }
-                                                else
-                                                {
-                                                    <div style="width:100%;min-height:110px;display:flex;align-items:center;justify-content:center;color:#ccc;font-size:1.4rem;"><i class="bi bi-film"></i></div>
-                                                }
-                                            </div>
-
-
-                                            <div class="flex-grow-1 px-3 py-2 position-relative">
-                                                @if (item.Rating20.HasValue)
-                                                {
-                                                    <div class="position-absolute top-0 end-0 m-2">
-                                                        <span class="rating-badge-w" style="background:@GetRatingColor(item.Rating20.Value);">@item.UserRating</span>
-                                                    </div>
-                                                }
-                                                <div class="d-flex align-items-center gap-2" style="padding-right:@(item.Rating20.HasValue ? "46px" : "4px");">
-                                                    <div class="fw-bold" style="font-size:0.9rem;color:#111;">@item.Title</div>
-                                                    <OpenOnMenu Item="item" />
-                                                </div>
-                                                <div class="row-meta">@item.Year &middot; @item.DateAdded.ToString("MMM dd, yyyy")</div>
-                                                @if (!string.IsNullOrEmpty(item.Director))
-                                                {
-                                                    <div class="row-meta"><i class="bi bi-person me-1 opacity-40"></i>@item.Director</div>
-                                                }
-                                                @if (!string.IsNullOrEmpty(item.TitleType))
-                                                {
-                                                    <span class="badge mt-1 @(item.TitleType.Contains("TV", StringComparison.OrdinalIgnoreCase) ? "bg-light text-dark border" : "bg-secondary text-white")" style="font-size:0.65rem;">@item.TitleType</span>
-                                                }
-
-
-
-                                                <div class="d-flex align-items-center gap-2 mt-2" @onclick:stopPropagation="true">
-                                                    <div class="rating-box-sm @(item.Rating20 == null ? "rating-empty" : "")"
-                                                         style="@(item.Rating20 != null ? $"background:{GetRatingColor(item.Rating20.Value)};" : "")">
-                                                        <input type="number" class="rating-input-sm @(item.Rating20 == null ? "" : "text-white")"
-                                                               min="0" max="100" placeholder="â€“"
-                                                               value="@item.Rating20"
-                                                               @onchange="(e) => UpdateRating20(item, string.IsNullOrEmpty(e.Value?.ToString()) ? null : int.Parse(e.Value.ToString()!))" />
-                                                    </div>
-                                                    <span class="text-secondary" style="font-size:0.68rem;">/ 100</span>
-                                                    @if (isEditing && item.Rating20 != null)
-                                                    {
-                                                        <button class="btn btn-link btn-sm p-0 text-secondary opacity-40" style="text-decoration:none;"
-                                                                @onclick="() => UpdateRating20(item, null)">
-                                                            <i class="bi bi-x-circle"></i>
-                                                        </button>
-                                                    }
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            }
-                        </div>
-                    </div>
-                    -->
                 }
             </div>
 
@@ -450,24 +305,7 @@
 }
 
 <style>
-    /* Sidebar */
-    .filter-sidebar {
-        width: 374px;
-        flex-shrink: 0;
-        overflow-y: auto;
-        border-right: 1px solid rgba(0,0,0,0.08);
-        padding: 16px;
-        background: #fff;
-    }
-    .filter-label {
-        display: block;
-        font-size: 0.67rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-        color: #888;
-        margin-bottom: 6px;
-    }
+    /* Removed inline filter styles in favor of FilterPanel component */
 
     .content-scroll {
         flex: 1;

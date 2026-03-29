@@ -105,64 +105,12 @@
             <!-- Filter sidebar -->
             @if (showFilters)
             {
-                <div class="filter-sidebar" @ontouchstart="OnFilterTouchStart" @ontouchend="OnFilterTouchEnd">
-                    <div class="filter-drag-handle d-sm-none"><span></span></div>
-                    <h6 class="fw-bold mb-3">Refine List</h6>
-                    <div class="mb-3">
-                        <label class="filter-label">Search</label>
-                        <div class="input-group input-group-sm">
-                            <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-secondary"></i></span>
-                            <input type="text" class="form-control border-start-0 bg-light shadow-none" placeholder="Title…"
-                                   @bind="WatchlistSvc.SearchQuery" @bind:event="oninput" />
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="filter-label">Genre</label>
-                        <select class="form-select form-select-sm bg-light shadow-none" @bind="WatchlistSvc.SelectedGenre">
-                            <option value="All">All genres</option>
-                            @foreach (var g in AvailableGenres) { <option value="@g">@g</option> }
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="filter-label">Type</label>
-                        <select class="form-select form-select-sm bg-light shadow-none" @bind="WatchlistSvc.SelectedType">
-                            <option value="All">All types</option>
-                            <option value="Movie">Movies</option>
-                            <option value="TV Series">TV Series</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="filter-label">Year range</label>
-                        <div class="d-flex gap-2">
-                            <input type="number" class="form-control form-control-sm bg-light shadow-none" placeholder="From" @bind="WatchlistSvc.StartYear" />
-                            <input type="number" class="form-control form-control-sm bg-light shadow-none" placeholder="To" @bind="WatchlistSvc.EndYear" />
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="filter-label">TMDB rating</label>
-                        <div class="d-flex gap-2 align-items-center">
-                            <select class="form-select form-select-sm bg-light shadow-none"
-                                    value="@WatchlistSvc.FilterMinVote"
-                                    @onchange="@(e => WatchlistSvc.FilterMinVote = double.Parse(e.Value?.ToString() ?? "0", System.Globalization.CultureInfo.InvariantCulture))">
-                                @for (int i = 0; i <= 10; i++) { <option value="@i">@i</option> }
-                            </select>
-                            <span class="text-secondary" style="font-size:0.75rem;">–</span>
-                            <select class="form-select form-select-sm bg-light shadow-none"
-                                    value="@WatchlistSvc.FilterMaxVote"
-                                    @onchange="@(e => WatchlistSvc.FilterMaxVote = double.Parse(e.Value?.ToString() ?? "10", System.Globalization.CultureInfo.InvariantCulture))">
-                                @for (int i = 0; i <= 10; i++) { <option value="@i">@i</option> }
-                            </select>
-                        </div>
-                    </div>
-                    <div class="d-grid gap-2 mt-4">
-                        <button class="btn btn-dark btn-sm rounded-pill fw-semibold" @onclick="WatchlistSvc.ShowRandomMovieAsync">
-                            <i class="bi bi-dice-5 me-1"></i> Random pick
-                        </button>
-                        <button class="btn btn-outline-secondary btn-sm" @onclick="ClearFilters">
-                            <i class="bi bi-eraser me-1"></i> Clear filters
-                        </button>
-                    </div>
-                </div>
+                <FilterPanel Title="Refine List"
+                             AvailableGenres="@AvailableGenres"
+                             ShowTmdbRatingFilter="true"
+                             OnClearFilters="ClearFilters"
+                             OnTouchStart="OnFilterTouchStart"
+                             OnTouchEnd="OnFilterTouchEnd" />
             }
 
             <!-- Main: table or card -->
@@ -305,11 +253,7 @@
 }
 
 <style>
-    .filter-sidebar {
-        width: 374px; flex-shrink: 0; overflow-y: auto;
-        border-right: 1px solid rgba(0,0,0,0.08); padding: 16px; background: #fff;
-    }
-    .filter-label { display:block; font-size:0.67rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#888; margin-bottom:6px; }
+    /* Filter panel styles removed, logic moved to component */
     .content-scroll { flex: 1; overflow-y: auto; overflow-x: hidden; min-height: 0; min-width: 0; }
     .title-hover { transition: opacity 0.15s; }
     .title-hover:hover { opacity: 0.6; }

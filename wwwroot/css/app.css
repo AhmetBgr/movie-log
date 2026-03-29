@@ -567,9 +567,14 @@ tr.row-selected td {
         width: 100% !important;
         border-right: none !important;
         border-bottom: 1px solid rgba(0,0,0,0.08) !important;
+        border-bottom-left-radius: 16px;
+        border-bottom-right-radius: 16px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
         max-height: 45vh;
         overflow-y: auto;
         flex-shrink: 0;
+        z-index: 10;
+        position: relative;
     }
 
     /* Swipe-to-close drag handle */
@@ -637,6 +642,13 @@ tr.row-selected td {
 
     .toolbar-actions.has-selection {
         border-color: #818cf8;
+    }
+
+    .filter-sidebar {
+        margin: 16px 0 16px 16px !important;
+        border-radius: 12px;
+        border: 1px solid #e8eaed !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.04);
     }
 }
 
