@@ -105,16 +105,22 @@
             <!-- Filter sidebar -->
             @if (showFilters)
             {
-                <div class="filter-panel-wrapper">
-                    <AdvancedFilterPanel Title="Filters"
-                                         AvailableGenres="@AvailableGenres"
-                                         ShowTmdbRatingFilter="true"
-                                         OnClearFilters="ClearFilters"
-                                         OnClose="@(() => showFilters = false)"
-                                         OnTouchStart="OnFilterTouchStart"
-                                         OnTouchEnd="OnFilterTouchEnd"
-                                         CurrentStatus="WatchlistStatus.Pending" />
+            <!-- Filter sidebar -->
+            @if (showFilters)
+            {
+                <div class="filter-panel-wrapper" @onclick="@(() => showFilters = false)">
+                    <div @onclick:stopPropagation="true" class="d-flex">
+                        <AdvancedFilterPanel Title="Filters"
+                                             AvailableGenres="@AvailableGenres"
+                                             ShowTmdbRatingFilter="true"
+                                             OnClearFilters="ClearFilters"
+                                             OnClose="@(() => showFilters = false)"
+                                             OnTouchStart="OnFilterTouchStart"
+                                             OnTouchEnd="OnFilterTouchEnd"
+                                             CurrentStatus="WatchlistStatus.Pending" />
+                    </div>
                 </div>
+            }
             }
 
             <!-- Main: table or card -->
