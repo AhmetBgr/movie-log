@@ -322,6 +322,12 @@ public class TmdbSearchResultItem
     [JsonPropertyName("poster_path")]
     public string? PosterPath { get; set; }
 
+    [JsonPropertyName("profile_path")]
+    public string? ProfilePath { get; set; }
+
+    [JsonPropertyName("known_for_department")]
+    public string? KnownForDepartment { get; set; }
+
     [JsonPropertyName("release_date")]
     public string? ReleaseDate { get; set; }
 
@@ -352,6 +358,10 @@ public class TmdbSearchResultItem
     public string FullPosterUrl => string.IsNullOrEmpty(PosterPath) 
         ? "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" 
         : $"https://image.tmdb.org/t/p/w300{PosterPath}";
+
+    public string FullProfileUrl => string.IsNullOrEmpty(ProfilePath)
+        ? "https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-4-user-grey-d8fe574e3425d038c5d392ed9342517a9494391.svg"
+        : $"https://image.tmdb.org/t/p/w185{ProfilePath}";
 }
 
 public class TmdbPersonSearchResponse
