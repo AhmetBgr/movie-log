@@ -122,12 +122,16 @@
             <!-- Filter sidebar -->
             @if (showFilters)
             {
-                <AdvancedFilterPanel Title="Refine History"
-                                     AvailableGenres="@AvailableGenres"
-                                     ShowUserRatingFilter="true"
-                                     OnClearFilters="ClearFilters"
-                                     OnTouchStart="OnFilterTouchStart"
-                                     OnTouchEnd="OnFilterTouchEnd" />
+                <div class="filter-panel-wrapper">
+                    <AdvancedFilterPanel Title="Filters"
+                                         AvailableGenres="@AvailableGenres"
+                                         ShowUserRatingFilter="true"
+                                         OnClearFilters="ClearFilters"
+                                         OnClose="@(() => showFilters = false)"
+                                         OnTouchStart="OnFilterTouchStart"
+                                         OnTouchEnd="OnFilterTouchEnd"
+                                         CurrentStatus="WatchlistStatus.Watched" />
+                </div>
             }
 
             <!-- Main: table or card -->
@@ -186,13 +190,19 @@
     private List<string> _availableGenres = new();
 
     private int gridPageIndex = 0;
-    private int activeFilterCount => (WatchlistSvc.FilterMinRating20 > 0 ? 1 : 0)
-        + (WatchlistSvc.FilterMaxRating20 < 100 ? 1 : 0)
-        + (!string.IsNullOrEmpty(WatchlistSvc.StartYear) ? 1 : 0)
-        + (!string.IsNullOrEmpty(WatchlistSvc.EndYear) ? 1 : 0)
-        + (!string.IsNullOrEmpty(WatchlistSvc.SelectedGenre) && WatchlistSvc.SelectedGenre != "All" ? 1 : 0)
-        + (!string.IsNullOrEmpty(WatchlistSvc.SelectedType) && WatchlistSvc.SelectedType != "All" ? 1 : 0)
-        + (!string.IsNullOrEmpty(WatchlistSvc.SearchQuery) ? 1 : 0);
+    private int activeFilterCount
+    {
+        get
+        {
+            int count = (!string.IsNullOrEmpty(WatchlistSvc.SearchQuery) ? 1 : 0)
+                + (WatchlistSvc.SelectedType != "All" ? 1 : 0)
+                + (!string.IsNullOrEmpty(WatchlistSvc.AdvancedFilter.TitleSearch) ? 1 : 0)
+                + (WatchlistSvc.AdvancedFilter.MinYear.HasValue ? 1 : 0)
+                + (WatchlistSvc.AdvancedFilter.MaxYear.HasValue ? 1 : 0)
+                + (WatchlistSvc.AdvancedFilter.IncludedGenres.Count + WatchlistSvc.AdvancedFilter.ExcludedGenres.Count > 0 ? 1 : 0);
+            return count;
+        }
+    }
 
     private bool IsAllSelected => _watchedItems.Count > 0 && _watchedItems.All(i => _selectedIds.Contains(i.ImdbId));
     private void ToggleSelectAll() { if (IsAllSelected) _selectedIds.Clear(); else _selectedIds = _watchedItems.Select(i => i.ImdbId).ToHashSet(); }
@@ -247,7 +257,7 @@
         StateHasChanged();
     }
 
-        public void Dispose() { WatchlistSvc.OnStateChanged -= HandleStateChanged; _holdRef?.Dispose(); }
+    public void Dispose() { WatchlistSvc.OnStateChanged -= HandleStateChanged; _holdRef?.Dispose(); }
 
     private void HandleStateChanged()
     {
@@ -307,11 +317,25 @@
 <style>
     /* Removed inline filter styles in favor of FilterPanel component */
 
-    .content-scroll {
-        flex: 1;
-        overflow-y: auto;
-        overflow-x: hidden;
-        min-height: 0;
-        min-width: 0;
+    .content-scroll { flex: 1; overflow-y: auto; overflow-x: hidden; min-height: 0; min-width: 0; }
+    .title-hover { transition: opacity 0.15s; }
+    .title-hover:hover { opacity: 0.6; }
+
+    .filter-panel-wrapper {
+        display: flex;
+        z-index: 100;
+    }
+
+    @@media (max-width: 650px) {
+        .filter-panel-wrapper {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(16, 27, 75, 0.4);
+            backdrop-filter: blur(4px);
+            z-index: 2000;
+        }
     }
 </style>

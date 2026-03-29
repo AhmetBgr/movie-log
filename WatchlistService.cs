@@ -247,9 +247,7 @@ public class WatchlistService
                 continue;
             if (hasEnd && item.ParsedYear > eYear)
                 continue;
-            if (checkSearch &&
-                !item.Title.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase) &&
-                !(item.Director != null && item.Director.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase)))
+            if (checkSearch && !item.Title.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase))
                 continue;
 
             // Advanced Filtering
@@ -279,20 +277,13 @@ public class WatchlistService
                         continue;
                 }
 
-                // Person ID Intersection
-                if (AdvancedFilter.SelectedPersonId.HasValue && item.TmdbId.HasValue)
-                {
-                    if (!AdvancedFilter.PersonMovieIds.Contains(item.TmdbId.Value))
-                        continue;
-                }
+                // Title Search (Panel Specific)
+                if (!string.IsNullOrEmpty(AdvancedFilter.TitleSearch) && !item.Title.Contains(AdvancedFilter.TitleSearch, StringComparison.OrdinalIgnoreCase))
+                    continue;
 
                 // Year Range
                 if (AdvancedFilter.MinYear.HasValue && item.ParsedYear < AdvancedFilter.MinYear.Value) continue;
                 if (AdvancedFilter.MaxYear.HasValue && item.ParsedYear > AdvancedFilter.MaxYear.Value) continue;
-
-                // Runtime Range
-                if (AdvancedFilter.MinRuntime.HasValue && (item.Runtime ?? 0) < AdvancedFilter.MinRuntime.Value) continue;
-                if (AdvancedFilter.MaxRuntime.HasValue && (item.Runtime ?? 0) > AdvancedFilter.MaxRuntime.Value) continue;
 
                 // User Rating Range
                 if (AdvancedFilter.MinUserRating.HasValue && (item.Rating20 ?? 0) < AdvancedFilter.MinUserRating.Value) continue;
@@ -1343,6 +1334,20 @@ public class WatchlistService
         else
         {
             _ = ShowToastAsync("Your library is currently empty! Please add some movies to your watchlist first.", 3500);
+        }
+    }
+
+    public async Task ShowRandomFromFilteredAsync(WatchlistStatus currentStatus)
+    {
+        var pool = (currentStatus == WatchlistStatus.Watched ? WatchedItems : FilteredItems).ToList();
+        if (pool.Any())
+        {
+            var random = pool[Random.Shared.Next(pool.Count)];
+            await ShowDetailsAsync(random);
+        }
+        else
+        {
+            _ = ShowToastAsync("No matches found for your current filters!");
         }
     }
 

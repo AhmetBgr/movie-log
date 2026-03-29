@@ -456,6 +456,7 @@ public class WatchlistItemSlim
 public class AdvancedFilterState
 {
     public bool IsActive { get; set; }
+    public string? TitleSearch { get; set; }
     public HashSet<string> IncludedGenres { get; set; } = new();
     public HashSet<string> ExcludedGenres { get; set; } = new();
     public GenreLogic GenreLogic { get; set; } = GenreLogic.Any;
