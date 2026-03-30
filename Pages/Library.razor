@@ -312,7 +312,7 @@
         
         if (!new[] { "watching", "watched", "watchlist" }.Contains(ActiveTab))
         {
-            NavManager.NavigateTo("/library/watchlist", false);
+            NavManager.NavigateTo("library/watchlist", false);
         }
         
         await RestoreViewPreference();
@@ -346,7 +346,7 @@
 
     private void SetTab(string tabId)
     {
-        NavManager.NavigateTo($"/library/{tabId}");
+        NavManager.NavigateTo($"library/{tabId}");
     }
 
     private void SetView(bool card)
