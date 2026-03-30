@@ -1,0 +1,506 @@
+@page "/library"
+@page "/library/{Tab}"
+@using MyPrivateWatchlist.Models
+@using MyPrivateWatchlist.Components
+@inject MyPrivateWatchlist.Services.WatchlistService WatchlistSvc
+@inject IJSRuntime JS
+@inject NavigationManager NavManager
+@implements IDisposable
+
+<PageTitle>Library - @DisplayTabName</PageTitle>
+
+<div class="page-shell">
+
+    <!-- ── Library Tab Bar (Discovery Style) ────────────────────────── -->
+    <div class="library-tabs-container">
+        <div class="discovery-tabs" role="tablist">
+            @foreach (var tab in _tabs)
+            {
+                <button class="disc-tab @(ActiveTab == tab.Id ? "active" : "")" @onclick="() => SetTab(tab.Id)">
+                    <i class="bi @tab.Icon me-1"></i>
+                    @tab.Label
+                    @if (tab.Count > 0)
+                    {
+                        <span class="tab-badge-min ms-1">@tab.Count</span>
+                    }
+                </button>
+            }
+        </div>
+    </div>
+
+    <!-- ── Unified Toolbar ────────────────────────────────────────── -->
+    <div class="toolbar-primary">
+        @if (ActiveTab != "watching")
+        {
+            <button class="tb-btn @(showFilters ? "active" : "") position-relative" @onclick="ToggleFilters">
+                <i class="bi bi-funnel"></i>
+                <span class="tb-label">Filters</span>
+                @if (activeFilterCount > 0 && !showFilters)
+                {
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                          style="font-size:0.55rem;padding:2px 5px;min-width:16px;z-index:5;">@activeFilterCount</span>
+                }
+            </button>
+        }
+
+        <button class="tb-btn @(isEditing ? "active" : "")" @onclick="ToggleEdit">
+            <i class="bi @(isEditing ? "bi-check-lg" : "bi-pencil")"></i>
+            <span class="tb-label">@(isEditing ? "Done" : "Edit")</span>
+        </button>
+
+        <div class="tb-divider"></div>
+
+        <button class="tb-btn tb-btn-sort @(CurrentSortColumn == "Title" ? "sorted" : "")"
+                @onclick='() => ToggleSort("Title")'>
+            <i class="bi @(CurrentSortColumn == "Title" ? (CurrentSortDescending ? "bi-sort-alpha-up-alt" : "bi-sort-alpha-down") : "bi-sort-alpha-down")"></i>
+            <span class="tb-label">Title</span>
+        </button>
+        <button class="tb-btn tb-btn-sort @(CurrentSortColumn == "Year" ? "sorted" : "")"
+                @onclick='() => ToggleSort("Year")'>
+            <i class="bi @(CurrentSortColumn == "Year" ? (CurrentSortDescending ? "bi-sort-numeric-up-alt" : "bi-sort-numeric-down") : "bi-sort-numeric-down")"></i>
+            <span class="tb-label">Year</span>
+        </button>
+        
+        @if (ActiveTab == "watched")
+        {
+            <button class="tb-btn tb-btn-sort @(CurrentSortColumn == "Rating" ? "sorted" : "")"
+                    @onclick='() => ToggleSort("Rating")'>
+                <i class="bi bi-star"></i>
+                <span class="tb-label">Rating</span>
+            </button>
+        }
+
+        <button class="tb-btn tb-btn-sort @(CurrentSortColumn == "DateAdded" ? "sorted" : "")"
+                @onclick='() => ToggleSort("DateAdded")'>
+            <i class="bi bi-calendar-plus"></i>
+            <span class="tb-label">Added</span>
+        </button>
+
+        <div class="tb-divider"></div>
+
+        <button class="tb-btn @(!isCardView ? "active" : "")" @onclick="() => SetView(false)" title="Table view">
+            <i class="bi bi-list-ul"></i>
+        </button>
+        <button class="tb-btn @(isCardView ? "active" : "")" @onclick="() => SetView(true)" title="Card view">
+            <i class="bi bi-grid-3x2-gap"></i>
+        </button>
+
+        <div class="tb-spacer"></div>
+        <span class="text-secondary d-none d-sm-inline" style="font-size:0.76rem;white-space:nowrap;padding-right:4px;">@CurrentItemCount items</span>
+    </div>
+
+    <!-- ── Bulk Action bar ────────────────────────────────────────── -->
+    @if (isEditing)
+    {
+        <div class="toolbar-actions @(_selectedIds.Count > 0 ? "has-selection" : "")">
+            <input type="checkbox" class="form-check-input shadow-none flex-shrink-0"
+                   style="width:17px;height:17px;cursor:pointer;margin-right:6px;"
+                   checked="@IsAllSelected" @onchange="ToggleSelectAll"
+                   title="Select all" />
+            @if (_selectedIds.Count > 0)
+            {
+                <span class="sel-badge">@_selectedIds.Count selected</span>
+                
+                @if (ActiveTab == "watching")
+                {
+                    <button class="tb-btn tb-btn-primary live" @onclick="BulkMoveToWatchlist">
+                        <i class="bi bi-list-nested"></i>
+                        <span class="tb-label">To Watchlist</span>
+                    </button>
+                    <button class="tb-btn tb-btn-success live" @onclick="BulkMarkWatched">
+                        <i class="bi bi-check-lg"></i>
+                        <span class="tb-label">Mark Watched</span>
+                    </button>
+                }
+                else if (ActiveTab == "watchlist")
+                {
+                    <button class="tb-btn tb-btn-success live" @onclick="BulkStartWatching">
+                        <i class="bi bi-play-fill"></i>
+                        <span class="tb-label">Start Watching</span>
+                    </button>
+                    <button class="tb-btn tb-btn-primary live" @onclick="BulkMarkWatched">
+                        <i class="bi bi-check-lg"></i>
+                        <span class="tb-label">Mark Watched</span>
+                    </button>
+                }
+                else if (ActiveTab == "watched")
+                {
+                    <button class="tb-btn tb-btn-primary live" @onclick="BulkMoveToWatchlist">
+                        <i class="bi bi-list-nested"></i>
+                        <span class="tb-label">To Watchlist</span>
+                    </button>
+                    <button class="tb-btn tb-btn-success live" @onclick="BulkWatchAgain">
+                        <i class="bi bi-play-fill"></i>
+                        <span class="tb-label">Watch Again</span>
+                    </button>
+                }
+
+                <button class="tb-btn tb-btn-danger live" @onclick="BulkRemove">
+                    <i class="bi bi-trash3-fill"></i>
+                    <span class="tb-label">Remove</span>
+                </button>
+            }
+            else
+            {
+                <span class="sel-hint"><i class="bi bi-check2-square me-1 opacity-50"></i>Select items for bulk actions</span>
+            }
+        </div>
+    }
+
+    <!-- ── Content area ───────────────────────────────────────────── -->
+    <div class="page-content" style="position:relative;">
+
+        @if (showSavedIndicator)
+        {
+            <div style="position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:2050;pointer-events:none;">
+                <span class="badge bg-success shadow rounded-pill px-3 py-2 animate-fade-out" style="font-size:0.72rem;">✓ Rating saved</span>
+            </div>
+        }
+
+        @if (showFilters && ActiveTab != "watching")
+        {
+            <div class="filter-panel-wrapper" @onclick="@(() => showFilters = false)">
+                <div @onclick:stopPropagation="true" class="d-flex">
+                    <AdvancedFilterPanel Title="Filters"
+                                         AvailableGenres="@AvailableGenres"
+                                         ShowUserRatingFilter="@(ActiveTab == "watched")"
+                                         ShowTmdbRatingFilter="@(ActiveTab == "watchlist")"
+                                         OnClearFilters="ClearFilters"
+                                         OnClose="@(() => showFilters = false)"
+                                         OnTouchStart="OnFilterTouchStart"
+                                         OnTouchEnd="OnFilterTouchEnd"
+                                         CurrentStatus="@CurrentTabStatus" />
+                </div>
+            </div>
+        }
+
+        <div class="content-scroll" @onscroll="OnScroll">
+            @if (!CurrentItems.Any() && !isEditing)
+            {
+                <div class="d-flex align-items-center justify-content-center h-100 py-5">
+                    <div class="text-center opacity-50 py-5">
+                        <i class="bi @(ActiveTab == "watching" ? "bi-play-circle" : ActiveTab == "watched" ? "bi-check2-all" : "bi-journal-text") fs-1 d-block mb-3"></i>
+                        <p class="fs-5">@(ActiveTab == "watching" ? "You are not watching anything." : ActiveTab == "watched" ? "Your history is empty." : "Your watchlist is empty.")</p>
+                    </div>
+                </div>
+            }
+            else
+            {
+                @if (!isCardView)
+                {
+                    <MovieGridTable Items="CurrentItems.ToList()"
+                                   IsEditing="isEditing"
+                                   SelectedIds="_selectedIds"
+                                   OnToggleSelect="ToggleSelect"
+                                   OnItemClick="HandleRowClick"
+                                   ShowSummary="true"
+                                   TotalCount="CurrentItemCount"
+                                   SortInfo="@SortInfoText" />
+                }
+                else
+                {
+                    <div class="table-wrap table-wrap--wide p-3">
+                        <div class="row row-cols-1 g-3">
+                            <Virtualize Items="CurrentItems.ToList()" Context="item" ItemSize="228" OverscanCount="4">
+                                <div class="col" @key="item.ImdbId">
+                                    <MovieCard Item="item"
+                                               IsEditMode="@isEditing"
+                                               IsSelected="@_selectedIds.Contains(item.ImdbId)"
+                                               OnToggleSelect="@(() => ToggleSelect(item.ImdbId))"
+                                               ShowActionButtons="true"
+                                               ShowTracking="@(ActiveTab == "watching")"
+                                               ShowRating="@(ActiveTab == "watched")"/>
+                                </div>
+                            </Virtualize>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+
+    </div>
+</div>
+
+@code {
+    [Parameter] public string? Tab { get; set; }
+
+    private string ActiveTab => (Tab?.ToLower() ?? "watchlist"); // Default changed to watchlist
+    private string DisplayTabName => ActiveTab switch { "watching" => "Watching", "watched" => "Watched", "watchlist" => "Watchlist", _ => "Library" };
+
+    private bool isEditing = false;
+    private bool isCardView = true;
+    private bool showFilters = false;
+    private bool showSavedIndicator = false;
+    private HashSet<string> _selectedIds = new();
+    private DotNetObjectReference<Library>? _holdRef;
+    private double _touchStartX;
+    private double _touchEndX;
+
+    private class TabInfo
+    {
+        public string Id { get; set; } = "";
+        public string Label { get; set; } = "";
+        public string Icon { get; set; } = "";
+        public int Count { get; set; }
+    }
+
+    private List<TabInfo> _tabs => new()
+    {
+        new TabInfo { Id = "watchlist", Label = "Watchlist", Icon = "bi-list-nested", Count = WatchlistSvc.FilteredItems.Count() },
+        new TabInfo { Id = "watched", Label = "Watched", Icon = "bi-check2-all", Count = WatchlistSvc.WatchedItems.Count() },
+        new TabInfo { Id = "watching", Label = "Watching", Icon = "bi-play-circle-fill", Count = WatchlistSvc.WatchingItems.Count() }
+    };
+
+    private WatchlistStatus CurrentTabStatus => ActiveTab switch {
+        "watching" => WatchlistStatus.Watching,
+        "watched" => WatchlistStatus.Watched,
+        _ => WatchlistStatus.Pending
+    };
+
+    private IEnumerable<WatchlistItem> CurrentItems => ActiveTab switch {
+        "watching" => WatchlistSvc.WatchingItems,
+        "watched" => WatchlistSvc.WatchedItems,
+        _ => WatchlistSvc.FilteredItems
+    };
+
+    private int CurrentItemCount => CurrentItems.Count();
+
+    private string CurrentSortColumn => ActiveTab switch {
+        "watching" => WatchlistSvc.WatchingSortColumn,
+        "watched" => WatchlistSvc.WatchedSortColumn,
+        _ => WatchlistSvc.SortColumn
+    };
+
+    private bool CurrentSortDescending => ActiveTab switch {
+        "watching" => WatchlistSvc.WatchingSortDescending,
+        "watched" => WatchlistSvc.WatchedSortDescending,
+        _ => WatchlistSvc.SortDescending
+    };
+
+    private List<string> AvailableGenres => WatchlistSvc.Items
+        .Where(m => m.Status == CurrentTabStatus)
+        .SelectMany(m => (m.Genres ?? "").Split(','))
+        .Select(g => g.Trim()).Where(g => !string.IsNullOrEmpty(g))
+        .Distinct().OrderBy(g => g).ToList();
+
+    private string SortInfoText => $"{CurrentSortColumn} {(CurrentSortDescending ? "(Desc)" : "(Asc)")}";
+
+    private int activeFilterCount
+    {
+        get
+        {
+            int count = (!string.IsNullOrEmpty(WatchlistSvc.SearchQuery) ? 1 : 0)
+                + (WatchlistSvc.SelectedType != "All" ? 1 : 0)
+                + (!string.IsNullOrEmpty(WatchlistSvc.AdvancedFilter.TitleSearch) ? 1 : 0)
+                + (WatchlistSvc.AdvancedFilter.MinYear.HasValue ? 1 : 0)
+                + (WatchlistSvc.AdvancedFilter.MaxYear.HasValue ? 1 : 0)
+                + (WatchlistSvc.AdvancedFilter.IncludedGenres.Count + WatchlistSvc.AdvancedFilter.ExcludedGenres.Count > 0 ? 1 : 0);
+            return count;
+        }
+    }
+
+    private bool IsAllSelected => CurrentItemCount > 0 && CurrentItems.All(i => _selectedIds.Contains(i.ImdbId));
+
+    protected override void OnInitialized()
+    {
+        WatchlistSvc.OnStateChanged += HandleStateChanged;
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        isEditing = false;
+        _selectedIds.Clear();
+        
+        if (!new[] { "watching", "watched", "watchlist" }.Contains(ActiveTab))
+        {
+            NavManager.NavigateTo("/library/watchlist", false);
+        }
+        
+        await RestoreViewPreference();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try { _holdRef = DotNetObjectReference.Create(this); await JS.InvokeVoidAsync("holdSelect.init", _holdRef); } catch {}
+            var isDesktop = await JS.InvokeAsync<bool>("uiHelpers.isDesktop");
+            if (isDesktop && ActiveTab != "watching") { showFilters = true; StateHasChanged(); }
+            await RestoreViewPreference();
+        }
+    }
+
+    private async Task RestoreViewPreference()
+    {
+        try
+        {
+            var key = $"{ActiveTab}_view";
+            var savedView = await JS.InvokeAsync<string?>("sessionStorage.getItem", key);
+            if (!string.IsNullOrEmpty(savedView)) 
+            { 
+                isCardView = savedView == "card"; 
+                StateHasChanged(); 
+            }
+        }
+        catch { }
+    }
+
+    private void SetTab(string tabId)
+    {
+        NavManager.NavigateTo($"/library/{tabId}");
+    }
+
+    private void SetView(bool card)
+    {
+        isCardView = card;
+        _ = JS.InvokeVoidAsync("sessionStorage.setItem", $"{ActiveTab}_view", card ? "card" : "table");
+    }
+
+    private void ToggleEdit() { isEditing = !isEditing; if (!isEditing) _selectedIds.Clear(); }
+    private void ToggleFilters() => showFilters = !showFilters;
+
+    private void ToggleSort(string col)
+    {
+        if (ActiveTab == "watching") WatchlistSvc.ToggleWatchingSort(col);
+        else if (ActiveTab == "watched") WatchlistSvc.ToggleWatchedSort(col);
+        else WatchlistSvc.ToggleSort(col);
+    }
+
+    private void ToggleSelect(string id) { if (!_selectedIds.Remove(id)) _selectedIds.Add(id); }
+    private void ToggleSelectAll() { if (IsAllSelected) _selectedIds.Clear(); else _selectedIds = CurrentItems.Select(i => i.ImdbId).ToHashSet(); }
+
+    private void HandleRowClick(WatchlistItem item)
+    {
+        if (isEditing) ToggleSelect(item.ImdbId);
+        else _ = WatchlistSvc.ShowDetailsAsync(item);
+    }
+
+    [JSInvokable]
+    public void OnHoldSelect(string imdbId)
+    {
+        if (!isEditing) isEditing = true;
+        _selectedIds.Add(imdbId);
+        StateHasChanged();
+    }
+
+    private void ClearFilters()
+    {
+        WatchlistSvc.SearchQuery = ""; WatchlistSvc.SelectedType = "All"; WatchlistSvc.SelectedGenre = "All";
+        WatchlistSvc.StartYear = ""; WatchlistSvc.EndYear = "";
+        WatchlistSvc.FilterMinRating20 = 0; WatchlistSvc.FilterMaxRating20 = 100;
+        WatchlistSvc.FilterMinVote = 0; WatchlistSvc.FilterMaxVote = 10;
+        WatchlistSvc.AdvancedFilter = new AdvancedFilterState { IsActive = true };
+    }
+
+    private void OnFilterTouchStart(TouchEventArgs e) => _touchStartX = e.Touches[0].ClientX;
+    private void OnFilterTouchEnd(TouchEventArgs e)
+    {
+        _touchEndX = e.ChangedTouches[0].ClientX;
+        if (_touchStartX - _touchEndX > 50) showFilters = false;
+    }
+
+    private async Task BulkMoveToWatchlist() { foreach (var i in CurrentItems.Where(i => _selectedIds.Contains(i.ImdbId)).ToList()) await WatchlistSvc.UpdateStatusAsync(i, WatchlistStatus.Pending); _selectedIds.Clear(); }
+    private async Task BulkMarkWatched() { foreach (var i in CurrentItems.Where(i => _selectedIds.Contains(i.ImdbId)).ToList()) await WatchlistSvc.UpdateStatusAsync(i, WatchlistStatus.Watched); _selectedIds.Clear(); }
+    private async Task BulkStartWatching() { foreach (var i in CurrentItems.Where(i => _selectedIds.Contains(i.ImdbId)).ToList()) await WatchlistSvc.UpdateStatusAsync(i, WatchlistStatus.Watching); _selectedIds.Clear(); }
+    private async Task BulkWatchAgain() { foreach (var i in CurrentItems.Where(i => _selectedIds.Contains(i.ImdbId)).ToList()) await WatchlistSvc.UpdateStatusAsync(i, WatchlistStatus.Watching); _selectedIds.Clear(); }
+    private async Task BulkRemove() { foreach (var i in CurrentItems.Where(i => _selectedIds.Contains(i.ImdbId)).ToList()) await WatchlistSvc.RemoveFromWatchlistAsync(i); _selectedIds.Clear(); }
+
+    private void OnScroll(EventArgs e) { /* Placeholder */ }
+
+    public void Dispose() { WatchlistSvc.OnStateChanged -= HandleStateChanged; _holdRef?.Dispose(); }
+    private void HandleStateChanged() 
+    { 
+        _selectedIds.IntersectWith(CurrentItems.Select(i => i.ImdbId).ToHashSet()); 
+        StateHasChanged(); 
+    }
+}
+
+<style>
+    /* Discovery Style Tabs */
+    .discovery-tabs {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 8px 10px;
+        background: #fff;
+        overflow-x: auto;
+        white-space: nowrap;
+        scrollbar-width: none;
+    }
+    .discovery-tabs::-webkit-scrollbar { display: none; }
+
+    .disc-tab {
+        border: none;
+        border-radius: 999px;
+        padding: 6px 14px;
+        background: #f5f6fa;
+        color: #555;
+        font-size: 0.82rem;
+        font-weight: 600;
+        transition: background 0.15s, color 0.15s;
+    }
+    .disc-tab:hover { background: #eceff4; color: #111; }
+    
+    .disc-tab.active-watchlist {
+        background: #e0e7ff; 
+        color: #3730a3;
+        box-shadow: 0 2px 8px rgba(55, 48, 163, 0.25);
+    }
+    .disc-tab.active-watched {
+        background: #e5e7eb;
+        color: #111827;
+        box-shadow: 0 2px 8px rgba(17, 24, 39, 0.25);
+    }
+    .disc-tab.active-watching {
+        background: #dcfce7;
+        color: #166534;
+        box-shadow: 0 2px 8px rgba(22, 101, 52, 0.25);
+    }
+
+    .tab-badge-min {
+        background: rgba(0,0,0,0.08);
+        padding: 1px 6px;
+        border-radius: 6px;
+        font-size: 0.7rem;
+    }
+    .active-watchlist .tab-badge-min { background: rgba(55, 48, 163, 0.12); }
+    .active-watched .tab-badge-min { background: rgba(17, 24, 39, 0.12); }
+    .active-watching .tab-badge-min { background: rgba(22, 101, 52, 0.12); }
+
+    .library-tabs-container {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        background: #fff;
+        border-bottom: 1px solid #e8eaed;
+    }
+
+    .content-scroll { flex: 1; overflow-y: auto; overflow-x: hidden; }
+
+    .filter-panel-wrapper { 
+        display: flex; 
+        z-index: 100; 
+    }
+
+    @@media (max-width: 650px) {
+        .discovery-tabs { justify-content: flex-start; }
+        .filter-panel-wrapper {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(16, 27, 75, 0.4);
+            backdrop-filter: blur(4px);
+            z-index: 2000;
+        }
+    }
+    
+    .animate-fade-out {
+        animation: fadeOut 1.5s forwards;
+    }
+    @@keyframes fadeOut {
+        0% { opacity: 0; transform: translateY(10px); }
+        20% { opacity: 1; transform: translateY(0); }
+        80% { opacity: 1; }
+        100% { opacity: 0; transform: translateY(-10px); }
+    }
+</style>
