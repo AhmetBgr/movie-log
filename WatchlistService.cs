@@ -1074,7 +1074,6 @@ public class WatchlistService
     // Modal Control
     public async Task ShowDetailsAsync(WatchlistItem item)
     {
-        // Guard against re-entrant calls (e.g., double-tap on mobile)
         if (_showDetailsInProgress && SelectedItem == item) return;
         _showDetailsInProgress = true;
 
@@ -1089,33 +1088,19 @@ public class WatchlistService
                 Overview = item.Overview ?? ""
             };
 
-            // Use cached mobile state for immediate open, then verify with JS
-            bool isMobile = _lastIsMobile ?? false;
-            if (isMobile) { IsModalOpen = true; IsSidePanelOpen = false; }
-            else { IsModalOpen = false; IsSidePanelOpen = true; }
+            IsModalOpen = false;
+            IsSidePanelOpen = true; // Always open SidePanel
 
             IsLoadingDetails = true;
             NotifyStateChanged(fullRefresh: false);
 
-            // Get actual mobile state and correct if needed
-            bool actualIsMobile = await _js.InvokeAsync<bool>("uiHelpers.isMobile");
-            _lastIsMobile = actualIsMobile;
-
-            if (actualIsMobile != isMobile)
-            {
-                if (actualIsMobile) { IsModalOpen = true; IsSidePanelOpen = false; }
-                else { IsModalOpen = false; IsSidePanelOpen = true; }
-                NotifyStateChanged(fullRefresh: false);
-            }
+            try { _lastIsMobile = await _js.InvokeAsync<bool>("uiHelpers.isMobile"); } catch { }
 
             var details = await GetTmdbDetailsAsync(item.ImdbId);
             if (details != null && SelectedItem == item)
             {
                 SelectedMovie = details;
-                
-                // Persist missing metadata if this is a real item in our collection
                 await HydrateMissingMetadataAsync(item, details);
-                
                 IsLoadingDetails = false;
                 NotifyStateChanged(fullRefresh: false);
             }
@@ -1265,7 +1250,6 @@ public class WatchlistService
 
     public async Task ShowDetailsAsync(TmdbSearchResultItem searchItem)
     {
-        // Guard against re-entrant calls (e.g., double-tap on mobile)
         if (_showDetailsInProgress) return;
         _showDetailsInProgress = true;
 
@@ -1289,24 +1273,13 @@ public class WatchlistService
                 PosterPath = searchItem.PosterPath
             };
 
-            // Use cached mobile state for immediate open, then verify with JS
-            bool isMobile = _lastIsMobile ?? false;
-            if (isMobile) { IsModalOpen = true; IsSidePanelOpen = false; }
-            else { IsModalOpen = false; IsSidePanelOpen = true; }
+            IsModalOpen = false;
+            IsSidePanelOpen = true; // Always open SidePanel
 
             IsLoadingDetails = true;
             NotifyStateChanged(fullRefresh: false);
 
-            // Get actual mobile state and correct if needed
-            bool actualIsMobile = await _js.InvokeAsync<bool>("uiHelpers.isMobile");
-            _lastIsMobile = actualIsMobile;
-
-            if (actualIsMobile != isMobile)
-            {
-                if (actualIsMobile) { IsModalOpen = true; IsSidePanelOpen = false; }
-                else { IsModalOpen = false; IsSidePanelOpen = true; }
-                NotifyStateChanged(fullRefresh: false);
-            }
+            try { _lastIsMobile = await _js.InvokeAsync<bool>("uiHelpers.isMobile"); } catch { }
 
             var details = await GetTmdbDetailsByIdAsync(searchItem.Id, searchItem.MediaType);
             if (details != null && SelectedItem == tempItem)
