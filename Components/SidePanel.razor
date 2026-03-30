@@ -103,7 +103,7 @@
                             <!-- Old Rating Box -->
                             
                         <!-- Rating Box -->
-                        <div class="d-flex flex-column align-items-center p-2 border rounded-4 bg-white shadow-sm flex-shrink-0 position-relative" style="min-width: 90px; transform: scale(0.9);">
+                        <div class="d-flex flex-column align-items-center p-2 border rounded-4 bg-white shadow-sm flex-shrink-0 position-relative" style="min-width: 90px;">
                             @if (showSavedIndicator)
                             {
                                 <div class="position-absolute top-0 start-50 translate-middle-x z-3 mt-n2 animate-fade-out">
@@ -124,9 +124,9 @@
                             </div>
                             @if (libItem?.Rating20 != null)
                             {
-                                <button class="btn btn-link btn-sm p-0 text-secondary opacity-50 hover-opacity-100 mt-1" 
+                                <button class="rating-delete-btn"
                                         @onclick="() => HandleRatingEdit(new ChangeEventArgs { Value = null })">
-                                    <i class="bi bi-trash3-fill fs-5"></i>
+                                    <i class="bi bi-trash3-fill"></i>
                                 </button>
                             }
                         </div>
@@ -286,7 +286,7 @@
         position: relative;
         width: var(--panel-width);
         height: 100%;
-        background: #fff;
+        background: #ffffffff;
         display: flex;
         flex-direction: column;
         z-index: 10;
@@ -485,11 +485,33 @@
     }
 
     /* User Rating Old Style */
+    .rating-delete-btn {
+        position: absolute;
+        top: 20px;
+        right: 5px;
+
+        width: 25px;
+        height: 25px;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        border-radius: 50%;          /* makes it a circle */
+        background-color: #f8f9fa;   /* light background */
+        border: 1px solid #d26255ff;
+
+        font-size: 1rem;
+        color: #6c757d;
+
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
     .user-rating-box-old {
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 4px;
+        gap: 1px;
         position: relative;
     }
     .rating-circle {
@@ -562,7 +584,7 @@
         border-radius: 12px; /* Smoother corners */
         border: 1px solid #e2e8f0;
         background: #fff;
-        font-size: 0.65rem; /* Small but legible */
+        font-size: 0.5rem; /* Small but legible */
         font-weight: 800;
         text-transform: uppercase;
         color: #64748b;
@@ -571,7 +593,7 @@
         flex-direction: column; /* Column layout to save horizontal space */
         align-items: center;
         justify-content: center;
-        gap: 4px;
+        gap: 1px;
         white-space: nowrap;
     }
     .status-btn-compact i { font-size: 1.1rem; }
