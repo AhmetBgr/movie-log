@@ -16,7 +16,9 @@
         <div class="discovery-tabs" role="tablist">
             @foreach (var tab in _tabs)
             {
-                <button class="disc-tab @(ActiveTab == tab.Id ? "active" : "")" @onclick="() => SetTab(tab.Id)">
+                <button class="disc-tab @(ActiveTab == tab.Id ? "active" : "")" 
+                        data-tab="@tab.Id"
+                        @onclick="() => SetTab(tab.Id)">
                     <i class="bi @tab.Icon me-1"></i>
                     @tab.Label
                     @if (tab.Count > 0)
@@ -84,9 +86,6 @@
         <button class="tb-btn @(isCardView ? "active" : "")" @onclick="() => SetView(true)" title="Card view">
             <i class="bi bi-grid-3x2-gap"></i>
         </button>
-
-        <div class="tb-spacer"></div>
-        <span class="text-secondary d-none d-sm-inline" style="font-size:0.76rem;white-space:nowrap;padding-right:4px;">@CurrentItemCount items</span>
     </div>
 
     <!-- ── Bulk Action bar ────────────────────────────────────────── -->
@@ -441,21 +440,21 @@
         transition: background 0.15s, color 0.15s;
     }
     .disc-tab:hover { background: #eceff4; color: #111; }
-    
-    .disc-tab.active-watchlist {
-        background: #e0e7ff; 
-        color: #3730a3;
-        box-shadow: 0 2px 8px rgba(55, 48, 163, 0.25);
+    /* Color Coding for Active Tabs */
+    .disc-tab.active[data-tab="watchlist"] { 
+        background: #64748b; 
+        color: #fff; 
+        box-shadow: 0 4px 12px rgba(100, 116, 139, 0.2);
     }
-    .disc-tab.active-watched {
-        background: #e5e7eb;
-        color: #111827;
-        box-shadow: 0 2px 8px rgba(17, 24, 39, 0.25);
+    .disc-tab.active[data-tab="watched"] { 
+        background: #6366f1; 
+        color: #fff; 
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
     }
-    .disc-tab.active-watching {
-        background: #dcfce7;
-        color: #166534;
-        box-shadow: 0 2px 8px rgba(22, 101, 52, 0.25);
+    .disc-tab.active[data-tab="watching"] { 
+        background: #10b981; 
+        color: #fff; 
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
     }
 
     .tab-badge-min {
@@ -464,9 +463,7 @@
         border-radius: 6px;
         font-size: 0.7rem;
     }
-    .active-watchlist .tab-badge-min { background: rgba(55, 48, 163, 0.12); }
-    .active-watched .tab-badge-min { background: rgba(17, 24, 39, 0.12); }
-    .active-watching .tab-badge-min { background: rgba(22, 101, 52, 0.12); }
+    .disc-tab.active .tab-badge-min { background: rgba(255,255,255,0.2); }
 
     .library-tabs-container {
         position: sticky;
