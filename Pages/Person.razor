@@ -101,9 +101,41 @@
                             }
                         </div>
 
-                        <section class="mb-5">
+                        @if (KnownForCredits.Any())
+                        {
+                            <section class="mb-5">
+                                <h2 class="section-title mb-4">Known For</h2>
+                                <div class="row row-cols-3 row-cols-sm-4 row-cols-md-4 row-cols-lg-6 g-2">
+                                    @foreach (var credit in KnownForCredits)
+                                    {
+                                        <div class="col">
+                                            <div class="movie-card" @onclick="() => OpenMovie(credit)">
+                                                <div class="movie-poster-wrap shadow-sm">
+                                                    <img src="@credit.FullPosterUrl" class="movie-poster" alt="@(credit.Title ?? credit.Name)" />
+                                                    <div class="movie-overlay">
+                                                        <i class="bi bi-plus-lg fs-4"></i>
+                                                    </div>
+                                                </div>
+                                                <div class="movie-info p-1">
+                                                    <div class="movie-title" title="@(credit.Title ?? credit.Name)" style="@GetTitleStyle(credit.Title ?? credit.Name)">@(credit.Title ?? credit.Name)</div>
+                                                    <div class="movie-meta d-flex justify-content-between" style="font-size: 0.65rem;">
+                                                        <span>@(credit.Year > 0 ? credit.Year.ToString() : "N/A")</span>
+                                                        @if (credit.VoteAverage > 0)
+                                                        {
+                                                            <span class="text-warning fw-bold"><i class="bi bi-star-fill smaller me-1"></i>@(credit.VoteAverage.ToString("F1"))</span>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </section>
+                        }
+
+                        <section class="mb-5 border-top pt-4">
                             <h2 class="section-title">Biography</h2>
-                            <div class="biography-text">
+                            <div class="biography-text @(showFullBio ? "" : "bio-collapsed")">
                                 @if (string.IsNullOrEmpty(person.Biography))
                                 {
                                     <p class="text-secondary fs-5 opacity-75">No biography available for this person.</p>
@@ -113,6 +145,12 @@
                                     @((MarkupString)person.Biography.Replace("\n", "<br/>"))
                                 }
                             </div>
+                            @if (!string.IsNullOrEmpty(person.Biography) && person.Biography.Length > 400)
+                            {
+                                <button class="btn btn-sm btn-outline-secondary rounded-pill mt-3 fw-bold px-3 py-1" @onclick="() => showFullBio = !showFullBio">
+                                    @(showFullBio ? "Read Less" : "Read More")
+                                </button>
+                            }
                         </section>
 
                         @if (credits?.Cast?.Any() == true || credits?.Crew?.Any() == true)
@@ -149,7 +187,7 @@
                                                     </div>
                                                 </div>
                                                 <div class="movie-info p-2">
-                                                    <div class="movie-title">@(credit.Title ?? credit.Name)</div>
+                                                    <div class="movie-title" title="@(credit.Title ?? credit.Name)" style="@GetTitleStyle(credit.Title ?? credit.Name)">@(credit.Title ?? credit.Name)</div>
                                                     <div class="movie-meta d-flex justify-content-between">
                                                         <span>@(credit.Year > 0 ? credit.Year.ToString() : "N/A")</span>
                                                         @if (credit.VoteAverage > 0)
@@ -226,6 +264,14 @@
         line-height: 1.8;
         color: #444;
         max-width: 900px;
+        transition: max-height 0.3s ease;
+    }
+    
+    .bio-collapsed {
+        display: -webkit-box;
+        -webkit-line-clamp: 5;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
     }
 
     .movie-card {
@@ -279,12 +325,12 @@
 
     .movie-title {
         font-weight: 700;
-        font-size: 0.9rem;
         color: #1a1a2e;
-        margin-top: 8px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        margin-top: 6px;
+        white-space: normal;
+        line-height: 1.25;
+        margin-bottom: 4px;
+        word-break: break-word; /* ensure extremely long continuous words also wrap */
     }
 
     .movie-meta {
@@ -347,10 +393,12 @@
     private TmdbPerson? person;
     private TmdbPersonCombinedCredits? credits;
     private bool isLoading = true;
+    private bool showFullBio = false;
 
     protected override async Task OnParametersSetAsync()
     {
         isLoading = true;
+        showFullBio = false;
         person = null;
         credits = null;
         StateHasChanged();
@@ -406,9 +454,31 @@
         }
     }
 
+    private IEnumerable<TmdbPersonCreditItem> KnownForCredits
+    {
+        get
+        {
+            if (credits == null) return Enumerable.Empty<TmdbPersonCreditItem>();
+            
+            var all = credits.Cast.Concat(credits.Crew)
+                .Where(c => !string.IsNullOrEmpty(c.PosterPath))
+                .DistinctBy(c => $"{c.MediaType}-{c.Id}");
+
+            return all.OrderByDescending(c => c.Popularity * Math.Max(1, c.VoteCount)).Take(4);
+        }
+    }
+
     private void GoBack()
     {
         _ = JS.InvokeVoidAsync("uiHelpers.historyBack");
+    }
+
+    private string GetTitleStyle(string? title)
+    {
+        if (string.IsNullOrEmpty(title)) return "font-size: 1.0rem;";
+        if (title.Length <= 15) return "font-size: 1.0rem;";
+        double newSize = Math.Max(0.7, 0.45 - ((title.Length - 15) * 0.005));
+        return $"font-size: {newSize.ToString(System.Globalization.CultureInfo.InvariantCulture)}rem;";
     }
 
     private async Task OpenMovie(TmdbPersonCreditItem credit)
