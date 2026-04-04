@@ -674,7 +674,7 @@ tr.row-selected td {
     width: 100%;
 }
 .table-wrap--wide {
-    max-width: 1440px;
+    max-width: 1200px;
 }
 
 /* Remove the two-tone stripe on even rows inside table-wrap
