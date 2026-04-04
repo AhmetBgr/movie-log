@@ -178,6 +178,13 @@ public class WatchlistService
         set { _enableSearchHistory = value; _ = _storage.SaveAsync("enable_search_history", value); if(!value) ClearSearchHistory(); NotifyStateChanged(); } 
     }
 
+    private string _openSubtitlesApiKey = "";
+    public string OpenSubtitlesApiKey 
+    { 
+        get => _openSubtitlesApiKey; 
+        set { _openSubtitlesApiKey = value; _ = _storage.SaveAsync("opensubtitles_apikey", value); NotifyStateChanged(); } 
+    }
+
     public List<string> SearchHistory { get; set; } = new();
 
     public void AddToSearchHistory(string query)
@@ -463,6 +470,9 @@ public class WatchlistService
 
             _enableSearchHistory = await _storage.GetAsync<bool>("enable_search_history");
             LogStep("GetAsync: enable_search_history");
+
+            _openSubtitlesApiKey = await _storage.GetAsync<string>("opensubtitles_apikey") ?? "";
+            LogStep("GetAsync: opensubtitles_apikey");
 
             SearchHistory = await _storage.GetAsync<List<string>>("search_history") ?? new();
             LogStep("GetAsync: search_history");
@@ -1438,6 +1448,55 @@ public class WatchlistService
         }
         catch (Exception ex) { Console.WriteLine($"Person credits API error: {ex.Message}"); }
         return null;
+    }
+
+    public async Task<WikipediaSnippet?> GetWikipediaSnippetAsync(string title)
+    {
+        try
+        {
+            var escapedTitle = Uri.EscapeDataString(title);
+            var url = $"https://en.wikipedia.org/api/rest_v1/page/summary/{escapedTitle}";
+            var response = await _http.GetFromJsonAsync<WikipediaSnippet>(url);
+            
+            // Fallback for movies
+            if (response == null || response.Title == "Not found" || response.Extract == null)
+            {
+                url = $"https://en.wikipedia.org/api/rest_v1/page/summary/{escapedTitle}_(film)";
+                response = await _http.GetFromJsonAsync<WikipediaSnippet>(url);
+            }
+            
+            return response;
+        }
+        catch { return null; }
+    }
+
+    public async Task<List<OpenSubtitlesData>> GetSubtitlesAsync(string imdbId)
+    {
+        if (string.IsNullOrEmpty(OpenSubtitlesApiKey)) return new();
+
+        try
+        {
+            // OpenSubtitles.com API: /api/v1/subtitles?imdb_id={id}
+            // Requires Api-Key header and usually a User-Agent
+            var id = imdbId.StartsWith("tt") ? imdbId[2..] : imdbId;
+            var url = $"https://api.opensubtitles.com/api/v1/subtitles?imdb_id={id}";
+            
+            using var request = new HttpRequestMessage(HttpMethod.Get, url);
+            request.Headers.Add("Api-Key", OpenSubtitlesApiKey);
+            request.Headers.Add("User-Agent", "MovieLogApp_v1.0");
+
+            var response = await _http.SendAsync(request);
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<OpenSubtitlesSearchResult>();
+                return result?.Data ?? new();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Search subtitles error: {ex.Message}");
+        }
+        return new();
     }
 }
 

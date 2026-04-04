@@ -85,8 +85,8 @@
 
                     <div class="form-check form-switch mb-3 p-3 rounded-3 bg-light border">
                         <input class="form-check-input ms-0 me-3 mt-1" type="checkbox" id="enableSearchHistory" 
-                               checked="@WatchlistSvc.EnableSearchHistory" 
-                               @onchange="(e) => WatchlistSvc.EnableSearchHistory = (bool)e.Value!">
+                                checked="@WatchlistSvc.EnableSearchHistory" 
+                                @onchange="(e) => WatchlistSvc.EnableSearchHistory = (bool)e.Value!">
                         <label class="form-check-label fw-bold text-dark" for="enableSearchHistory">Remember Search History</label>
                         <p class="text-secondary x-small mb-0 mt-2">When enabled, the app stores your last 10 searches locally for quick access while typing.</p>
                     </div>
@@ -256,27 +256,37 @@
             </div>
         </div>
 
-        <!-- API Settings (Placeholder) -->
+        <!-- API Connection Settings -->
         <div class="col-12">
             <div class="card shadow-sm border-0 rounded-3">
                 <div class="card-body p-4">
-                    <div class="d-flex align-items-center mb-3">
+                    <div class="d-flex align-items-center mb-4">
                         <div class="bg-dark bg-opacity-10 text-dark p-2 rounded-3 me-3">
                             <i class="bi bi-key-fill fs-4"></i>
                         </div>
                         <h5 class="card-title mb-0 fw-bold">Connection Settings</h5>
                     </div>
-                    <div class="row g-3">
-                        <div class="col-md-8">
-                            <label class="form-label small fw-bold text-secondary text-uppercase">TMDB API Key</label>
+                    <div class="row g-4">
+                        <div class="col-md-6 border-end">
+                            <label class="form-label small fw-bold text-secondary text-uppercase tracking-wider">TMDB API Key</label>
                             <div class="input-group">
+                                <span class="input-group-text bg-light border-0"><i class="bi bi-shield-lock-fill text-muted"></i></span>
                                 <input type="password" class="form-control bg-light border-0 py-2" value="@Config["TmdbApiKey"]" readonly />
-                                <button class="btn btn-light border-0" disabled><i class="bi bi-pencil"></i></button>
                             </div>
-                            <div class="form-text x-small mt-1 text-muted">API key is currently managed via configuration. Manual edits coming soon.</div>
+                            <div class="form-text x-small mt-1 text-muted"><i class="bi bi-info-circle me-1"></i> Managed via system configuration.</div>
                         </div>
-                        <div class="col-md-4 d-flex align-items-end">
-                            <button class="btn btn-dark w-100 py-2 rounded-pill fw-bold" disabled>Test Connection</button>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-secondary text-uppercase tracking-wider">OpenSubtitles API Key</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-0"><i class="bi bi-keyboard-fill text-muted"></i></span>
+                                <input type="password" class="form-control bg-light border-0 py-2" 
+                                       @bind="WatchlistSvc.OpenSubtitlesApiKey" 
+                                       @bind:event="oninput"
+                                       placeholder="Enter your API Key" />
+                            </div>
+                            <div class="form-text x-small mt-1 text-muted">
+                                <i class="bi bi-link-45deg me-1"></i> Get from <a href="https://www.opensubtitles.com/en/consumers" target="_blank" class="text-decoration-none">opensubtitles.com</a>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -409,6 +419,7 @@
 
 <style>
     .x-small { font-size: 0.75rem; }
+    .tracking-wider { letter-spacing: 0.05em; }
 </style>
 
 @code {
@@ -802,8 +813,6 @@
             else {
                 statusMessage = $"No new items found ({selectedImportSource}). ({duplicateCount} already in library, {importErrorCount} failures)";
             }
-
-
 
         }
         catch (Exception ex)

@@ -508,3 +508,74 @@ public class TmdbCollection
         ? "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" 
         : $"https://image.tmdb.org/t/p/w500{PosterPath}";
 }
+
+// --- NEW EXTERNAL API CLASSES ---
+public class WikipediaSnippet
+{
+    [JsonPropertyName("title")]
+    public string Title { get; set; } = "";
+
+    [JsonPropertyName("extract")]
+    public string Extract { get; set; } = "";
+
+    [JsonPropertyName("content_urls")]
+    public WikipediaUrls? ContentUrls { get; set; }
+}
+
+public class WikipediaUrls
+{
+    [JsonPropertyName("desktop")]
+    public WikipediaDesktopUrls? Desktop { get; set; }
+}
+
+public class WikipediaDesktopUrls
+{
+    [JsonPropertyName("page")]
+    public string Page { get; set; } = "";
+}
+
+public class OpenSubtitlesSearchResult
+{
+    [JsonPropertyName("data")]
+    public List<OpenSubtitlesData> Data { get; set; } = new();
+}
+
+public class OpenSubtitlesData
+{
+    [JsonPropertyName("id")]
+    public string Id { get; set; } = "";
+
+    [JsonPropertyName("attributes")]
+    public OpenSubtitlesAttributes? Attributes { get; set; }
+}
+
+public class OpenSubtitlesAttributes
+{
+    [JsonPropertyName("language")]
+    public string Language { get; set; } = "";
+
+    [JsonPropertyName("moviehash")]
+    public string? MovieHash { get; set; }
+
+    [JsonPropertyName("url")]
+    public string? Url { get; set; }
+
+    [JsonPropertyName("release")]
+    public string? Release { get; set; }
+
+    [JsonPropertyName("download_count")]
+    public int? DownloadCount { get; set; }
+
+    [JsonPropertyName("files")]
+    public List<OpenSubtitlesFile> Files { get; set; } = new();
+}
+
+public class OpenSubtitlesFile
+{
+    [JsonPropertyName("file_id")]
+    public int? FileId { get; set; }
+
+    [JsonPropertyName("file_name")]
+    public string? FileName { get; set; }
+}
+
