@@ -6,6 +6,7 @@
 @inject HttpClient Http
 @inject IConfiguration Config
 @inject MyPrivateWatchlist.Services.WatchlistService WatchlistSvc
+@inject IJSRuntime JS
 @implements IDisposable
 
 <PageTitle>Discovery</PageTitle>
@@ -151,7 +152,7 @@
     private string _activeTabKey = "trending";
     private DiscoveryTabState CurrentState => _tabStates[_activeTabKey];
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         WatchlistSvc.OnStateChanged += HandleLibraryStateChanged;
 
@@ -169,16 +170,39 @@
             }
             else
             {
-                _tabStates[tab.Key] = new DiscoveryTabState();
+                _tabStates[tab.Key] = new DiscoveryTabState { IsLoading = true };
             }
         }
+    }
 
-        await EnsureTabLoadedAsync(_activeTabKey);
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                var savedTab = await JS.InvokeAsync<string?>("sessionStorage.getItem", "last_discovery_tab");
+                if (!string.IsNullOrEmpty(savedTab) && _tabs.Any(t => t.Key == savedTab))
+                {
+                    _activeTabKey = savedTab;
+                }
+            }
+            catch { }
+
+            foreach (var state in _tabStates.Values.Where(s => !s.HasLoaded))
+            {
+                state.IsLoading = false;
+            }
+
+            StateHasChanged();
+            await EnsureTabLoadedAsync(_activeTabKey);
+        }
     }
 
     private async Task SelectTabAsync(string tabKey)
     {
         _activeTabKey = tabKey;
+        try { _ = JS.InvokeVoidAsync("sessionStorage.setItem", "last_discovery_tab", tabKey); } catch { }
         await EnsureTabLoadedAsync(tabKey);
     }
 

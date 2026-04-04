@@ -10,6 +10,16 @@
 <PageTitle>Library - @DisplayTabName</PageTitle>
 
 <div class="page-shell">
+    @if (!_isReady)
+    {
+        <div class="d-flex align-items-center justify-content-center h-100 py-5" style="min-height: 50vh;">
+            <div class="spinner-border text-secondary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else
+    {
 
     <!-- ── Library Tab Bar (Discovery Style) ────────────────────────── -->
     <div class="library-tabs-container">
@@ -158,14 +168,14 @@
 
         @if (showFilters && ActiveTab != "watching")
         {
-            <div class="filter-panel-wrapper" @onclick="@(() => showFilters = false)">
+            <div class="filter-panel-wrapper" @onclick="@(() => SetFilterVisibility(false))">
                 <div @onclick:stopPropagation="true" class="d-flex">
                     <AdvancedFilterPanel Title="Filters"
                                          AvailableGenres="@AvailableGenres"
                                          ShowUserRatingFilter="@(ActiveTab == "watched")"
                                          ShowTmdbRatingFilter="@(ActiveTab == "watchlist")"
                                          OnClearFilters="ClearFilters"
-                                         OnClose="@(() => showFilters = false)"
+                                         OnClose="@(() => SetFilterVisibility(false))"
                                          OnTouchStart="OnFilterTouchStart"
                                          OnTouchEnd="OnFilterTouchEnd"
                                          CurrentStatus="@CurrentTabStatus" />
@@ -218,6 +228,7 @@
         </div>
 
     </div>
+    }
 </div>
 
 @code {
@@ -226,6 +237,7 @@
     private string ActiveTab => (Tab?.ToLower() ?? "watchlist"); // Default changed to watchlist
     private string DisplayTabName => ActiveTab switch { "watching" => "Watching", "watched" => "Watched", "watchlist" => "Watchlist", _ => "Library" };
 
+    private bool _isReady = false;
     private bool isEditing = false;
     private bool isCardView = true;
     private bool showFilters = false;
@@ -310,22 +322,57 @@
         isEditing = false;
         _selectedIds.Clear();
         
-        if (!new[] { "watching", "watched", "watchlist" }.Contains(ActiveTab))
+        if (string.IsNullOrEmpty(Tab))
         {
-            NavManager.NavigateTo("library/watchlist", false);
+            _isReady = false;
         }
-        
-        await RestoreViewPreference();
+        else
+        {
+            _isReady = true;
+            if (!new[] { "watching", "watched", "watchlist" }.Contains(ActiveTab))
+            {
+                NavManager.NavigateTo("library/watchlist", false);
+            }
+            else
+            {
+                await RestoreViewPreference();
+                await RestoreFilterPreference();
+            }
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
+            if (string.IsNullOrEmpty(Tab))
+            {
+                try
+                {
+                    var savedTab = await JS.InvokeAsync<string?>("sessionStorage.getItem", "last_library_tab");
+                    if (!string.IsNullOrEmpty(savedTab) && new[] { "watching", "watched", "watchlist" }.Contains(savedTab))
+                    {
+                        NavManager.NavigateTo($"library/{savedTab}", replace: true);
+                        return;
+                    }
+                    else
+                    {
+                        NavManager.NavigateTo("library/watchlist", replace: true);
+                        return;
+                    }
+                }
+                catch { }
+            }
+
             try { _holdRef = DotNetObjectReference.Create(this); await JS.InvokeVoidAsync("holdSelect.init", _holdRef); } catch {}
             var isDesktop = await JS.InvokeAsync<bool>("uiHelpers.isDesktop");
-            if (isDesktop && ActiveTab != "watching") { showFilters = true; StateHasChanged(); }
             await RestoreViewPreference();
+            await RestoreFilterPreference();
+        }
+
+        if (_isReady && new[] { "watching", "watched", "watchlist" }.Contains(ActiveTab))
+        {
+            try { _ = JS.InvokeVoidAsync("sessionStorage.setItem", "last_library_tab", ActiveTab); } catch { }
         }
     }
 
@@ -344,6 +391,26 @@
         catch { }
     }
 
+    private async Task RestoreFilterPreference()
+    {
+        try
+        {
+            var key = $"{ActiveTab}_filter";
+            var savedFilter = await JS.InvokeAsync<string?>("sessionStorage.getItem", key);
+            if (!string.IsNullOrEmpty(savedFilter)) 
+            { 
+                showFilters = savedFilter == "true"; 
+                StateHasChanged(); 
+            }
+            else
+            {
+                showFilters = false;
+                StateHasChanged();
+            }
+        }
+        catch { }
+    }
+
     private void SetTab(string tabId)
     {
         NavManager.NavigateTo($"library/{tabId}");
@@ -356,7 +423,14 @@
     }
 
     private void ToggleEdit() { isEditing = !isEditing; if (!isEditing) _selectedIds.Clear(); }
-    private void ToggleFilters() => showFilters = !showFilters;
+
+    private void SetFilterVisibility(bool visible)
+    {
+        showFilters = visible;
+        _ = JS.InvokeVoidAsync("sessionStorage.setItem", $"{ActiveTab}_filter", visible.ToString().ToLower());
+    }
+
+    private void ToggleFilters() => SetFilterVisibility(!showFilters);
 
     private void ToggleSort(string col)
     {
@@ -395,7 +469,7 @@
     private void OnFilterTouchEnd(TouchEventArgs e)
     {
         _touchEndX = e.ChangedTouches[0].ClientX;
-        if (_touchStartX - _touchEndX > 50) showFilters = false;
+        if (_touchStartX - _touchEndX > 50) SetFilterVisibility(false);
     }
 
     private async Task BulkMoveToWatchlist() { foreach (var i in CurrentItems.Where(i => _selectedIds.Contains(i.ImdbId)).ToList()) await WatchlistSvc.UpdateStatusAsync(i, WatchlistStatus.Pending); _selectedIds.Clear(); }
