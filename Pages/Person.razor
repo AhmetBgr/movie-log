@@ -105,7 +105,7 @@
                         {
                             <section class="mb-5">
                                 <h2 class="section-title mb-4">Known For</h2>
-                                <div class="row row-cols-3 row-cols-sm-4 row-cols-md-4 row-cols-lg-6 g-2">
+                                <div class="row row-cols-3 row-cols-sm-4 row-cols-md-5 row-cols-lg-5 g-2">
                                     @foreach (var credit in KnownForCredits)
                                     {
                                         <div class="col">
@@ -464,7 +464,7 @@
                 .Where(c => !string.IsNullOrEmpty(c.PosterPath))
                 .DistinctBy(c => $"{c.MediaType}-{c.Id}");
 
-            return all.OrderByDescending(c => c.Popularity * Math.Max(1, c.VoteCount)).Take(4);
+            return all.OrderByDescending(c => c.Popularity * Math.Max(1, c.VoteCount)).Take(5);
         }
     }
 
