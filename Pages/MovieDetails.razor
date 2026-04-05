@@ -224,63 +224,9 @@
 
                 <!-- Secondary Column -->
                 <div class="col-lg-4">
-                    <!-- Library Status Side Box (MATCHING SidePanel REUSABLE UI) -->
                     <div class="details-section shadow-sm sticky-side status-box accent-border animate-in p-3">
-                        <h4 class="small fw-bold text-secondary text-uppercase tracking-wider mb-3 ms-1" style="font-size: 0.65rem;">Library Status</h4>
-                        <div class="user-actions-card shadow-sm border p-3 rounded-4 bg-white">
-                            <div class="d-flex align-items-center gap-3">
-                                <!-- Rating Box -->
-                                <div class="d-flex flex-column align-items-center p-2 border rounded-4 bg-white shadow-sm flex-shrink-0 position-relative" style="min-width: 90px;">
-                                    @if (showSavedIndicator)
-                                    {
-                                        <div class="position-absolute top-0 start-50 translate-middle-x z-3 mt-n2 animate-fade-out">
-                                            <span class="badge bg-success shadow-sm rounded-pill py-1 px-3 fw-bold border border-white" style="font-size: 0.65rem;">SAVED</span>
-                                        </div>
-                                    }
-                                    <span class="small fw-bold text-secondary text-uppercase tracking-wider mb-2" style="font-size: 0.65rem;">Rating</span>
-                                    <div class="rounded-3 d-flex flex-column align-items-center justify-content-center shadow-sm transition-all rating-box-indicator" 
-                                        style="width: 50px; height: 50px; background-color: @(libItem?.Rating20 == null ? "#fff" : GetRatingColor(libItem.Rating20.Value)); 
-                                                color: @(libItem?.Rating20 == null ? "#adb5bd" : "#fff"); 
-                                                border: @(libItem?.Rating20 == null ? "2px dashed #dee2e6" : "none")">
-                                        <input type="number" class="form-control form-control-sm text-center fw-black p-0 border-0 bg-transparent fs-2 no-spinner shadow-none @(libItem?.Rating20 == null ? "text-dark" : "text-white")" 
-                                            style="width: 50px; height: 50px; cursor: pointer;"
-                                            min="0" max="100" 
-                                            placeholder="-"
-                                            value="@(libItem?.Rating20)" 
-                                            @onchange="(e) => HandleRatingEdit(e)" />
-                                    </div>
-                                    @if (libItem?.Rating20 != null)
-                                    {
-                                        <button class="rating-delete-btn-mini"
-                                                @onclick="() => HandleRatingEdit(new ChangeEventArgs { Value = null })">
-                                            <i class="bi bi-trash3-fill"></i>
-                                        </button>
-                                    }
-                                </div>
-                                
-                                <div class="flex-grow-1">
-                                    <span class="small fw-bold text-secondary text-uppercase tracking-wider mb-2 d-block" style="font-size: 0.65rem;">Status</span>
-                                    @{ var status = libItem?.Status; }
-                                    <div class="status-compact-grid">
-                                        <button class="status-btn-compact @(status == WatchlistStatus.Pending ? "active pending" : "")"
-                                                @onclick="async () => await ToggleStatus(WatchlistStatus.Pending)">
-                                            <i class="bi bi-list-nested"></i>
-                                        </button>
-                                        <button class="status-btn-compact @(status == WatchlistStatus.Watching ? "active watching" : "")"
-                                                @onclick="async () => await ToggleStatus(WatchlistStatus.Watching)">
-                                            <i class="bi bi-play-fill"></i>
-                                        </button>
-                                        <button class="status-btn-compact @(status == WatchlistStatus.Watched ? "active watched" : "")"
-                                                @onclick="async () => await ToggleStatus(WatchlistStatus.Watched)">
-                                            <i class="bi bi-check-lg"></i>
-                                        </button>
-                                    </div>
-                                    <div class="mt-2 text-center text-truncate" style="max-width: 100px;">
-                                        <span class="badge @StatusBadgeClass(status) rounded-pill x-small px-3">@StatusLabel(status)</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        <h4 class="small fw-bold text-secondary text-uppercase tracking-wider mb-3 ms-1" style="font-size: 0.65rem;">Library Actions</h4>
+                        <CompactLibraryActions Item="libItem" ImdbId="@imdbId" Movie="movie" />
                     </div>
 
                     <!-- Media Gallery Grid -->
@@ -511,36 +457,6 @@
     .person-compact-card img { width: 32px; height: 32px; border-radius: 8px; object-fit: cover; }
     .person-compact-card span { font-weight: 700; font-size: 0.85rem; color: #1e293b; }
 
-    /* Library Status Compact (From SidePanel.razor) */
-    .status-compact-grid {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 4px;
-    }
-    .status-btn-compact {
-        height: 36px;
-        border-radius: 10px;
-        border: 1px solid #f1f5f9;
-        background: #f8fafc;
-        color: #94a3b8;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1rem;
-        transition: all 0.2s;
-    }
-    .status-btn-compact.active { color: #fff; }
-    .status-btn-compact.active.pending { background: #64748b; border-color: #64748b; }
-    .status-btn-compact.active.watching { background: #10b981; border-color: #10b981; }
-    .status-btn-compact.active.watched { background: #6366f1; border-color: #6366f1; }
-    
-    .rating-delete-btn-mini {
-        position: absolute; bottom: 0; right: 0;
-        background: #ef4444; color: #fff; border: 2px solid #fff;
-        width: 22px; height: 22px; border-radius: 50%;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 0.65rem;
-    }
 
     /* Wiki & Subs */
     .wiki-content p { font-size: 1rem; line-height: 1.6; color: #475569; }
@@ -684,14 +600,6 @@
         return h > 0 ? $"{h}h {m}m" : $"{m}m";
     }
 
-    private string GetRatingColor(int val)
-    {
-        if (val >= 80) return "#10b981";
-        if (val >= 60) return "#3b82f6";
-        if (val >= 40) return "#f59e0b";
-        return "#ef4444";
-    }
-
     private void OpenLightbox(string path) => selectedLightboxPath = path;
 
     private async Task OpenAsPopup()
@@ -701,86 +609,4 @@
             await WatchlistSvc.ShowDetailsAsync(libItem);
         }
     }
-
-    private async Task ToggleStatus(WatchlistStatus newStatus)
-    {
-        var existing = WatchlistSvc.Items.FirstOrDefault(i => i.ImdbId == imdbId);
-        if (existing == null)
-        {
-            var newItem = new WatchlistItem
-            {
-                ImdbId = imdbId,
-                Title = movie!.Title,
-                Status = newStatus,
-                TmdbId = movie.Id,
-                PosterPath = movie.PosterPath,
-                Year = movie.ReleaseDate,
-                Runtime = movie.Runtime,
-                VoteAverage = movie.VoteAverage,
-                Rating20 = null,
-                Genres = string.Join(", ", movie.GenreList.Select(g => g.Name))
-            };
-            WatchlistSvc.Items.Add(newItem);
-            libItem = newItem;
-        }
-        else
-        {
-            existing.Status = newStatus;
-            libItem = existing;
-        }
-
-        await WatchlistSvc.UpdateListAsync(WatchlistSvc.Items);
-        WatchlistSvc.NotifyStateChanged(fullRefresh: true);
-        
-        showSavedIndicator = true;
-        StateHasChanged();
-        await Task.Delay(2000);
-        showSavedIndicator = false;
-        StateHasChanged();
-    }
-
-    private async Task HandleRatingEdit(ChangeEventArgs e)
-    {
-        var inputVal = e.Value?.ToString();
-        int? val = null;
-        if (int.TryParse(inputVal, out var parsed)) 
-        {
-            val = Math.Clamp(parsed, 0, 100);
-        }
-        
-        var existing = WatchlistSvc.Items.FirstOrDefault(i => i.ImdbId == imdbId);
-        if (existing != null)
-        {
-            existing.Rating20 = val;
-            libItem = existing;
-            await WatchlistSvc.UpdateListAsync(WatchlistSvc.Items);
-            WatchlistSvc.NotifyStateChanged(fullRefresh: true);
-            
-            showSavedIndicator = true;
-            StateHasChanged();
-            await Task.Delay(2000);
-            showSavedIndicator = false;
-            StateHasChanged();
-        }
-        else
-        {
-            await WatchlistSvc.ShowToastAsync("Add to Library first!");
-        }
-    }
-
-    private string StatusBadgeClass(WatchlistStatus? s) => s switch
-    {
-        WatchlistStatus.Pending => "bg-secondary",
-        WatchlistStatus.Watching => "bg-success",
-        WatchlistStatus.Watched => "bg-primary",
-        _ => "bg-light text-dark"
-    };
-
-    private string StatusLabel(WatchlistStatus? s) => s switch
-    {
-        WatchlistStatus.Pending => "Watchlist",
-        WatchlistStatus.Watching => "Watching",
-        WatchlistStatus.Watched => "Completed",
-        _ => "Not in Library"
-    };
 }

@@ -97,58 +97,8 @@
                         </div>
                     </div>
 
-                    <!-- User Actions Card -->
-                    <div class="user-actions-card shadow-sm border">
-                        <div class="d-flex align-items-center gap-3">
-                            <!-- Old Rating Box -->
-                            
-                        <!-- Rating Box -->
-                        <div class="d-flex flex-column align-items-center p-2 border rounded-4 bg-white shadow-sm flex-shrink-0 position-relative" style="min-width: 90px;">
-                            @if (showSavedIndicator)
-                            {
-                                <div class="position-absolute top-0 start-50 translate-middle-x z-3 mt-n2 animate-fade-out">
-                                    <span class="badge bg-success shadow-sm rounded-pill py-1 px-3 fw-bold border border-white" style="font-size: 0.65rem;">SAVED</span>
-                                </div>
-                            }
-                            <span class="small fw-bold text-secondary text-uppercase tracking-wider mb-2" style="font-size: 0.65rem;">Rating</span>
-                            <div class="rounded-3 d-flex flex-column align-items-center justify-content-center shadow-sm transition-all rating-box-indicator" 
-                                 style="width: 50px; height: 50px; background-color: @(libItem?.Rating20 == null ? "#fff" : GetRatingColor(libItem.Rating20.Value)); 
-                                        color: @(libItem?.Rating20 == null ? "#adb5bd" : "#fff"); 
-                                        border: @(libItem?.Rating20 == null ? "2px dashed #dee2e6" : "none")">
-                                <input type="number" class="form-control form-control-sm text-center fw-black p-0 border-0 bg-transparent fs-2 no-spinner shadow-none @(libItem?.Rating20 == null ? "text-dark" : "text-white")" 
-                                       style="width: 50px; height: 50px; cursor: pointer;"
-                                       min="0" max="100" 
-                                       placeholder="-"
-                                       value="@(libItem?.Rating20)" 
-                                       @onchange="(e) => HandleRatingEdit(e)" />
-                            </div>
-                            @if (libItem?.Rating20 != null)
-                            {
-                                <button class="rating-delete-btn"
-                                        @onclick="() => HandleRatingEdit(new ChangeEventArgs { Value = null })">
-                                    <i class="bi bi-trash3-fill"></i>
-                                </button>
-                            }
-                        </div>
-                            <div class="flex-grow-1">
-                                <span class="action-label d-block mb-2">Library Status</span>
-                                @{ var status = libItem?.Status; }
-                                <div class="status-compact-grid">
-                                    <button class="status-btn-compact @(status == WatchlistStatus.Pending ? "active pending" : "")"
-                                            @onclick="async () => await ToggleStatus(WatchlistStatus.Pending)">
-                                        <i class="bi bi-list-nested"></i> Watchlist
-                                    </button>
-                                    <button class="status-btn-compact @(status == WatchlistStatus.Watching ? "active watching" : "")"
-                                            @onclick="async () => await ToggleStatus(WatchlistStatus.Watching)">
-                                        <i class="bi bi-play-fill"></i> Watching
-                                    </button>
-                                    <button class="status-btn-compact @(status == WatchlistStatus.Watched ? "active watched" : "")"
-                                            @onclick="async () => await ToggleStatus(WatchlistStatus.Watched)">
-                                        <i class="bi bi-check-lg"></i> Watched
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="mb-4 animate-in">
+                        <CompactLibraryActions Item="libItem" ImdbId="@(item.ImdbId ?? movie.ImdbId)" Movie="movie" />
                     </div>
 
                     @if (movie.GenreList?.Any() == true)
@@ -469,138 +419,6 @@
     }
     .meta-badge.rating { color: #f59e0b; }
 
-    /* Actions Card */
-    .user-actions-card {
-        margin: 24px 0;
-        padding: 16px;
-        border-radius: 16px;
-        background: #f8fafc;
-    }
-    .action-label {
-        font-size: 0.75rem;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        color: #94a3b8;
-    }
-
-    /* User Rating Old Style */
-    .rating-delete-btn {
-        position: absolute;
-        top: 20px;
-        right: 5px;
-
-        width: 25px;
-        height: 25px;
-
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        border-radius: 50%;          /* makes it a circle */
-        background-color: #f8f9fa;   /* light background */
-        border: 1px solid #d26255ff;
-
-        font-size: 1rem;
-        color: #6c757d;
-
-        cursor: pointer;
-        transition: all 0.2s ease;
-    }
-    .user-rating-box-old {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 1px;
-        position: relative;
-    }
-    .rating-circle {
-        width: 64px;
-        height: 64px;
-        border-radius: 50%;
-        border: 3px solid var(--rating-color);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: #fff;
-        position: relative;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-    }
-    .rating-input-old {
-        width: 100%;
-        border: none;
-        background: transparent;
-        text-align: center;
-        font-weight: 900;
-        font-size: 1.25rem;
-        color: #1e293b;
-        outline: none;
-    }
-    .rating-label {
-        font-size: 0.65rem;
-        font-weight: 800;
-        text-transform: uppercase;
-        color: #94a3b8;
-    }
-    .saved-badge {
-        position: absolute;
-        top: -12px;
-        background: #10b981;
-        color: #fff;
-        padding: 2px 8px;
-        border-radius: 999px;
-        font-size: 0.55rem;
-        font-weight: 900;
-        z-index: 10;
-        box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
-    }
-    .btn-clear-rating-old {
-        position: absolute;
-        bottom: -5px;
-        right: -5px;
-        background: #fff;
-        border: none;
-        color: #cbd5e1;
-        border-radius: 50%;
-        padding: 0;
-        width: 20px;
-        height: 20px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1rem;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .btn-clear-rating-old:hover { color: #ef4444; }
-
-    /* Compact Status Buttons */
-    .status-compact-grid {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 8px; /* Increased from 6px */
-    }
-    .status-btn-compact {
-        padding: 10px 4px;
-        border-radius: 12px; /* Smoother corners */
-        border: 1px solid #e2e8f0;
-        background: #fff;
-        font-size: 0.5rem; /* Small but legible */
-        font-weight: 800;
-        text-transform: uppercase;
-        color: #64748b;
-        transition: all 0.2s;
-        display: flex;
-        flex-direction: column; /* Column layout to save horizontal space */
-        align-items: center;
-        justify-content: center;
-        gap: 1px;
-        white-space: nowrap;
-    }
-    .status-btn-compact i { font-size: 1.1rem; }
-    .status-btn-compact.active { border-color: transparent; color: #fff; }
-    .status-btn-compact.active.pending { background: #64748b; }
-    .status-btn-compact.active.watching { background: #10b981; }
-    .status-btn-compact.active.watched { background: #6366f1; }
     
     /* Person Text List */
     .person-text-list {
@@ -859,12 +677,6 @@
         }
     }
 
-    private string GetRatingColor(int val)
-    {
-        double hue = (val / 100.0) * 120;
-        return $"hsl({hue}, 75%, 45%)";
-    }
-
     private string FormatRuntime(int minutes)
     {
         if (minutes < 60) return $"{minutes}m";
@@ -876,40 +688,6 @@
     private WatchlistItem? GetLibraryItem()
     {
         return WatchlistSvc.Items.FirstOrDefault(i => i.ImdbId == WatchlistSvc.SelectedItem?.ImdbId && !string.IsNullOrEmpty(i.ImdbId));
-    }
-
-    private async Task ToggleStatus(WatchlistStatus status)
-    {
-        if (WatchlistSvc.SelectedItem != null && WatchlistSvc.SelectedMovie != null)
-        {
-            var libItem = GetLibraryItem();
-            if (libItem == null)
-            {
-                var movie = WatchlistSvc.SelectedMovie;
-                var item = WatchlistSvc.SelectedItem;
-                var newItem = new WatchlistItem {
-                    ImdbId = movie.ImdbId ?? item.ImdbId ?? "",
-                    Title = movie.Title,
-                    TitleType = item.TitleType,
-                    Year = movie.ReleaseDate ?? "",
-                    ParsedYear = int.TryParse(movie.ReleaseDate?.Split('-')[0], out var y) ? y : 0,
-                    Status = status,
-                    DateAdded = DateTime.Now
-                };
-                await WatchlistSvc.AddToWatchlistAsync(newItem);
-            }
-            else
-            {
-                if (libItem.Status == status)
-                {
-                    await WatchlistSvc.RemoveFromWatchlistAsync(libItem);
-                }
-                else
-                {
-                    await WatchlistSvc.UpdateStatusAsync(libItem, status);
-                }
-            }
-        }
     }
 
     private string GetModalYear(TmdbMovie movie, WatchlistItem item)

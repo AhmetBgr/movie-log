@@ -1,0 +1,327 @@
+@using MyPrivateWatchlist.Models
+@inject MyPrivateWatchlist.Services.WatchlistService WatchlistSvc
+@inject IJSRuntime JS
+
+<div class="compact-actions-container shadow-sm border rounded-4 bg-white p-2">
+    <div class="d-flex align-items-center gap-2">
+        
+        <!-- Rating Box -->
+        <div class="rating-box-compact position-relative flex-shrink-0" style="min-width: 70px;">
+            @if (showSavedIndicator)
+            {
+                <div class="position-absolute top-0 start-50 translate-middle-x z-3 mt-n2 animate-fade-out">
+                    <span class="badge bg-success shadow-sm rounded-pill py-1 px-2 fw-bold border border-white" style="font-size: 0.55rem;">SAVED</span>
+                </div>
+            }
+            <div class="rounded-3 d-flex flex-column align-items-center justify-content-center shadow-sm transition-all rating-box-indicator" 
+                 style="width: 44px; height: 44px; background-color: @(Item?.Rating20 == null ? "#fff" : GetRatingColor(Item.Rating20.Value)); 
+                        color: @(Item?.Rating20 == null ? "#adb5bd" : "#fff"); 
+                        border: @(Item?.Rating20 == null ? "2px dashed #dee2e6" : "none")">
+                <input type="number" class="form-control form-control-sm text-center fw-black p-0 border-0 bg-transparent fs-4 no-spinner shadow-none @(Item?.Rating20 == null ? "text-dark" : "text-white")" 
+                       style="width: 44px; height: 44px; cursor: pointer;"
+                       min="0" max="100" 
+                       placeholder="-"
+                       value="@(Item?.Rating20)" 
+                       @onchange="HandleRatingEdit" />
+            </div>
+            @if (Item?.Rating20 != null)
+            {
+                <button class="rating-delete-btn-tiny" @onclick="() => HandleRatingEdit(new ChangeEventArgs { Value = null })">
+                    <i class="bi bi-trash3-fill"></i>
+                </button>
+            }
+        </div>
+
+        <!-- Status Grid -->
+        <div class="flex-grow-1">
+            <div class="status-compact-pills">
+                <button class="status-pill @(Item?.Status == WatchlistStatus.Pending ? "active pending" : "")"
+                        title="Watchlist"
+                        @onclick="() => ToggleStatus(WatchlistStatus.Pending)">
+                    <i class="bi bi-list-nested"></i>
+                </button>
+                <button class="status-pill @(Item?.Status == WatchlistStatus.Watching ? "active watching" : "")"
+                        title="Watching"
+                        @onclick="() => ToggleStatus(WatchlistStatus.Watching)">
+                    <i class="bi bi-play-fill"></i>
+                </button>
+                <button class="status-pill @(Item?.Status == WatchlistStatus.Watched ? "active watched" : "")"
+                        title="Watched"
+                        @onclick="() => ToggleStatus(WatchlistStatus.Watched)">
+                    <i class="bi bi-check-lg"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Collection Actions -->
+        <div class="collection-actions flex-shrink-0">
+            <details class="open-on-menu" @onclick:stopPropagation="true">
+                <summary class="add-col-btn open-on-trigger" title="Add to Collection" @onclick:stopPropagation="true">
+                    <i class="bi bi-plus-lg"></i>
+                </summary>
+                <div class="open-on-popover">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="open-on-heading">Add to Collection</div>
+                        <button type="button" class="open-on-close" title="Close" onclick="window.openOnMenu.closeClosest(this)">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+                    @foreach (var col in WatchlistSvc.Collections)
+                    {
+                        var isInCol = col.MovieIds.Contains(ImdbId);
+                        <button type="button" class="open-on-item w-100 border-0 text-start d-flex align-items-center justify-content-between @(isInCol ? "text-primary fw-bold" : "")" 
+                                @onclick='() => HandleCollectionToggle(col)'>
+                            <span>@col.Name</span>
+                            @if (isInCol) { <i class="bi bi-check-circle-fill"></i> }
+                        </button>
+                    }
+                    @if (!WatchlistSvc.Collections.Any())
+                    {
+                        <div class="px-3 py-2 text-muted small italic">No collections yet.</div>
+                    }
+                </div>
+            </details>
+        </div>
+
+    </div>
+</div>
+
+<style>
+    .compact-actions-container {
+        transition: all 0.2s;
+    }
+
+    .rating-box-indicator {
+        position: relative;
+    }
+
+    .rating-delete-btn-tiny {
+        position: absolute;
+        bottom: -4px;
+        right: -4px;
+        width: 18px;
+        height: 18px;
+        background: #ef4444;
+        color: #fff;
+        border: 2px solid #fff;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.55rem;
+        cursor: pointer;
+        z-index: 5;
+    }
+
+    .status-compact-pills {
+        display: flex;
+        background: #f1f5f9;
+        padding: 3px;
+        border-radius: 12px;
+        gap: 3px;
+    }
+
+    .status-pill {
+        flex: 1;
+        height: 38px;
+        border: none;
+        background: transparent;
+        border-radius: 9px;
+        color: #94a3b8;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        transition: all 0.2s;
+    }
+    .status-pill:hover { color: #64748b; background: rgba(255,255,255,0.5); }
+    .status-pill.active { color: #fff; }
+    .status-pill.active.pending { background: #64748b; box-shadow: 0 2px 8px rgba(100, 116, 139, 0.3); }
+    .status-pill.active.watching { background: #10b981; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3); }
+    .status-pill.active.watched { background: #6366f1; box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3); }
+
+    .add-col-btn {
+        width: 38px;
+        height: 38px;
+        border-radius: 12px;
+        background: #f1f5f9;
+        color: #64748b;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .add-col-btn:hover { background: #e2e8f0; color: #1e293b; }
+
+    .no-spinner::-webkit-outer-spin-button,
+    .no-spinner::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
+    .open-on-popover {
+        position: fixed;
+        min-width: 180px;
+        padding: 8px;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        border-radius: 12px;
+        background: #fff;
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.16);
+        z-index: 2000;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition: opacity 0.1s ease, transform 0.1s ease;
+    }
+
+    .open-on-menu[open] .open-on-popover[data-positioned="true"] {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+    }
+
+    .open-on-heading {
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #6c757d;
+        padding: 2px 6px 8px;
+        margin: 0;
+    }
+
+    .open-on-item {
+        display: block;
+        padding: 8px 10px;
+        border-radius: 8px;
+        color: #212529;
+        background: transparent;
+        font-size: 0.88rem;
+        font-weight: 500;
+        text-decoration: none;
+        white-space: nowrap;
+        transition: background 0.1s ease;
+    }
+    .open-on-item:nth-of-type(even) { background: rgba(0, 0, 0, 0.025); }
+    .open-on-item:hover { background: #f5f6f8; color: #111; }
+
+    .open-on-close {
+        width: 26px;
+        height: 26px;
+        border: 0;
+        border-radius: 999px;
+        background: transparent;
+        color: #6c757d;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background 0.12s ease, color 0.12s ease;
+    }
+    .open-on-close:hover { background: rgba(0, 0, 0, 0.06); color: #212529; }
+
+    .animate-fade-out {
+        animation: fadeOutStatus 1.5s forwards;
+    }
+
+    @@keyframes fadeOutStatus {
+        0% { opacity: 0; transform: translate(-50%, 10px); }
+        20% { opacity: 1; transform: translate(-50%, 0); }
+        80% { opacity: 1; }
+        100% { opacity: 0; transform: translate(-50%, -10px); }
+    }
+</style>
+
+@code {
+    [Parameter] public WatchlistItem? Item { get; set; }
+    [Parameter] public string ImdbId { get; set; } = "";
+    [Parameter] public TmdbMovie? Movie { get; set; }
+
+    private bool showSavedIndicator = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("openOnMenu.init");
+        }
+    }
+
+    private string GetRatingColor(int val)
+    {
+        if (val >= 80) return "#10b981";
+        if (val >= 60) return "#3b82f6";
+        if (val >= 40) return "#f59e0b";
+        return "#ef4444";
+    }
+
+    private async Task HandleRatingEdit(ChangeEventArgs e)
+    {
+        var inputVal = e.Value?.ToString();
+        int? val = null;
+        if (int.TryParse(inputVal, out var parsed)) 
+        {
+            val = Math.Clamp(parsed, 0, 100);
+        }
+        
+        if (Item != null)
+        {
+            await WatchlistSvc.UpdateRatingAsync(Item, val);
+            showSavedIndicator = true;
+            StateHasChanged();
+            await Task.Delay(1500);
+            showSavedIndicator = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ToggleStatus(WatchlistStatus newStatus)
+    {
+        if (Item == null && Movie != null)
+        {
+            // Auto-add to library if movie matches
+            Item = new WatchlistItem
+            {
+                ImdbId = ImdbId,
+                Title = Movie.Title,
+                Status = newStatus,
+                TmdbId = Movie.Id,
+                PosterPath = Movie.PosterPath,
+                Year = Movie.ReleaseDate,
+                Runtime = Movie.Runtime,
+                VoteAverage = Movie.VoteAverage,
+                Genres = string.Join(", ", Movie.GenreList?.Select(g => g.Name) ?? Enumerable.Empty<string>())
+            };
+            WatchlistSvc.Items.Add(Item);
+        }
+        else if (Item != null)
+        {
+            Item.Status = newStatus;
+        }
+
+        if (Item != null)
+        {
+            await WatchlistSvc.UpdateStatusAsync(Item, newStatus);
+            showSavedIndicator = true;
+            StateHasChanged();
+            await Task.Delay(1500);
+            showSavedIndicator = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleCollectionToggle(CustomCollection col)
+    {
+        if (col.MovieIds.Contains(ImdbId))
+        {
+            await WatchlistSvc.RemoveMovieFromCollectionAsync(col.Id, ImdbId);
+        }
+        else
+        {
+            await WatchlistSvc.AddMovieToCollectionAsync(col.Id, ImdbId);
+        }
+        await JS.InvokeVoidAsync("openOnMenu.closeAll");
+    }
+}
