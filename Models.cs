@@ -509,6 +509,21 @@ public class TmdbCollection
         : $"https://image.tmdb.org/t/p/w500{PosterPath}";
 }
 
+public class CustomCollection
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public string Name { get; set; } = "";
+    public string? Description { get; set; }
+    public List<string> MovieIds { get; set; } = new(); // IMDB IDs
+    public DateTime DateCreated { get; set; } = DateTime.Now;
+    public string? PosterPath { get; set; } 
+    
+    public string FullPosterUrl => string.IsNullOrEmpty(PosterPath)
+        ? "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" 
+        : $"https://image.tmdb.org/t/p/w300{PosterPath}";
+}
+
+
 // --- NEW EXTERNAL API CLASSES ---
 public class WikipediaSnippet
 {

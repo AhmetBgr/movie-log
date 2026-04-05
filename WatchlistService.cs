@@ -40,6 +40,8 @@ public class WatchlistService
     }
 
     public List<WatchlistItem> Items { get; set; } = new();
+    public List<CustomCollection> Collections { get; set; } = new();
+
     
     private List<WatchlistItem> _watchingCached = new();
     private List<WatchlistItem> _watchedCached = new();
@@ -477,7 +479,11 @@ public class WatchlistService
             SearchHistory = await _storage.GetAsync<List<string>>("search_history") ?? new();
             LogStep("GetAsync: search_history");
 
+            Collections = await _storage.GetAsync<List<CustomCollection>>("my_custom_collections") ?? new();
+            LogStep("GetAsync: my_custom_collections");
+
             _ = BackgroundHydrationLoop();
+
             LogStep("BackgroundHydrationLoop (fire-and-forget)");
         }
         catch (Exception ex)
@@ -950,6 +956,7 @@ public class WatchlistService
 
         await _storage.SaveCompressedListAsync("my_movie_list_slim", slim);
         await _storage.SaveCompressedAsync("my_movie_details", _detailsStore);
+        await _storage.SaveAsync("my_custom_collections", Collections);
     }
 
     public async Task UpdateRatingAsync(WatchlistItem item, int? rating100)
@@ -1498,7 +1505,112 @@ public class WatchlistService
         }
         return new();
     }
+
+    // --- Custom Collections ---
+    public async Task CreateCollectionAsync(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return;
+        Collections.Add(new CustomCollection { Name = name });
+        await PersistAsync();
+        NotifyStateChanged();
+    }
+
+    public async Task DeleteCollectionAsync(Guid id)
+    {
+        var col = Collections.FirstOrDefault(c => c.Id == id);
+        if (col != null)
+        {
+            Collections.Remove(col);
+            await PersistAsync();
+            NotifyStateChanged();
+        }
+    }
+
+    public async Task RenameCollectionAsync(Guid id, string newName)
+    {
+        var col = Collections.FirstOrDefault(c => c.Id == id);
+        if (col != null && !string.IsNullOrWhiteSpace(newName))
+        {
+            col.Name = newName;
+            await PersistAsync();
+            NotifyStateChanged();
+        }
+    }
+
+    public async Task AddMovieToCollectionAsync(Guid collectionId, string imdbId)
+    {
+        var col = Collections.FirstOrDefault(c => c.Id == collectionId);
+        if (col != null && !col.MovieIds.Contains(imdbId))
+        {
+            col.MovieIds.Add(imdbId);
+            
+            // Set poster if not set
+            if (string.IsNullOrEmpty(col.PosterPath))
+            {
+                var item = Items.FirstOrDefault(i => i.ImdbId == imdbId);
+                if (item != null) col.PosterPath = item.PosterPath;
+            }
+
+            await PersistAsync();
+            NotifyStateChanged();
+        }
+    }
+
+    public async Task BulkAddMoviesToCollectionAsync(Guid collectionId, IEnumerable<string> imdbIds)
+    {
+        var col = Collections.FirstOrDefault(c => c.Id == collectionId);
+        if (col != null)
+        {
+            bool added = false;
+            foreach (var id in imdbIds)
+            {
+                if (!col.MovieIds.Contains(id))
+                {
+                    col.MovieIds.Add(id);
+                    added = true;
+                }
+            }
+
+            if (added)
+            {
+                if (string.IsNullOrEmpty(col.PosterPath) && col.MovieIds.Any())
+                {
+                    var firstId = col.MovieIds.First();
+                    var item = Items.FirstOrDefault(i => i.ImdbId == firstId);
+                    if (item != null) col.PosterPath = item.PosterPath;
+                }
+                await PersistAsync();
+                NotifyStateChanged();
+            }
+        }
+    }
+
+    public async Task RemoveMovieFromCollectionAsync(Guid collectionId, string imdbId)
+    {
+        var col = Collections.FirstOrDefault(c => c.Id == collectionId);
+        if (col != null && col.MovieIds.Remove(imdbId))
+        {
+            // Update poster if it was the one removed
+            var item = Items.FirstOrDefault(i => i.ImdbId == imdbId);
+            if (item != null && col.PosterPath == item.PosterPath)
+            {
+                if (col.MovieIds.Any())
+                {
+                    var nextItem = Items.FirstOrDefault(i => i.ImdbId == col.MovieIds.First());
+                    col.PosterPath = nextItem?.PosterPath;
+                }
+                else
+                {
+                    col.PosterPath = null;
+                }
+            }
+
+            await PersistAsync();
+            NotifyStateChanged();
+        }
+    }
 }
+
 
 
 public class TmdbFindResult

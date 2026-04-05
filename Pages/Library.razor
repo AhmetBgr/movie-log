@@ -121,6 +121,35 @@
                         <span class="tb-label">Mark Watched</span>
                     </button>
                 }
+
+                @if (ActiveTab != "collections")
+                {
+                    <details class="open-on-menu d-inline-block ms-1">
+                        <summary class="tb-btn tb-btn-primary live open-on-trigger px-3">
+                            <i class="bi bi-folder-plus"></i>
+                            <span class="tb-label">Add to Collection</span>
+                        </summary>
+                        <div class="open-on-popover shadow-lg border-0 rounded-3 py-2">
+                             @foreach (var col in WatchlistSvc.Collections)
+                            {
+                                <button class="dropdown-item py-2 px-3" @onclick='() => { BulkAddToCollection(col.Id); JS.InvokeVoidAsync("openOnMenu.closeAll"); }'>@col.Name</button>
+                            }
+                            @if (!WatchlistSvc.Collections.Any())
+                            {
+                                <span class="dropdown-item-text text-muted small py-2 px-3">No collections found.</span>
+                            }
+                            <hr class="dropdown-divider mx-2">
+                            <button class="dropdown-item py-2 px-3 fw-bold text-primary" @onclick='() => { showCreateCollection = true; JS.InvokeVoidAsync("openOnMenu.closeAll"); }'> + New Collection</button>
+                        </div>
+                    </details>
+                }
+                else if (SelectedCollectionId != null)
+                {
+                    <button class="tb-btn tb-btn-danger live" @onclick="BulkRemoveFromCollection">
+                        <i class="bi bi-folder-minus"></i>
+                        <span class="tb-label">Remove from Selection</span>
+                    </button>
+                }
                 else if (ActiveTab == "watchlist")
                 {
                     <button class="tb-btn tb-btn-success live" @onclick="BulkStartWatching">
@@ -184,7 +213,28 @@
         }
 
         <div class="content-scroll" @onscroll="OnScroll">
-            @if (!CurrentItems.Any() && !isEditing)
+            @if (ActiveTab == "collections" && SelectedCollectionId == null)
+            {
+                <div class="collections-grid p-4">
+                    <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-4">
+                        @foreach (var col in WatchlistSvc.Collections)
+                        {
+                            <div class="col">
+                                <CollectionCard Collection="col" 
+                                               OnClick="() => SelectCollection(col.Id)" 
+                                               OnDelete="() => DeleteCollection(col.Id)" />
+                            </div>
+                        }
+                        <div class="col">
+                            <div class="add-collection-card" @onclick="() => showCreateCollection = true">
+                                <i class="bi bi-plus-lg"></i>
+                                <span>Create Collection</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+            else if (!CurrentItems.Any() && !isEditing)
             {
                 <div class="d-flex align-items-center justify-content-center h-100 py-5">
                     <div class="text-center opacity-50 py-5">
@@ -231,6 +281,10 @@
     }
 </div>
 
+<CreateCollectionDialog Show="showCreateCollection" 
+                        OnCreated="HandleCollectionCreated" 
+                        OnCancel="() => showCreateCollection = false" />
+
 @code {
     [Parameter] public string? Tab { get; set; }
 
@@ -247,7 +301,7 @@
     private double _touchStartX;
     private double _touchEndX;
 
-    private class TabInfo
+    public class TabInfo
     {
         public string Id { get; set; } = "";
         public string Label { get; set; } = "";
@@ -259,8 +313,13 @@
     {
         new TabInfo { Id = "watchlist", Label = "Watchlist", Icon = "bi-list-nested", Count = WatchlistSvc.FilteredItems.Count() },
         new TabInfo { Id = "watched", Label = "Watched", Icon = "bi-check2-all", Count = WatchlistSvc.WatchedItems.Count() },
-        new TabInfo { Id = "watching", Label = "Watching", Icon = "bi-play-circle-fill", Count = WatchlistSvc.WatchingItems.Count() }
+        new TabInfo { Id = "watching", Label = "Watching", Icon = "bi-play-circle-fill", Count = WatchlistSvc.WatchingItems.Count() },
+        new TabInfo { Id = "collections", Label = "Collections", Icon = "bi-folder-fill", Count = WatchlistSvc.Collections.Count }
     };
+
+    private Guid? SelectedCollectionId { get; set; }
+    private CustomCollection? SelectedCollection => WatchlistSvc.Collections.FirstOrDefault(c => c.Id == SelectedCollectionId);
+    private bool showCreateCollection = false;
 
     private WatchlistStatus CurrentTabStatus => ActiveTab switch {
         "watching" => WatchlistStatus.Watching,
@@ -268,11 +327,29 @@
         _ => WatchlistStatus.Pending
     };
 
-    private IEnumerable<WatchlistItem> CurrentItems => ActiveTab switch {
-        "watching" => WatchlistSvc.WatchingItems,
-        "watched" => WatchlistSvc.WatchedItems,
-        _ => WatchlistSvc.FilteredItems
-    };
+    private IEnumerable<WatchlistItem> CurrentItems {
+        get {
+            if (ActiveTab == "collections")
+            {
+                if (SelectedCollectionId == null) return Enumerable.Empty<WatchlistItem>();
+                var col = SelectedCollection;
+                if (col == null) return Enumerable.Empty<WatchlistItem>();
+                
+                var items = WatchlistSvc.Items.Where(i => col.MovieIds.Contains(i.ImdbId));
+                
+                // Still apply core filters if any (search, title etc)
+                if (!string.IsNullOrEmpty(WatchlistSvc.SearchQuery))
+                    items = items.Where(i => i.Title.Contains(WatchlistSvc.SearchQuery, StringComparison.OrdinalIgnoreCase));
+                
+                return items;
+            }
+            return ActiveTab switch {
+                "watching" => WatchlistSvc.WatchingItems,
+                "watched" => WatchlistSvc.WatchedItems,
+                _ => WatchlistSvc.FilteredItems
+            };
+        }
+    }
 
     private int CurrentItemCount => CurrentItems.Count();
 
@@ -321,7 +398,12 @@
     {
         isEditing = false;
         _selectedIds.Clear();
-        
+        if (ActiveTab == "collections" && SelectedCollectionId != null)
+        {
+            // If we're on a sub-collection view, clicking the tab again goes back to collections list
+            if (ActiveTab == Tab) SelectedCollectionId = null;
+        }
+
         if (string.IsNullOrEmpty(Tab))
         {
             _isReady = false;
@@ -329,7 +411,7 @@
         else
         {
             _isReady = true;
-            if (!new[] { "watching", "watched", "watchlist" }.Contains(ActiveTab))
+            if (!new[] { "watching", "watched", "watchlist", "collections" }.Contains(ActiveTab))
             {
                 NavManager.NavigateTo("library/watchlist", false);
             }
@@ -350,7 +432,7 @@
                 try
                 {
                     var savedTab = await JS.InvokeAsync<string?>("sessionStorage.getItem", "last_library_tab");
-                    if (!string.IsNullOrEmpty(savedTab) && new[] { "watching", "watched", "watchlist" }.Contains(savedTab))
+                    if (!string.IsNullOrEmpty(savedTab) && new[] { "watching", "watched", "watchlist", "collections" }.Contains(savedTab))
                     {
                         NavManager.NavigateTo($"library/{savedTab}", replace: true);
                         return;
@@ -370,7 +452,7 @@
             await RestoreFilterPreference();
         }
 
-        if (_isReady && new[] { "watching", "watched", "watchlist" }.Contains(ActiveTab))
+        if (_isReady && new[] { "watching", "watched", "watchlist", "collections" }.Contains(ActiveTab))
         {
             try { _ = JS.InvokeVoidAsync("sessionStorage.setItem", "last_library_tab", ActiveTab); } catch { }
         }
@@ -477,6 +559,12 @@
     private async Task BulkStartWatching() { foreach (var i in CurrentItems.Where(i => _selectedIds.Contains(i.ImdbId)).ToList()) await WatchlistSvc.UpdateStatusAsync(i, WatchlistStatus.Watching); _selectedIds.Clear(); }
     private async Task BulkWatchAgain() { foreach (var i in CurrentItems.Where(i => _selectedIds.Contains(i.ImdbId)).ToList()) await WatchlistSvc.UpdateStatusAsync(i, WatchlistStatus.Watching); _selectedIds.Clear(); }
     private async Task BulkRemove() { foreach (var i in CurrentItems.Where(i => _selectedIds.Contains(i.ImdbId)).ToList()) await WatchlistSvc.RemoveFromWatchlistAsync(i); _selectedIds.Clear(); }
+    private async Task BulkRemoveFromCollection() { if (SelectedCollectionId != null) { foreach (var id in _selectedIds.ToList()) await WatchlistSvc.RemoveMovieFromCollectionAsync(SelectedCollectionId.Value, id); _selectedIds.Clear(); isEditing = false; } }
+
+    private void SelectCollection(Guid id) { SelectedCollectionId = id; StateHasChanged(); }
+    private async Task DeleteCollection(Guid id) { if (await JS.InvokeAsync<bool>("confirm", "Are you sure you want to delete this collection?")) await WatchlistSvc.DeleteCollectionAsync(id); }
+    private async Task HandleCollectionCreated(string name) { showCreateCollection = false; await WatchlistSvc.CreateCollectionAsync(name); }
+    private async Task BulkAddToCollection(Guid colId) { await WatchlistSvc.BulkAddMoviesToCollectionAsync(colId, _selectedIds.ToList()); _selectedIds.Clear(); isEditing = false; }
 
     private void OnScroll(EventArgs e) { /* Placeholder */ }
 
@@ -545,6 +633,33 @@
         z-index: 100;
         background: #fff;
         border-bottom: 1px solid #e8eaed;
+    }
+
+    .add-collection-card {
+        aspect-ratio: 2/3;
+        border: 2px dashed #ddd;
+        border-radius: 12px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: #999;
+        transition: all 0.2s;
+        background: #fafafa;
+    }
+    .add-collection-card:hover {
+        border-color: #6366f1;
+        color: #6366f1;
+        background: #f5f5ff;
+    }
+    .add-collection-card i { font-size: 2rem; margin-bottom: 8px; }
+    .add-collection-card span { font-weight: 600; font-size: 0.85rem; }
+
+    .disc-tab.active[data-tab="collections"] { 
+        background: #f59e0b; 
+        color: #fff; 
+        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
     }
 
     .content-scroll { flex: 1; overflow-y: auto; overflow-x: hidden; }

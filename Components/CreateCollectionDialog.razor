@@ -1,0 +1,56 @@
+@using MyPrivateWatchlist.Models
+@inject MyPrivateWatchlist.Services.WatchlistService WatchlistSvc
+
+@if (Show)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1" role="dialog" @onclick="OnCancel">
+        <div class="modal-dialog modal-dialog-centered" role="document" @onclick:stopPropagation="true">
+            <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="modal-header border-0 bg-light py-3">
+                    <h5 class="modal-title fw-bold">@Title</h5>
+                    <button type="button" class="btn-close shadow-none" @onclick="OnCancel" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label for="col-name" class="form-label fw-semibold text-secondary small text-uppercase">Collection Name</label>
+                        <input type="text" @bind="_name" id="col-name" class="form-control form-control-lg border-2 shadow-none" placeholder="e.g. My Favorites, Sci-Fi Gems..." @ref="_inputRef" />
+                    </div>
+                </div>
+                <div class="modal-footer border-0 p-3 pt-0">
+                    <button type="button" class="btn btn-link link-secondary text-decoration-none fw-bold px-4" @onclick="OnCancel">Cancel</button>
+                    <button type="button" class="btn btn-primary rounded-pill px-4 fw-bold" @onclick="OnSave">Create</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool Show { get; set; }
+    [Parameter] public string Title { get; set; } = "Create New Collection";
+    [Parameter] public EventCallback<string> OnCreated { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    private string _name = "";
+    private ElementReference _inputRef;
+
+    private async Task OnSave()
+    {
+        if (!string.IsNullOrWhiteSpace(_name))
+        {
+            await OnCreated.InvokeAsync(_name);
+            _name = "";
+        }
+    }
+}
+
+<style>
+    .modal-content {
+        animation: modalSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @@keyframes modalSlideUp {
+        from { transform: translateY(20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+</style>
