@@ -291,6 +291,18 @@
 
     private async Task ToggleStatus(WatchlistStatus newStatus)
     {
+        if (Item != null && Item.Status == newStatus)
+        {
+            await WatchlistSvc.RemoveFromWatchlistByImdbIdAsync(ImdbId);
+            Item = null;
+            showSavedIndicator = true;
+            StateHasChanged();
+            await Task.Delay(1500);
+            showSavedIndicator = false;
+            StateHasChanged();
+            return;
+        }
+
         if (Item == null && Movie != null)
         {
             // Auto-add to library if movie matches
