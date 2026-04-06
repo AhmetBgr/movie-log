@@ -4,16 +4,13 @@
 - [ ] **Export to CSV**: Export your filtered Watchlist view back to a file.
 - [ ] **Watchlist Statistics**: Pie charts or stats for genre distribution and year ranges.
 - [ ] **Dark/Light Mode Toggle**: Manual theme switcher (currently defaults to system/premium dark).
-- [ ] custom lists
 - [ ] private notes/reviews
-- [ ] movie page
+- [ ] advanced search. similar to imdb
 
 
 ## Known Issues & small improvements
-- [ ] reduce Corner softening on buttons
-- [ ] x button next to search text to quick deletion
+- [ ] reduce Corner softening on button
 - [ ] fix site not loading on mobile firefox
-- [ ] improve search. advanced search
 - [ ] advanced filters
       (
         Right now, if our local library file (items.json) doesn't have the explicit string "Christopher Nolan" saved in the Director field for a specific movie, our local search box will completely miss it. Fetching full cast/            crew data for 1,000+ movies just to make the filter work would bloat the app and destroy performance.
