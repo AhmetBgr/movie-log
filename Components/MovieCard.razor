@@ -95,7 +95,7 @@
 
                         <!--  -->
                         <!-- Tracking UI (Optimized for Card View) -->
-                        @if (Item.TitleType.Contains("TV", StringComparison.OrdinalIgnoreCase) && ShowTracking)
+                        @if ((Item.TitleType?.Contains("TV", StringComparison.OrdinalIgnoreCase) == true) && ShowTracking)
                         {
                             <div class="mt-2 tracking-pill-wrap" @onclick:stopPropagation="true">
                                 <div class="d-inline-flex align-items-center bg-light rounded-pill px-2 py-1 border shadow-sm tracking-pill">
