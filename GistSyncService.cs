@@ -48,15 +48,18 @@ public class GistSyncService
     public async Task ClearSettingsAsync()
         => await _storage.RemoveAsync(SettingsStorageKey);
 
-    public async Task<List<WatchlistItem>> LoadFromGistAsync()
-        => (await LoadSnapshotAsync()).Items;
+    public async Task<(List<WatchlistItem> Items, List<CustomCollection> Collections)> LoadFromGistAsync()
+    {
+        var snapshot = await LoadSnapshotAsync();
+        return (snapshot.Items, snapshot.Collections);
+    }
 
     public async Task<GistSnapshot> LoadSnapshotAsync()
     {
         var settings = await RequireSettingsAsync();
         var gist = await FetchGistAsync(settings);
 
-        return LoadSnapshotFromResponse(gist);
+        return await LoadSnapshotFromResponseAsync(gist);
     }
 
     public async Task<IReadOnlyList<GistBackupInfo>> GetBackupsAsync()
@@ -78,7 +81,7 @@ public class GistSyncService
         if (gist.Files == null || !gist.Files.TryGetValue(backupFileName, out var file))
             throw new InvalidOperationException($"Backup file '{backupFileName}' was not found in the gist.");
 
-        return CreateSnapshotFromFile(file, gist.UpdatedAt, backupFileName, usedBackup: true, warningMessage: null);
+        return await CreateSnapshotFromFileAsync(file, gist.UpdatedAt, backupFileName, usedBackup: true, warningMessage: null);
     }
 
     public async Task<GistSaveResult> RestoreBackupToPrimaryAsync(string backupFileName)
@@ -91,16 +94,21 @@ public class GistSyncService
         if (gist.Files == null || !gist.Files.TryGetValue(backupFileName, out var backupFile))
             throw new InvalidOperationException($"Backup file '{backupFileName}' was not found in the gist.");
 
-        var restoreSnapshot = CreateSnapshotFromFile(backupFile, gist.UpdatedAt, backupFileName, usedBackup: true, warningMessage: null);
+        var restoreSnapshot = await CreateSnapshotFromFileAsync(backupFile, gist.UpdatedAt, backupFileName, usedBackup: true, warningMessage: null);
         GistBackupDraft? safetyBackup = null;
 
-        if (gist.Files.TryGetValue(WatchlistFileName, out var currentPrimary) &&
-            TryParseWatchlistFile(currentPrimary, out var currentItems, out var currentCollections, out _))
+        if (gist.Files.TryGetValue(WatchlistFileName, out var currentPrimary))
         {
-            var currentHash = WatchlistSyncData.ComputeHash(currentItems, currentCollections);
-            if (!string.Equals(currentHash, restoreSnapshot.Hash, StringComparison.Ordinal))
+            var parsed = await TryParseWatchlistFileAsync(currentPrimary);
+            if (parsed.Success)
             {
-                safetyBackup = CreateBackupDraft(currentItems, currentCollections, "before-restore");
+                var currentItems = parsed.Items;
+                var currentCollections = parsed.Collections;
+                var currentHash = WatchlistSyncData.ComputeHash(currentItems, currentCollections);
+                if (!string.Equals(currentHash, restoreSnapshot.Hash, StringComparison.Ordinal))
+                {
+                    safetyBackup = CreateBackupDraft(currentItems, currentCollections, "before-restore");
+                }
             }
         }
 
@@ -164,17 +172,17 @@ public class GistSyncService
         request.Headers.Add("X-GitHub-Api-Version", "2022-11-28");
     }
 
-    private GistSnapshot LoadSnapshotFromResponse(GistResponse gist)
+    private async Task<GistSnapshot> LoadSnapshotFromResponseAsync(GistResponse gist)
     {
         if (gist.Files != null && gist.Files.TryGetValue(WatchlistFileName, out var primaryFile))
         {
             try
             {
-                return CreateSnapshotFromFile(primaryFile, gist.UpdatedAt, WatchlistFileName, usedBackup: false, warningMessage: null);
+                return await CreateSnapshotFromFileAsync(primaryFile, gist.UpdatedAt, WatchlistFileName, usedBackup: false, warningMessage: null);
             }
             catch (InvalidOperationException primaryEx)
             {
-                var fallback = TryLoadLatestBackupSnapshot(gist, primaryEx.Message);
+                var fallback = await TryLoadLatestBackupSnapshotAsync(gist, primaryEx.Message);
                 if (fallback != null)
                     return fallback;
 
@@ -182,7 +190,7 @@ public class GistSyncService
             }
         }
 
-        var backupFallback = TryLoadLatestBackupSnapshot(gist, $"Primary file '{WatchlistFileName}' is missing. Loaded the newest backup instead.");
+        var backupFallback = await TryLoadLatestBackupSnapshotAsync(gist, $"Primary file '{WatchlistFileName}' is missing. Loaded the newest backup instead.");
         if (backupFallback != null)
             return backupFallback;
 
@@ -196,7 +204,7 @@ public class GistSyncService
         };
     }
 
-    private GistSnapshot? TryLoadLatestBackupSnapshot(GistResponse gist, string warningMessage)
+    private async Task<GistSnapshot?> TryLoadLatestBackupSnapshotAsync(GistResponse gist, string warningMessage)
     {
         if (gist.Files == null)
             return null;
@@ -208,7 +216,7 @@ public class GistSyncService
 
             try
             {
-                return CreateSnapshotFromFile(file, gist.UpdatedAt, backup.FileName, usedBackup: true, warningMessage: warningMessage);
+                return await CreateSnapshotFromFileAsync(file, gist.UpdatedAt, backup.FileName, usedBackup: true, warningMessage: warningMessage);
             }
             catch
             {
@@ -219,12 +227,20 @@ public class GistSyncService
         return null;
     }
 
-    private static GistSnapshot CreateSnapshotFromFile(GistFile file, DateTimeOffset? updatedAt, string sourceFileName, bool usedBackup, string? warningMessage)
+    private async Task<GistSnapshot> CreateSnapshotFromFileAsync(GistFile file, DateTimeOffset? updatedAt, string sourceFileName, bool usedBackup, string? warningMessage)
     {
-        if (file.Truncated)
-            throw new InvalidOperationException($"'{sourceFileName}' is too large for this browser sync path. Please reduce the gist size or replace it with a smaller valid JSON file.");
+        var content = file.Content;
 
-        if (string.IsNullOrWhiteSpace(file.Content))
+        if (file.Truncated)
+        {
+            if (string.IsNullOrWhiteSpace(file.RawUrl))
+            {
+                throw new InvalidOperationException($"'{sourceFileName}' is too large for this browser sync path, and no raw_url was provided by GitHub.");
+            }
+            content = await _http.GetStringAsync(file.RawUrl);
+        }
+
+        if (string.IsNullOrWhiteSpace(content))
         {
             return new GistSnapshot
             {
@@ -240,7 +256,7 @@ public class GistSyncService
 
         try
         {
-            var parsed = WatchlistSyncData.Deserialize(file.Content);
+            var parsed = WatchlistSyncData.Deserialize(content);
             return new GistSnapshot
             {
                 Items = parsed.Items,
@@ -258,32 +274,36 @@ public class GistSyncService
         }
     }
 
-    private static bool TryParseWatchlistFile(GistFile file, out List<WatchlistItem> items, out List<CustomCollection> collections, out string? error)
+    private async Task<(bool Success, List<WatchlistItem> Items, List<CustomCollection> Collections, string? Error)> TryParseWatchlistFileAsync(GistFile file)
     {
-        items = new List<WatchlistItem>();
-        collections = new List<CustomCollection>();
-        error = null;
-
+        var content = file.Content;
         if (file.Truncated)
         {
-            error = "File is truncated.";
-            return false;
+            if (string.IsNullOrWhiteSpace(file.RawUrl))
+            {
+                return (false, new(), new(), "File is truncated and missing raw_url.");
+            }
+            try 
+            {
+                content = await _http.GetStringAsync(file.RawUrl);
+            }
+            catch (Exception ex)
+            {
+                return (false, new(), new(), $"Failed to download raw file: {ex.Message}");
+            }
         }
 
-        if (string.IsNullOrWhiteSpace(file.Content))
-            return true;
+        if (string.IsNullOrWhiteSpace(content))
+            return (true, new(), new(), null);
 
         try
         {
-            var parsed = WatchlistSyncData.Deserialize(file.Content);
-            items = parsed.Items;
-            collections = parsed.Collections;
-            return true;
+            var parsed = WatchlistSyncData.Deserialize(content);
+            return (true, parsed.Items, parsed.Collections, null);
         }
         catch (Exception ex) when (ex is JsonException || ex is InvalidOperationException || ex is FormatException)
         {
-            error = ex.Message;
-            return false;
+            return (false, new(), new(), ex.Message);
         }
     }
 
@@ -517,6 +537,9 @@ public class GistSyncService
 
         [JsonPropertyName("truncated")]
         public bool Truncated { get; set; }
+
+        [JsonPropertyName("raw_url")]
+        public string? RawUrl { get; set; }
     }
 
     private sealed class GistPatchRequest
