@@ -5,7 +5,7 @@
 
 @if (_availableLinks.Count > 0)
 {
-    <details class="open-on-menu" @onclick:stopPropagation="true">
+    <details class="open-on-menu" open="@_isOpen" @ontoggle="() => _isOpen = !_isOpen" @onclick:stopPropagation="true">
         <summary class="open-on-trigger @(ButtonClass ?? "")" title="Open on" @onclick="HandleOpen" @onclick:stopPropagation="true">
             @if (_isFetching)
             {
@@ -19,7 +19,7 @@
         <div class="open-on-popover" @onclick:stopPropagation="true">
             <div class="d-flex align-items-center justify-content-between">
                 <div class="open-on-heading">Open on</div>
-                <button type="button" class="open-on-close" title="Close" onclick="window.openOnMenu.closeClosest(this)">
+                <button type="button" class="open-on-close" title="Close" @onclick="() => _isOpen = false">
                     <i class="bi bi-x-lg"></i>
                 </button>
             </div>
@@ -32,7 +32,7 @@
                        href="@url"
                        target="_blank"
                        rel="noopener noreferrer"
-                       onclick="window.openOnMenu.closeClosest(this)"
+                       @onclick="() => _isOpen = false"
                        title="@link.Name">
                         @link.Name
                     </a>
@@ -54,6 +54,7 @@
     private WatchlistItem? _resolvedItem;
     private bool _isFetching = false;
     private bool _hasFetched = false;
+    private bool _isOpen = false;
 
     private async Task HandleOpen()
     {

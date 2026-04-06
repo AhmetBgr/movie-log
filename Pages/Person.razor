@@ -437,6 +437,7 @@
             
             var all = credits.Cast.Concat(credits.Crew)
                 .Where(c => !string.IsNullOrEmpty(c.PosterPath))
+                .Where(c => !c.GenreIds.Contains(10767)) // exclude Talk/late-night shows
                 .DistinctBy(c => $"{c.MediaType}-{c.Id}");
 
             return sortColumn switch
@@ -462,6 +463,7 @@
             
             var all = credits.Cast.Concat(credits.Crew)
                 .Where(c => !string.IsNullOrEmpty(c.PosterPath))
+                .Where(c => !c.GenreIds.Contains(10767)) // exclude Talk/late-night shows
                 .DistinctBy(c => $"{c.MediaType}-{c.Id}");
 
             return all.OrderByDescending(c => c.Popularity * Math.Max(1, c.VoteCount)).Take(5);

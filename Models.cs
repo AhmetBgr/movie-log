@@ -276,6 +276,9 @@ public class TmdbPersonCreditItem
     [JsonPropertyName("popularity")]
     public double Popularity { get; set; }
 
+    [JsonPropertyName("genre_ids")]
+    public List<int> GenreIds { get; set; } = new();
+
     [JsonPropertyName("backdrop_path")]
     public string? BackdropPath { get; set; }
 

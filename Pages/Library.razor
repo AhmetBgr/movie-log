@@ -124,7 +124,7 @@
 
                 @if (ActiveTab != "collections")
                 {
-                    <details class="open-on-menu d-inline-block ms-1">
+                    <details class="open-on-menu d-inline-block ms-1" open="@_isBulkCollectionMenuOpen" @ontoggle="() => _isBulkCollectionMenuOpen = !_isBulkCollectionMenuOpen">
                         <summary class="tb-btn tb-btn-primary live open-on-trigger px-3">
                             <i class="bi bi-folder-plus"></i>
                             <span class="tb-label">Add to Collection</span>
@@ -132,14 +132,14 @@
                         <div class="open-on-popover shadow-lg border-0 rounded-3 py-2">
                              @foreach (var col in WatchlistSvc.Collections)
                             {
-                                <button class="dropdown-item py-2 px-3" @onclick='() => { BulkAddToCollection(col.Id); JS.InvokeVoidAsync("openOnMenu.closeAll"); }'>@col.Name</button>
+                                <button class="dropdown-item py-2 px-3" @onclick='async () => { await BulkAddToCollection(col.Id); _isBulkCollectionMenuOpen = false; }'>@col.Name</button>
                             }
                             @if (!WatchlistSvc.Collections.Any())
                             {
                                 <span class="dropdown-item-text text-muted small py-2 px-3">No collections found.</span>
                             }
                             <hr class="dropdown-divider mx-2">
-                            <button class="dropdown-item py-2 px-3 fw-bold text-primary" @onclick='() => { showCreateCollection = true; JS.InvokeVoidAsync("openOnMenu.closeAll"); }'> + New Collection</button>
+                            <button class="dropdown-item py-2 px-3 fw-bold text-primary" @onclick='() => { showCreateCollection = true; _isBulkCollectionMenuOpen = false; }'> + New Collection</button>
                         </div>
                     </details>
                 }
@@ -296,6 +296,7 @@
     private bool isCardView = true;
     private bool showFilters = false;
     private bool showSavedIndicator = false;
+    private bool _isBulkCollectionMenuOpen = false;
     private HashSet<string> _selectedIds = new();
     private DotNetObjectReference<Library>? _holdRef;
     private double _touchStartX;
