@@ -553,6 +553,16 @@ public class WatchlistService
         Console.WriteLine("NotifyStateChanged called");
     }
 
+    public async Task UpdateListAndCollectionsAsync(List<WatchlistItem> newList, List<CustomCollection> newCollections)
+    {
+        Console.WriteLine($"UpdateListAndCollectionsAsync called with {newList.Count} items, {newCollections?.Count ?? 0} collections");
+        Items = newList ?? new();
+        Collections = newCollections ?? new();
+        ScheduleSave();
+        await _storage.SaveAsync("my_custom_collections", Collections);
+        NotifyStateChanged();
+    }
+
     private async Task SaveNowAsync()
     {
         _saveDebounceCts?.Cancel();

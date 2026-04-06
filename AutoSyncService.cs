@@ -88,7 +88,8 @@ public class AutoSyncService : IDisposable
                 throw new InvalidOperationException("Gist settings are missing. Please provide both Gist ID and Personal Access Token.");
 
             var localItems = _watchlistSvc.Items.ToList();
-            var localHash = WatchlistSyncData.ComputeHash(localItems);
+            var localCollections = _watchlistSvc.Collections.ToList();
+            var localHash = WatchlistSyncData.ComputeHash(localItems, localCollections);
             var remote = await _gistSyncSvc.LoadSnapshotAsync();
             var remoteHash = remote.Hash;
 
@@ -110,7 +111,7 @@ public class AutoSyncService : IDisposable
 
                 if (localItems.Any() && !remote.Items.Any())
                 {
-                    await PushLocalAsync(localItems, localHash, "Push");
+                    await PushLocalAsync(localItems, localCollections, localHash, "Push");
                     return;
                 }
             }
@@ -128,7 +129,7 @@ public class AutoSyncService : IDisposable
 
             if (localChanged && !remoteChanged)
             {
-                await PushLocalAsync(localItems, localHash, "Push");
+                await PushLocalAsync(localItems, localCollections, localHash, "Push");
                 return;
             }
 
@@ -155,7 +156,7 @@ public class AutoSyncService : IDisposable
             }
             else
             {
-                await PushLocalAsync(localItems, localHash, "Push");
+                await PushLocalAsync(localItems, localCollections, localHash, "Push");
             }
         }
         catch (Exception ex)
@@ -168,7 +169,7 @@ public class AutoSyncService : IDisposable
 
     public void MarkLocalStateApplied()
     {
-        var localHash = WatchlistSyncData.ComputeHash(_watchlistSvc.Items);
+        var localHash = WatchlistSyncData.ComputeHash(_watchlistSvc.Items, _watchlistSvc.Collections);
         UpdateDerivedState(localHash, null, LastRemoteSummary);
         NotifyStatusChanged();
     }
@@ -189,16 +190,17 @@ public class AutoSyncService : IDisposable
         try
         {
             var currentItems = _watchlistSvc.Items.ToList();
-            if (currentItems.Any())
+            var currentCollections = _watchlistSvc.Collections.ToList();
+            if (currentItems.Any() || currentCollections.Any())
             {
-                var localHash = WatchlistSyncData.ComputeHash(currentItems);
+                var localHash = WatchlistSyncData.ComputeHash(currentItems, currentCollections);
                 if (!string.Equals(localHash, remote.Hash, StringComparison.Ordinal))
                 {
-                    await _gistSyncSvc.CreateBackupAsync(currentItems, "before-pull");
+                    await _gistSyncSvc.CreateBackupAsync(currentItems, currentCollections, "before-pull");
                 }
             }
 
-            await _watchlistSvc.UpdateListAsync(remote.Items);
+            await _watchlistSvc.UpdateListAndCollectionsAsync(remote.Items, remote.Collections);
             await MarkSyncedAsync(remote.Hash, direction);
             LastError = remote.WarningMessage;
             UpdateDerivedState(remote.Hash, remote.UpdatedAt, remote.DescribeSource());
@@ -210,9 +212,9 @@ public class AutoSyncService : IDisposable
         }
     }
 
-    private async Task PushLocalAsync(List<WatchlistItem> items, string localHash, string direction)
+    private async Task PushLocalAsync(List<WatchlistItem> items, List<CustomCollection> collections, string localHash, string direction)
     {
-        var saveResult = await _gistSyncSvc.SaveToGistAsync(items, "push");
+        var saveResult = await _gistSyncSvc.SaveToGistAsync(items, collections, "push");
         await MarkSyncedAsync(localHash, direction);
         LastError = saveResult.WarningMessage;
         UpdateDerivedState(saveResult.Hash, saveResult.UpdatedAt, saveResult.DescribeSource());
@@ -240,7 +242,7 @@ public class AutoSyncService : IDisposable
 
     private void UpdateDerivedState(string? remoteHash, DateTimeOffset? remoteUpdatedAt, string? remoteSummary)
     {
-        var localHash = WatchlistSyncData.ComputeHash(_watchlistSvc.Items);
+        var localHash = WatchlistSyncData.ComputeHash(_watchlistSvc.Items, _watchlistSvc.Collections);
         var localChanged = !string.IsNullOrWhiteSpace(_lastSyncedHash) &&
                            !string.Equals(localHash, _lastSyncedHash, StringComparison.Ordinal);
         var remoteChanged = !string.IsNullOrWhiteSpace(remoteHash) &&

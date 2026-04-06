@@ -8,56 +8,87 @@ namespace MyPrivateWatchlist.Services;
 
 internal static class WatchlistSyncData
 {
-    private const string PayloadFormat = "watchlist-slim-gzip-base64-v1";
+    private const string PayloadFormatV1 = "watchlist-slim-gzip-base64-v1";
+    private const string PayloadFormatV2 = "watchlist-slim-gzip-base64-v2";
 
     private static readonly JsonSerializerOptions CompactJsonOptions = new(JsonSerializerDefaults.Web);
 
-    public static string ComputeHash(IEnumerable<WatchlistItem> items)
+    public static string ComputeHash(IEnumerable<WatchlistItem> items, IEnumerable<CustomCollection> collections)
     {
-        var normalized = CreateSlimItems(items);
-        var json = JsonSerializer.Serialize(normalized, CompactJsonOptions);
+        var normalizedItems = CreateSlimItems(items);
+        var normalizedCollections = collections?.OrderBy(c => c.Id).ToList() ?? new List<CustomCollection>();
+        var payload = new SyncDataV2 { Items = normalizedItems, Collections = normalizedCollections };
+        
+        var json = JsonSerializer.Serialize(payload, CompactJsonOptions);
         var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(json));
         return Convert.ToHexString(bytes);
     }
 
-    public static string SerializeCompressed(IEnumerable<WatchlistItem> items)
+    public static string SerializeCompressed(IEnumerable<WatchlistItem> items, IEnumerable<CustomCollection> collections)
     {
-        var slimJson = JsonSerializer.Serialize(CreateSlimItems(items), CompactJsonOptions);
-        var payload = new GistSyncPayload
+        var normalizedItems = CreateSlimItems(items);
+        var normalizedCollections = collections?.OrderBy(c => c.Id).ToList() ?? new List<CustomCollection>();
+        var payload = new SyncDataV2 { Items = normalizedItems, Collections = normalizedCollections };
+        
+        var json = JsonSerializer.Serialize(payload, CompactJsonOptions);
+        var syncPayload = new GistSyncPayload
         {
-            Format = PayloadFormat,
-            Data = CompressToBase64(slimJson)
+            Format = PayloadFormatV2,
+            Data = CompressToBase64(json)
         };
 
-        return JsonSerializer.Serialize(payload, CompactJsonOptions);
+        return JsonSerializer.Serialize(syncPayload, CompactJsonOptions);
     }
 
-    public static List<WatchlistItem> Deserialize(string content)
+    public static (List<WatchlistItem> Items, List<CustomCollection> Collections) Deserialize(string content)
     {
         if (string.IsNullOrWhiteSpace(content))
-            return new List<WatchlistItem>();
+            return (new List<WatchlistItem>(), new List<CustomCollection>());
 
-        if (TryDeserializeCompressedPayload(content, out var compressedItems))
-            return compressedItems;
+        if (TryDeserializeCompressedPayload(content, out var compressedItems, out var compressedCollections))
+            return (compressedItems, compressedCollections);
 
         if (TryDeserializeSlimItems(content, out var slimItems))
-            return slimItems;
+            return (slimItems, new List<CustomCollection>());
 
-        return JsonSerializer.Deserialize<List<WatchlistItem>>(content, CompactJsonOptions) ?? new List<WatchlistItem>();
+        var oldItems = JsonSerializer.Deserialize<List<WatchlistItem>>(content, CompactJsonOptions) ?? new List<WatchlistItem>();
+        return (oldItems, new List<CustomCollection>());
     }
 
-    private static bool TryDeserializeCompressedPayload(string content, out List<WatchlistItem> items)
+    private static bool TryDeserializeCompressedPayload(string content, out List<WatchlistItem> items, out List<CustomCollection> collections)
     {
         items = new List<WatchlistItem>();
+        collections = new List<CustomCollection>();
 
         try
         {
             var payload = JsonSerializer.Deserialize<GistSyncPayload>(content, CompactJsonOptions);
             var data = payload?.Data;
-            if (!string.Equals(payload?.Format, PayloadFormat, StringComparison.Ordinal) || string.IsNullOrWhiteSpace(data))
+            if (string.IsNullOrWhiteSpace(data))
                 return false;
 
-            return TryDeserializeSlimItems(DecompressFromBase64(data), out items);
+            var decompressed = DecompressFromBase64(data);
+            
+            if (string.Equals(payload?.Format, PayloadFormatV2, StringComparison.Ordinal))
+            {
+                var v2 = JsonSerializer.Deserialize<SyncDataV2>(decompressed, CompactJsonOptions);
+                if (v2 != null)
+                {
+                    items = v2.Items.Select(ToWatchlistItem).ToList();
+                    collections = v2.Collections ?? new List<CustomCollection>();
+                    return true;
+                }
+            }
+            else if (string.Equals(payload?.Format, PayloadFormatV1, StringComparison.Ordinal))
+            {
+                if (TryDeserializeSlimItems(decompressed, out var slimItems))
+                {
+                    items = slimItems;
+                    return true;
+                }
+            }
+
+            return false;
         }
         catch
         {
@@ -159,6 +190,12 @@ internal static class WatchlistSyncData
     {
         public string Format { get; set; } = "";
         public string Data { get; set; } = "";
+    }
+
+    private sealed class SyncDataV2
+    {
+        public List<GistWatchlistItem> Items { get; set; } = new();
+        public List<CustomCollection> Collections { get; set; } = new();
     }
 
     private sealed class GistWatchlistItem

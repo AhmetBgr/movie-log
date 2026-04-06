@@ -26,16 +26,33 @@
         <div class="discovery-tabs" role="tablist">
             @foreach (var tab in _tabs)
             {
-                <button class="disc-tab @(ActiveTab == tab.Id ? "active" : "")" 
-                        data-tab="@tab.Id"
-                        @onclick="() => SetTab(tab.Id)">
-                    <i class="bi @tab.Icon me-1"></i>
-                    @tab.Label
-                    @if (tab.Count > 0)
-                    {
-                        <span class="tab-badge-min ms-1">@tab.Count</span>
-                    }
-                </button>
+                @if (tab.Id == "collections" && SelectedCollectionId != null)
+                {
+                    <!-- Inside a collection: show name, click to go back -->
+                    <button class="disc-tab active" data-tab="collections"
+                            title="Go back to collections"
+                            @onclick="() => { SelectedCollectionId = null; StateHasChanged(); }">
+                        <i class="bi @tab.Icon me-1"></i>
+                        @(SelectedCollection?.Name ?? "Collection")
+                        @if ((SelectedCollection?.MovieIds.Count ?? 0) > 0)
+                        {
+                            <span class="tab-badge-min ms-1">@(SelectedCollection?.MovieIds.Count ?? 0)</span>
+                        }
+                    </button>
+                }
+                else
+                {
+                    <button class="disc-tab @(ActiveTab == tab.Id && !(tab.Id == "collections" && SelectedCollectionId != null) ? "active" : "")" 
+                            data-tab="@tab.Id"
+                            @onclick="() => SetTab(tab.Id)">
+                        <i class="bi @tab.Icon me-1"></i>
+                        @tab.Label
+                        @if (tab.Count > 0)
+                        {
+                            <span class="tab-badge-min ms-1">@tab.Count</span>
+                        }
+                    </button>
+                }
             }
         </div>
     </div>
@@ -215,21 +232,20 @@
         <div class="content-scroll" @onscroll="OnScroll">
             @if (ActiveTab == "collections" && SelectedCollectionId == null)
             {
-                <div class="collections-grid p-4">
-                    <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-4">
+                <div class="collections-list-wrap">
+                    <div class="collections-list">
                         @foreach (var col in WatchlistSvc.Collections)
                         {
-                            <div class="col">
-                                <CollectionCard Collection="col" 
-                                               OnClick="() => SelectCollection(col.Id)" 
+                            <div @key="col.Id" class="cc-list-item border-bottom">
+                                <CollectionCard Collection="col"
+                                               OnClick="() => SelectCollection(col.Id)"
+                                               OnEdit="() => StartEditCollection(col)"
                                                OnDelete="() => DeleteCollection(col.Id)" />
                             </div>
                         }
-                        <div class="col">
-                            <div class="add-collection-card" @onclick="() => showCreateCollection = true">
-                                <i class="bi bi-plus-lg"></i>
-                                <span>Create Collection</span>
-                            </div>
+                        <div class="add-collection-row" @onclick="() => showCreateCollection = true">
+                            <i class="bi bi-plus-circle me-2"></i>
+                            <span>Create new collection</span>
                         </div>
                     </div>
                 </div>
@@ -285,6 +301,11 @@
                         OnCreated="HandleCollectionCreated" 
                         OnCancel="() => showCreateCollection = false" />
 
+<CreateCollectionDialog Show="showEditCollection"
+                        Title="Rename Collection"
+                        OnCreated="HandleCollectionRenamed"
+                        OnCancel="() => { showEditCollection = false; _editingCollection = null; }" />
+
 @code {
     [Parameter] public string? Tab { get; set; }
 
@@ -321,6 +342,8 @@
     private Guid? SelectedCollectionId { get; set; }
     private CustomCollection? SelectedCollection => WatchlistSvc.Collections.FirstOrDefault(c => c.Id == SelectedCollectionId);
     private bool showCreateCollection = false;
+    private bool showEditCollection = false;
+    private CustomCollection? _editingCollection = null;
 
     private WatchlistStatus CurrentTabStatus => ActiveTab switch {
         "watching" => WatchlistStatus.Watching,
@@ -567,6 +590,22 @@
     private async Task HandleCollectionCreated(string name) { showCreateCollection = false; await WatchlistSvc.CreateCollectionAsync(name); }
     private async Task BulkAddToCollection(Guid colId) { await WatchlistSvc.BulkAddMoviesToCollectionAsync(colId, _selectedIds.ToList()); _selectedIds.Clear(); isEditing = false; }
 
+    private void StartEditCollection(CustomCollection col)
+    {
+        _editingCollection = col;
+        showEditCollection = true;
+    }
+
+    private async Task HandleCollectionRenamed(string newName)
+    {
+        if (_editingCollection != null && !string.IsNullOrWhiteSpace(newName))
+        {
+            await WatchlistSvc.RenameCollectionAsync(_editingCollection.Id, newName);
+        }
+        showEditCollection = false;
+        _editingCollection = null;
+    }
+
     private void OnScroll(EventArgs e) { /* Placeholder */ }
 
     public void Dispose() { WatchlistSvc.OnStateChanged -= HandleStateChanged; _holdRef?.Dispose(); }
@@ -636,26 +675,38 @@
         border-bottom: 1px solid #e8eaed;
     }
 
-    .add-collection-card {
-        aspect-ratio: 2/3;
-        border: 2px dashed #ddd;
-        border-radius: 12px;
+    .collections-list-wrap {
         display: flex;
-        flex-direction: column;
-        align-items: center;
         justify-content: center;
-        cursor: pointer;
-        color: #999;
-        transition: all 0.2s;
-        background: #fafafa;
+        padding: 16px;
     }
-    .add-collection-card:hover {
-        border-color: #6366f1;
+    .collections-list {
+        width: 100%;
+        max-width: 640px;
+    }
+    .cc-list-item:last-of-type {
+        border-bottom: none !important;
+    }
+    .add-collection-row {
+        display: flex;
+        align-items: center;
+        padding: 14px 6px;
+        font-size: 0.88rem;
+        font-weight: 600;
         color: #6366f1;
+        cursor: pointer;
+        border-radius: 8px;
+        transition: background 0.15s;
+        margin-top: 4px;
+    }
+    .add-collection-row:hover {
         background: #f5f5ff;
     }
-    .add-collection-card i { font-size: 2rem; margin-bottom: 8px; }
-    .add-collection-card span { font-weight: 600; font-size: 0.85rem; }
+    .add-collection-row i { font-size: 1.1rem; }
+
+    @@media (max-width: 600px) {
+        .collections-list-wrap { padding: 8px 12px; }
+    }
 
     .disc-tab.active[data-tab="collections"] { 
         background: #f59e0b; 

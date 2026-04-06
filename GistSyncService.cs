@@ -95,30 +95,30 @@ public class GistSyncService
         GistBackupDraft? safetyBackup = null;
 
         if (gist.Files.TryGetValue(WatchlistFileName, out var currentPrimary) &&
-            TryParseWatchlistFile(currentPrimary, out var currentItems, out _))
+            TryParseWatchlistFile(currentPrimary, out var currentItems, out var currentCollections, out _))
         {
-            var currentHash = WatchlistSyncData.ComputeHash(currentItems);
+            var currentHash = WatchlistSyncData.ComputeHash(currentItems, currentCollections);
             if (!string.Equals(currentHash, restoreSnapshot.Hash, StringComparison.Ordinal))
             {
-                safetyBackup = CreateBackupDraft(currentItems, "before-restore");
+                safetyBackup = CreateBackupDraft(currentItems, currentCollections, "before-restore");
             }
         }
 
-        return await SaveItemsToExistingGistAsync(settings, gist, restoreSnapshot.Items, "restore", safetyBackup);
+        return await SaveItemsToExistingGistAsync(settings, gist, restoreSnapshot.Items, restoreSnapshot.Collections, "restore", safetyBackup);
     }
 
-    public async Task<GistSaveResult> SaveToGistAsync(List<WatchlistItem> items, string reason = "manual")
+    public async Task<GistSaveResult> SaveToGistAsync(List<WatchlistItem> items, List<CustomCollection> collections, string reason = "manual")
     {
         var settings = await RequireSettingsAsync();
         var gist = await FetchGistAsync(settings);
-        return await SaveItemsToExistingGistAsync(settings, gist, items ?? new List<WatchlistItem>(), reason, safetyBackup: null);
+        return await SaveItemsToExistingGistAsync(settings, gist, items ?? new List<WatchlistItem>(), collections ?? new List<CustomCollection>(), reason, safetyBackup: null);
     }
 
-    public async Task<GistSaveResult> CreateBackupAsync(List<WatchlistItem> items, string reason)
+    public async Task<GistSaveResult> CreateBackupAsync(List<WatchlistItem> items, List<CustomCollection> collections, string reason)
     {
         var settings = await RequireSettingsAsync();
         var gist = await FetchGistAsync(settings);
-        var backupDraft = CreateBackupDraft(items ?? new List<WatchlistItem>(), reason);
+        var backupDraft = CreateBackupDraft(items ?? new List<WatchlistItem>(), collections ?? new List<CustomCollection>(), reason);
 
         var payload = BuildBackupOnlyPatch(gist, backupDraft);
         var updatedAt = await PatchGistAsync(settings, payload);
@@ -189,7 +189,8 @@ public class GistSyncService
         return new GistSnapshot
         {
             Items = new List<WatchlistItem>(),
-            Hash = WatchlistSyncData.ComputeHash(Array.Empty<WatchlistItem>()),
+            Collections = new List<CustomCollection>(),
+            Hash = WatchlistSyncData.ComputeHash(Array.Empty<WatchlistItem>(), Array.Empty<CustomCollection>()),
             UpdatedAt = gist.UpdatedAt,
             SourceFileName = WatchlistFileName
         };
@@ -228,7 +229,8 @@ public class GistSyncService
             return new GistSnapshot
             {
                 Items = new List<WatchlistItem>(),
-                Hash = WatchlistSyncData.ComputeHash(Array.Empty<WatchlistItem>()),
+                Collections = new List<CustomCollection>(),
+                Hash = WatchlistSyncData.ComputeHash(Array.Empty<WatchlistItem>(), Array.Empty<CustomCollection>()),
                 UpdatedAt = updatedAt,
                 SourceFileName = sourceFileName,
                 UsedBackup = usedBackup,
@@ -238,11 +240,12 @@ public class GistSyncService
 
         try
         {
-            var items = WatchlistSyncData.Deserialize(file.Content);
+            var parsed = WatchlistSyncData.Deserialize(file.Content);
             return new GistSnapshot
             {
-                Items = items,
-                Hash = WatchlistSyncData.ComputeHash(items),
+                Items = parsed.Items,
+                Collections = parsed.Collections,
+                Hash = WatchlistSyncData.ComputeHash(parsed.Items, parsed.Collections),
                 UpdatedAt = updatedAt,
                 SourceFileName = sourceFileName,
                 UsedBackup = usedBackup,
@@ -255,9 +258,10 @@ public class GistSyncService
         }
     }
 
-    private static bool TryParseWatchlistFile(GistFile file, out List<WatchlistItem> items, out string? error)
+    private static bool TryParseWatchlistFile(GistFile file, out List<WatchlistItem> items, out List<CustomCollection> collections, out string? error)
     {
         items = new List<WatchlistItem>();
+        collections = new List<CustomCollection>();
         error = null;
 
         if (file.Truncated)
@@ -271,7 +275,9 @@ public class GistSyncService
 
         try
         {
-            items = WatchlistSyncData.Deserialize(file.Content);
+            var parsed = WatchlistSyncData.Deserialize(file.Content);
+            items = parsed.Items;
+            collections = parsed.Collections;
             return true;
         }
         catch (Exception ex) when (ex is JsonException || ex is InvalidOperationException || ex is FormatException)
@@ -285,13 +291,15 @@ public class GistSyncService
         GistSettings settings,
         GistResponse gist,
         List<WatchlistItem> items,
+        List<CustomCollection> collections,
         string reason,
         GistBackupDraft? safetyBackup)
     {
         var newItems = items ?? new List<WatchlistItem>();
-        var primaryContent = WatchlistSyncData.SerializeCompressed(newItems);
-        var primaryHash = WatchlistSyncData.ComputeHash(newItems);
-        var primaryBackup = CreateBackupDraft(newItems, reason);
+        var newCollections = collections ?? new List<CustomCollection>();
+        var primaryContent = WatchlistSyncData.SerializeCompressed(newItems, newCollections);
+        var primaryHash = WatchlistSyncData.ComputeHash(newItems, newCollections);
+        var primaryBackup = CreateBackupDraft(newItems, newCollections, reason);
 
         var payload = BuildPrimaryAndBackupPatch(gist, primaryContent, primaryBackup, safetyBackup);
         var updatedAt = await PatchGistAsync(settings, payload);
@@ -370,7 +378,7 @@ public class GistSyncService
         return updated?.UpdatedAt ?? DateTimeOffset.UtcNow;
     }
 
-    private static GistBackupDraft CreateBackupDraft(List<WatchlistItem> items, string reason)
+    private static GistBackupDraft CreateBackupDraft(List<WatchlistItem> items, List<CustomCollection> collections, string reason)
     {
         var normalizedReason = string.IsNullOrWhiteSpace(reason) ? "manual" : reason.Trim().ToLowerInvariant();
         var safeReason = new string(normalizedReason.Where(c => char.IsLetterOrDigit(c) || c == '-').ToArray());
@@ -378,8 +386,8 @@ public class GistSyncService
             safeReason = "manual";
         var now = DateTimeOffset.UtcNow;
         var fileName = $"{BackupFilePrefix}{now:yyyyMMdd-HHmmssfff}-{safeReason}.json";
-        var content = WatchlistSyncData.SerializeCompressed(items);
-        var hash = WatchlistSyncData.ComputeHash(items);
+        var content = WatchlistSyncData.SerializeCompressed(items, collections);
+        var hash = WatchlistSyncData.ComputeHash(items, collections);
 
         return new GistBackupDraft
         {
@@ -538,6 +546,7 @@ public class GistSyncService
 public sealed class GistSnapshot
 {
     public List<WatchlistItem> Items { get; set; } = new();
+    public List<CustomCollection> Collections { get; set; } = new();
     public string Hash { get; set; } = "";
     public DateTimeOffset? UpdatedAt { get; set; }
     public string SourceFileName { get; set; } = "watchlist.json";
