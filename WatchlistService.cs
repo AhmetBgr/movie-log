@@ -1550,9 +1550,10 @@ public class WatchlistService
     public async Task AddMovieToCollectionAsync(Guid collectionId, string imdbId)
     {
         var col = Collections.FirstOrDefault(c => c.Id == collectionId);
-        if (col != null && !col.MovieIds.Contains(imdbId))
+        if (col != null && !col.Items.Any(i => i.ImdbId == imdbId))
         {
-            col.MovieIds.Add(imdbId);
+            var maxOrder = col.Items.Any() ? col.Items.Max(i => i.Order) : -1;
+            col.Items.Add(new CollectionItem { ImdbId = imdbId, Order = maxOrder + 1 });
             
             // Set poster if not set
             if (string.IsNullOrEmpty(col.PosterPath))
@@ -1572,20 +1573,22 @@ public class WatchlistService
         if (col != null)
         {
             bool added = false;
+            var maxOrder = col.Items.Any() ? col.Items.Max(i => i.Order) : -1;
+            
             foreach (var id in imdbIds)
             {
-                if (!col.MovieIds.Contains(id))
+                if (!col.Items.Any(i => i.ImdbId == id))
                 {
-                    col.MovieIds.Add(id);
+                    col.Items.Add(new CollectionItem { ImdbId = id, Order = ++maxOrder });
                     added = true;
                 }
             }
 
             if (added)
             {
-                if (string.IsNullOrEmpty(col.PosterPath) && col.MovieIds.Any())
+                if (string.IsNullOrEmpty(col.PosterPath) && col.Items.Any())
                 {
-                    var firstId = col.MovieIds.First();
+                    var firstId = col.Items.OrderBy(i => i.Order).First().ImdbId;
                     var item = Items.FirstOrDefault(i => i.ImdbId == firstId);
                     if (item != null) col.PosterPath = item.PosterPath;
                 }
@@ -1598,26 +1601,75 @@ public class WatchlistService
     public async Task RemoveMovieFromCollectionAsync(Guid collectionId, string imdbId)
     {
         var col = Collections.FirstOrDefault(c => c.Id == collectionId);
-        if (col != null && col.MovieIds.Remove(imdbId))
+        if (col != null)
         {
-            // Update poster if it was the one removed
-            var item = Items.FirstOrDefault(i => i.ImdbId == imdbId);
-            if (item != null && col.PosterPath == item.PosterPath)
+            var itemToRemove = col.Items.FirstOrDefault(i => i.ImdbId == imdbId);
+            if (itemToRemove != null)
             {
-                if (col.MovieIds.Any())
+                col.Items.Remove(itemToRemove);
+                
+                // Update poster if it was the one removed
+                var item = Items.FirstOrDefault(i => i.ImdbId == imdbId);
+                if (item != null && col.PosterPath == item.PosterPath)
                 {
-                    var nextItem = Items.FirstOrDefault(i => i.ImdbId == col.MovieIds.First());
-                    col.PosterPath = nextItem?.PosterPath;
+                    if (col.Items.Any())
+                    {
+                        var nextId = col.Items.OrderBy(i => i.Order).First().ImdbId;
+                        var nextItem = Items.FirstOrDefault(i => i.ImdbId == nextId);
+                        col.PosterPath = nextItem?.PosterPath;
+                    }
+                    else
+                    {
+                        col.PosterPath = null;
+                    }
                 }
-                else
-                {
-                    col.PosterPath = null;
-                }
-            }
 
-            await PersistAsync();
-            NotifyStateChanged();
+                await PersistAsync();
+                NotifyStateChanged();
+            }
         }
+    }
+
+    public async Task MoveCollectionItemUpAsync(Guid collectionId, string imdbId)
+    {
+        var col = Collections.FirstOrDefault(c => c.Id == collectionId);
+        if (col == null) return;
+
+        var sorted = col.Items.OrderBy(i => i.Order).ToList();
+        var idx = sorted.FindIndex(i => i.ImdbId == imdbId);
+        if (idx <= 0) return; // Already at top or not found
+
+        // Swap order values with preceding item
+        var current = sorted[idx];
+        var prev = sorted[idx - 1];
+        
+        int temp = current.Order;
+        current.Order = prev.Order;
+        prev.Order = temp;
+
+        await PersistAsync();
+        NotifyStateChanged();
+    }
+
+    public async Task MoveCollectionItemDownAsync(Guid collectionId, string imdbId)
+    {
+        var col = Collections.FirstOrDefault(c => c.Id == collectionId);
+        if (col == null) return;
+
+        var sorted = col.Items.OrderBy(i => i.Order).ToList();
+        var idx = sorted.FindIndex(i => i.ImdbId == imdbId);
+        if (idx < 0 || idx >= sorted.Count - 1) return; // Already at bottom or not found
+
+        // Swap order values with following item
+        var current = sorted[idx];
+        var next = sorted[idx + 1];
+        
+        int temp = current.Order;
+        current.Order = next.Order;
+        next.Order = temp;
+
+        await PersistAsync();
+        NotifyStateChanged();
     }
 }
 

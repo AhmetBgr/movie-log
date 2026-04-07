@@ -512,12 +512,34 @@ public class TmdbCollection
         : $"https://image.tmdb.org/t/p/w500{PosterPath}";
 }
 
+public class CollectionItem
+{
+    public string ImdbId { get; set; } = "";
+    public int Order { get; set; }
+}
+
 public class CustomCollection
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public string Name { get; set; } = "";
     public string? Description { get; set; }
-    public List<string> MovieIds { get; set; } = new(); // IMDB IDs
+    public List<CollectionItem> Items { get; set; } = new(); // Ranked items
+    
+    [JsonPropertyName("movie_ids")]
+    public List<string>? LegacyMovieIds 
+    { 
+        get => null; 
+        set 
+        { 
+            if (value != null && !Items.Any())
+            {
+                Items = value.Select((id, idx) => new CollectionItem { ImdbId = id, Order = idx }).ToList();
+            }
+        } 
+    }
+
+    [JsonIgnore]
+    public List<string> MovieIds => Items.OrderBy(i => i.Order).Select(i => i.ImdbId).ToList(); // Compatibility getter
     public DateTime DateCreated { get; set; } = DateTime.Now;
     public string? PosterPath { get; set; } 
     

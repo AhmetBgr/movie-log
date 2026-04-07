@@ -105,6 +105,15 @@
             <span class="tb-label">Added</span>
         </button>
 
+        @if (ActiveTab == "collections" && SelectedCollectionId != null)
+        {
+            <button class="tb-btn tb-btn-sort @(CurrentSortColumn == "Order" ? "sorted" : "")"
+                    @onclick='() => ToggleSort("Order")'>
+                <i class="bi bi-list-ol"></i>
+                <span class="tb-label">List Order</span>
+            </button>
+        }
+
         <div class="tb-divider"></div>
 
         <button class="tb-btn @(!isCardView ? "active" : "")" @onclick="() => SetView(false)" title="Table view">
@@ -270,13 +279,23 @@
                                    OnItemClick="HandleRowClick"
                                    ShowSummary="true"
                                    TotalCount="CurrentItemCount"
-                                   SortInfo="@SortInfoText" />
+                                   SortInfo="@SortInfoText"
+                                   CanReorder="@(ActiveTab == "collections" && SelectedCollectionId != null && CurrentSortColumn == "Order")"
+                                   GetRank="@(ActiveTab == "collections" && SelectedCollectionId != null && CurrentSortColumn == "Order" ? (item => SelectedCollection?.Items.FirstOrDefault(ci => ci.ImdbId == item.ImdbId)?.Order + 1 ?? 0) : null)"
+                                   OnMoveUp="@((id) => WatchlistSvc.MoveCollectionItemUpAsync(SelectedCollectionId!.Value, id))"
+                                   OnMoveDown="@((id) => WatchlistSvc.MoveCollectionItemDownAsync(SelectedCollectionId!.Value, id))" />
                 }
                 else
                 {
                     <div class="table-wrap table-wrap--wide p-3">
                         <div class="row row-cols-1 g-3">
-                            <Virtualize Items="CurrentItems.ToList()" Context="item" ItemSize="228" OverscanCount="4">
+                            @{
+                                var itemsList = CurrentItems.ToList();
+                            }
+                            <Virtualize Items="itemsList" Context="item" ItemSize="228" OverscanCount="4">
+                                @{
+                                    var rank = (SelectedCollection != null && CurrentSortColumn == "Order") ? (SelectedCollection.Items.FirstOrDefault(ci => ci.ImdbId == item.ImdbId)?.Order + 1 ?? 0) : 0;
+                                }
                                 <div class="col" @key="item.ImdbId">
                                     <MovieCard Item="item"
                                                IsEditMode="@isEditing"
@@ -284,7 +303,11 @@
                                                OnToggleSelect="@(() => ToggleSelect(item.ImdbId))"
                                                ShowActionButtons="true"
                                                ShowTracking="@(ActiveTab == "watching")"
-                                               ShowRating="@(ActiveTab == "watched")"/>
+                                               ShowRating="@(ActiveTab == "watched")"
+                                               CanReorder="@(ActiveTab == "collections" && SelectedCollectionId != null && CurrentSortColumn == "Order")"
+                                               Rank="@rank"
+                                               OnMoveUp="@(() => WatchlistSvc.MoveCollectionItemUpAsync(SelectedCollectionId.Value, item.ImdbId))"
+                                               OnMoveDown="@(() => WatchlistSvc.MoveCollectionItemDownAsync(SelectedCollectionId.Value, item.ImdbId))" />
                                 </div>
                             </Virtualize>
                         </div>
@@ -364,6 +387,23 @@
                 // Still apply core filters if any (search, title etc)
                 if (!string.IsNullOrEmpty(WatchlistSvc.SearchQuery))
                     items = items.Where(i => i.Title.Contains(WatchlistSvc.SearchQuery, StringComparison.OrdinalIgnoreCase));
+                
+                // Handle Sorting within collection
+                if (CurrentSortColumn == "Order")
+                {
+                    items = CurrentSortDescending 
+                        ? items.OrderByDescending(i => col.Items.FirstOrDefault(ci => ci.ImdbId == i.ImdbId)?.Order ?? 0)
+                        : items.OrderBy(i => col.Items.FirstOrDefault(ci => ci.ImdbId == i.ImdbId)?.Order ?? 0);
+                }
+                else
+                {
+                    items = CurrentSortColumn switch
+                    {
+                        "Year" => CurrentSortDescending ? items.OrderByDescending(m => m.ParsedYear) : items.OrderBy(m => m.ParsedYear),
+                        "DateAdded" => CurrentSortDescending ? items.OrderByDescending(m => m.DateAdded) : items.OrderBy(m => m.DateAdded),
+                        _ => CurrentSortDescending ? items.OrderByDescending(m => m.Title) : items.OrderBy(m => m.Title)
+                    };
+                }
                 
                 return items;
             }

@@ -35,6 +35,18 @@
                                @onclick:stopPropagation="true" 
                                style="width:15px;height:15px;cursor:pointer;" />
                     }
+                    else if (CanReorder || GetRank != null)
+                    {
+                        var rank = GetRank?.Invoke(item) ?? (Items.IndexOf(item) + 1);
+                        <div class="table-reorder-wrap d-flex align-items-center gap-1 me-2" @onclick:stopPropagation="true">
+                            <span class="table-rank me-1">@rank.</span>
+                            @if (CanReorder)
+                            {
+                                <button class="table-move-btn" @onclick="() => OnMoveUp.InvokeAsync(item.ImdbId)"><i class="bi bi-chevron-up"></i></button>
+                                <button class="table-move-btn" @onclick="() => OnMoveDown.InvokeAsync(item.ImdbId)"><i class="bi bi-chevron-down"></i></button>
+                            }
+                        </div>
+                    }
                     <span class="entry-title">
                         <span class="fw-bold me-1">@item.Title</span>
                         @(!string.IsNullOrEmpty(item.Year) ? $"({item.Year})" : "")
@@ -117,6 +129,10 @@
     [Parameter] public bool ShowSummary { get; set; } = true;
     [Parameter] public int TotalCount { get; set; }
     [Parameter] public string? SortInfo { get; set; }
+    [Parameter] public bool CanReorder { get; set; }
+    [Parameter] public EventCallback<string> OnMoveUp { get; set; }
+    [Parameter] public EventCallback<string> OnMoveDown { get; set; }
+    [Parameter] public Func<WatchlistItem, int>? GetRank { get; set; }
     /// <summary>
     /// When true (default), only shows Rating20 if it was set as a user rating.
     /// Items from search results that have Rating20 derived from TMDB vote average will show "—".
@@ -222,6 +238,14 @@
         color: #ccc !important; 
         font-weight: 900; 
     }
+    
+    .table-reorder-wrap { opacity: 0.4; transition: opacity 0.15s; }
+    .watched-entry:hover .table-reorder-wrap { opacity: 1; }
+    
+    .table-rank { font-size: 0.72rem; font-weight: 800; color: #999; min-width: 22px; text-align: right; font-family: var(--font-monospace); }
+    .table-move-btn { border: none; background: transparent; padding: 2px; color: #777; cursor: pointer; transition: color 0.1s; }
+    .table-move-btn:hover { color: #6366f1; }
+    .table-move-btn i { font-size: 0.8rem; }
 
     /* Footer: Summary on left, Pages on right */
     .watched-footer {

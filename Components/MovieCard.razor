@@ -11,16 +11,35 @@
         <!-- Outer row: side panel + main content -->
         <div class="d-flex">
 
-            <!-- ── Selection Area: checkbox in edit mode ── -->
-            <div class="selection-panel d-flex align-items-center justify-content-center @(IsEditMode ? "active" : "")"
-                 @onclick:stopPropagation="true"
-                 @onclick="@(async () => await OnToggleSelect.InvokeAsync())">
-                <div class="card-checkbox @(IsSelected ? "card-checkbox-checked" : "")">
-                    @if (IsSelected)
-                    {
-                        <i class="bi bi-check-lg text-white" style="font-size: 0.85rem; line-height: 1;"></i>
-                    }
-                </div>
+            <!-- ── Selection Area: checkbox or reorder buttons ── -->
+            <div class="selection-panel d-flex flex-column align-items-center justify-content-center @(IsEditMode || CanReorder ? "active" : "")"
+                 @onclick:stopPropagation="true">
+                
+                @if (IsEditMode)
+                {
+                    <div class="card-checkbox @(IsSelected ? "card-checkbox-checked" : "")" @onclick="@(async () => await OnToggleSelect.InvokeAsync())">
+                        @if (IsSelected)
+                        {
+                            <i class="bi bi-check-lg text-white" style="font-size: 0.85rem; line-height: 1;"></i>
+                        }
+                    </div>
+                }
+
+                @if (CanReorder && !IsEditMode)
+                {
+                    <div class="reorder-controls d-flex flex-column align-items-center gap-2">
+                        @if (Rank > 0)
+                        {
+                            <span class="rank-number">@Rank</span>
+                        }
+                        <button class="reorder-btn px-0" @onclick="() => OnMoveUp.InvokeAsync()" title="Move Up">
+                            <i class="bi bi-chevron-up"></i>
+                        </button>
+                        <button class="reorder-btn px-0" @onclick="() => OnMoveDown.InvokeAsync()" title="Move Down">
+                            <i class="bi bi-chevron-down"></i>
+                        </button>
+                    </div>
+                }
             </div>
 
             <!-- ── Main Content (poster + data) ─────────────────────── -->
@@ -194,7 +213,11 @@
     [Parameter] public bool ShowRating { get; set; } = false;
     [Parameter] public bool IsEditMode { get; set; } = false;
     [Parameter] public bool IsSelected { get; set; } = false;
+    [Parameter] public bool CanReorder { get; set; } = false;
+    [Parameter] public int Rank { get; set; } = 0;
     [Parameter] public EventCallback OnToggleSelect { get; set; }
+    [Parameter] public EventCallback OnMoveUp { get; set; }
+    [Parameter] public EventCallback OnMoveDown { get; set; }
     [Parameter] public RenderFragment? SidePanel { get; set; }
     [Parameter] public EventCallback<WatchlistItem> OnClick { get; set; }
 
@@ -244,6 +267,37 @@
 <style>
     .track-btn { width: 26px; height: 26px; padding: 0; border: 1px solid rgba(0,0,0,0.15); background: #fff; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.02rem; transition: background 0.12s; }
     .track-btn:hover { background: #f0f0f0; }
+
+    .rank-number {
+        font-size: 0.72rem;
+        font-weight: 800;
+        color: #999;
+        margin-bottom: -4px;
+        font-family: var(--font-monospace);
+    }
+
+    .reorder-btn {
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        border: 1px solid rgba(0,0,0,0.1);
+        background: #fff;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: #666;
+        transition: all 0.15s;
+    }
+    .reorder-btn:hover {
+        background: #6366f1;
+        color: #fff;
+        border-color: #6366f1;
+        box-shadow: 0 2px 6px rgba(99,102,241,0.2);
+    }
+    .reorder-btn i { font-size: 0.9rem; }
+
     .tracking-pill { padding: 2px 6px !important; font-size: 0.72rem; transform-origin: left center; transition: transform 0.15s; }
     .tracking-pill .vr { height: 13px !important; }
     .tracking-pill span.fw-bolder { min-width: 15px; font-size: 0.8rem; }
