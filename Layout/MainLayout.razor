@@ -26,6 +26,9 @@
         <!-- Search bar — always fixed to top -->
         <div class="search-bar-wrap">
         <div class="search-bar-inner d-flex align-items-center gap-3">
+            <NavLink class="app-logo-link d-none d-md-flex" href="" Match="NavLinkMatch.All" title="Home">
+                <img src="icon-192.png" alt="Movie Log" class="app-logo-icon" />
+            </NavLink>
             <div class="search-container flex-grow-1 shadow-sm">
                     <form class="search-form" @onsubmit="PerformSearch" @onsubmit:preventDefault="true">
                         <div class="search-type-toggle" @onclick="CycleSearchMode" title="Switch search mode">
@@ -120,10 +123,6 @@
                 </button>
 
                 <div class="header-nav-desktop d-none d-md-flex align-items-center gap-2 ms-auto">
-                    <NavLink class="nav-link-btn" href="" Match="NavLinkMatch.All">
-                        <i class="bi bi-house-door"></i>
-                        <span>Home</span>
-                    </NavLink>
                     <NavLink class="nav-link-btn" href="library">
                         <i class="bi bi-collection-play"></i>
                         <span>Library</span>
@@ -187,7 +186,7 @@
         position: sticky;
         top: 0;
         z-index: 1001;
-        background: #fff;
+        background: #e1e1e1ff;
         border-bottom: 1px solid #e8eaed;
         padding: 10px 24px;
     }
@@ -199,6 +198,25 @@
 
     .header-nav-desktop {
         padding: 0 10px;
+    }
+
+    .app-logo-link {
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    
+    .app-logo-link:hover {
+        transform: scale(1.1);
+    }
+
+    .app-logo-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        object-fit: contain;
     }
 
     .nav-link-btn {
