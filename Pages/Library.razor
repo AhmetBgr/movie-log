@@ -345,6 +345,7 @@
     private bool _isBulkCollectionMenuOpen = false;
     private HashSet<string> _selectedIds = new();
     private DotNetObjectReference<Library>? _holdRef;
+    private string? _lastTab;
     private double _touchStartX;
     private double _touchEndX;
 
@@ -464,11 +465,12 @@
     {
         isEditing = false;
         _selectedIds.Clear();
-        if (ActiveTab == "collections" && SelectedCollectionId != null)
+        if (Tab == _lastTab && Tab == "collections")
         {
-            // If we're on a sub-collection view, clicking the tab again goes back to collections list
-            if (ActiveTab == Tab) SelectedCollectionId = null;
+            // Only reset if clicking the same tab we are already on
+            SelectedCollectionId = null;
         }
+        _lastTab = Tab;
 
         if (string.IsNullOrEmpty(Tab))
         {
