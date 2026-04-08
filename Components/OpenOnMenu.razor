@@ -19,7 +19,7 @@
         <div class="open-on-popover" @onclick:stopPropagation="true">
             <div class="d-flex align-items-center justify-content-between">
                 <div class="open-on-heading">Open on</div>
-                <button type="button" class="open-on-close" title="Close" @onclick="() => _isOpen = false">
+                <button type="button" class="open-on-close" title="Close" @onclick='() => JS.InvokeVoidAsync("openOnMenu.closeAll")'>
                     <i class="bi bi-x-lg"></i>
                 </button>
             </div>
@@ -32,7 +32,7 @@
                        href="@url"
                        target="_blank"
                        rel="noopener noreferrer"
-                       @onclick="() => _isOpen = false"
+                       @onclick='() => JS.InvokeVoidAsync("openOnMenu.closeAll")'
                        title="@link.Name">
                         @link.Name
                     </a>

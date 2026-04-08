@@ -63,7 +63,7 @@
                 <div class="open-on-popover">
                     <div class="d-flex align-items-center justify-content-between">
                         <div class="open-on-heading">Add to Collection</div>
-                        <button type="button" class="open-on-close" title="Close" @onclick="() => _isCollectionMenuOpen = false">
+                        <button type="button" class="open-on-close" title="Close" @onclick='() => JS.InvokeVoidAsync("openOnMenu.closeAll")'>
                             <i class="bi bi-x-lg"></i>
                         </button>
                     </div>
