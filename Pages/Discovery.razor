@@ -389,7 +389,7 @@
     {
         var clamped = Math.Max(0, Math.Min(100, val));
         var hue = (clamped / 100.0) * 120.0;
-        return $"hsl({hue}, 70%, 45%)";
+        return $"hsl({hue}, 70%, 40%)";
     }
 
     private void HandleLibraryStateChanged() => InvokeAsync(StateHasChanged);

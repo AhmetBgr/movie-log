@@ -7,13 +7,7 @@
     <div class="d-flex align-items-center gap-2">
         
         <!-- Rating Box -->
-        <div class="rating-box-compact position-relative flex-shrink-0" style="min-width: 70px;">
-            @if (showSavedIndicator)
-            {
-                <div class="position-absolute top-0 start-50 translate-middle-x z-3 mt-n2 animate-fade-out">
-                    <span class="badge bg-success shadow-sm rounded-pill py-1 px-2 fw-bold border border-white" style="font-size: 0.55rem;">SAVED</span>
-                </div>
-            }
+        <div class="d-flex align-items-center gap-1 flex-shrink-0">
             <div class="rounded-3 d-flex flex-column align-items-center justify-content-center shadow-sm transition-all rating-box-indicator" 
                  style="width: 44px; height: 44px; background-color: @(Item?.Rating20 == null ? "#fff" : GetRatingColor(Item.Rating20.Value)); 
                         color: @(Item?.Rating20 == null ? "#adb5bd" : "#fff"); 
@@ -27,8 +21,8 @@
             </div>
             @if (Item?.Rating20 != null)
             {
-                <button class="rating-delete-btn-tiny" @onclick="() => HandleRatingEdit(new ChangeEventArgs { Value = null })">
-                    <i class="bi bi-trash3-fill"></i>
+                <button class="remove-rating-btn" title="Clear Rating" @onclick="() => HandleRatingEdit(new ChangeEventArgs { Value = null })">
+                    <i class="bi bi-x-circle-fill"></i>
                 </button>
             }
         </div>
@@ -40,16 +34,19 @@
                         title="Watchlist"
                         @onclick="() => ToggleStatus(WatchlistStatus.Pending)">
                     <i class="bi bi-list-nested"></i>
+                    <span class="pill-label">Watchlist</span>
                 </button>
                 <button class="status-pill @(Item?.Status == WatchlistStatus.Watching ? "active watching" : "")"
                         title="Watching"
                         @onclick="() => ToggleStatus(WatchlistStatus.Watching)">
                     <i class="bi bi-play-fill"></i>
+                    <span class="pill-label">Watching</span>
                 </button>
                 <button class="status-pill @(Item?.Status == WatchlistStatus.Watched ? "active watched" : "")"
                         title="Watched"
                         @onclick="() => ToggleStatus(WatchlistStatus.Watched)">
                     <i class="bi bi-check-lg"></i>
+                    <span class="pill-label">Watched</span>
                 </button>
             </div>
         </div>
@@ -96,23 +93,17 @@
         position: relative;
     }
 
-    .rating-delete-btn-tiny {
-        position: absolute;
-        bottom: -4px;
-        right: -4px;
-        width: 18px;
-        height: 18px;
-        background: #ef4444;
-        color: #fff;
-        border: 2px solid #fff;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.55rem;
+    .remove-rating-btn {
+        background: transparent;
+        border: none;
+        color: #94a3b8;
+        padding: 0;
         cursor: pointer;
-        z-index: 5;
+        opacity: 0.5;
+        transition: all 0.2s;
+        font-size: 0.85rem;
     }
+    .remove-rating-btn:hover { color: #ef4444; opacity: 1; }
 
     .status-compact-pills {
         display: flex;
@@ -130,11 +121,15 @@
         border-radius: 9px;
         color: #94a3b8;
         display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
-        font-size: 1.2rem;
+        font-size: 0.9rem;
         transition: all 0.2s;
+        line-height: 1;
+        padding: 0 4px;
     }
+    .pill-label { font-size: 0.52rem; font-weight: 700; text-transform: uppercase; margin-top: 2px; }
     .status-pill:hover { color: #64748b; background: rgba(255,255,255,0.5); }
     .status-pill.active { color: #fff; }
     .status-pill.active.pending { background: #64748b; box-shadow: 0 2px 8px rgba(100, 116, 139, 0.3); }
@@ -150,9 +145,10 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.1rem;
+        font-size: 1rem;
         cursor: pointer;
         transition: all 0.2s;
+        border: none;
     }
     .add-col-btn:hover { background: #e2e8f0; color: #1e293b; }
 
@@ -263,10 +259,8 @@
 
     private string GetRatingColor(int val)
     {
-        if (val >= 80) return "#10b981";
-        if (val >= 60) return "#3b82f6";
-        if (val >= 40) return "#f59e0b";
-        return "#ef4444";
+        double hue = (val / 100.0) * 120;
+        return $"hsl({hue}, 70%, 40%)";
     }
 
     private async Task HandleRatingEdit(ChangeEventArgs e)
@@ -289,9 +283,9 @@
         }
     }
 
-    private async Task ToggleStatus(WatchlistStatus newStatus)
+    private async Task RemoveFromLibrary()
     {
-        if (Item != null && Item.Status == newStatus)
+        if (await JS.InvokeAsync<bool>("confirm", "Remove this item from your library?"))
         {
             await WatchlistSvc.RemoveFromWatchlistByImdbIdAsync(ImdbId);
             Item = null;
@@ -300,6 +294,14 @@
             await Task.Delay(1500);
             showSavedIndicator = false;
             StateHasChanged();
+        }
+    }
+
+    private async Task ToggleStatus(WatchlistStatus newStatus)
+    {
+        if (Item != null && Item.Status == newStatus)
+        {
+            await RemoveFromLibrary();
             return;
         }
 

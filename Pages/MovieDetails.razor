@@ -562,10 +562,6 @@
         if (movie != null)
         {
             libItem = WatchlistSvc.Items.FirstOrDefault(i => i.ImdbId == imdbId);
-            if (libItem == null)
-            {
-                libItem = new WatchlistItem { ImdbId = imdbId, Title = movie.Title, Status = WatchlistStatus.Pending, TmdbId = movie.Id };
-            }
 
             // Fire off external API requests
             _ = LoadWikiDataAsync();
