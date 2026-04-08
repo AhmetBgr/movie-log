@@ -9,10 +9,6 @@
 
 <div class="page">
 
-    <!-- Desktop sidebar: visible sm and up -->
-    <div class="sidebar d-none d-sm-flex flex-column">
-        <NavMenu />
-    </div>
 
     <div class="d-flex flex-row flex-grow-1 overflow-hidden h-100">
         <main class="pb-sm-0 flex-grow-1 h-100 overflow-auto">
@@ -29,8 +25,8 @@
 
         <!-- Search bar — always fixed to top -->
         <div class="search-bar-wrap">
-            <div class="search-bar-inner d-flex align-items-center gap-2">
-                <div class="search-container flex-grow-1 shadow-sm">
+        <div class="search-bar-inner d-flex align-items-center gap-3">
+            <div class="search-container flex-grow-1 shadow-sm">
                     <form class="search-form" @onsubmit="PerformSearch" @onsubmit:preventDefault="true">
                         <div class="search-type-toggle" @onclick="CycleSearchMode" title="Switch search mode">
                             @if (_searchMode == SearchMode.Multi) { <i class="bi bi-film"></i><span class="d-none d-md-inline ms-2">Movies</span> }
@@ -122,6 +118,24 @@
                 <button type="button" class="random-btn shadow-sm" @onclick="WatchlistSvc.ShowGlobalRandomMovieAsync" title="Feeling lucky? Show random movie outside library">
                     <i class="bi bi-dice-5-fill"></i>
                 </button>
+
+                <div class="header-nav-desktop d-none d-md-flex align-items-center gap-2 ms-auto">
+                    <NavLink class="nav-link-btn" href="" Match="NavLinkMatch.All">
+                        <i class="bi bi-house-door"></i>
+                        <span>Home</span>
+                    </NavLink>
+                    <NavLink class="nav-link-btn" href="library">
+                        <i class="bi bi-collection-play"></i>
+                        <span>Library</span>
+                    </NavLink>
+                    <NavLink class="nav-link-btn" href="discovery">
+                        <i class="bi bi-compass"></i>
+                        <span>Discovery</span>
+                    </NavLink>
+                    <NavLink class="nav-link-btn" href="configure">
+                        <i class="bi bi-gear"></i>
+                    </NavLink>
+                </div>
             </div>
         </div>
 
@@ -175,13 +189,43 @@
         z-index: 1001;
         background: #fff;
         border-bottom: 1px solid #e8eaed;
-        padding: 8px 16px;
+        padding: 10px 24px;
     }
 
     .search-bar-inner {
         width: 100%;
-        max-width: 720px;
-        margin: 0 auto;
+        margin: 0;
+    }
+
+    .header-nav-desktop {
+        padding: 0 10px;
+    }
+
+    .nav-link-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        border-radius: 12px;
+        color: #5f6368;
+        font-weight: 700;
+        font-size: 0.9rem;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+
+    .nav-link-btn:hover {
+        background: #f1f3f4;
+        color: #1a1a2e;
+    }
+
+    .nav-link-btn.active {
+        background: #e8f0fe;
+        color: #1a73e8;
+    }
+
+    .nav-link-btn i {
+        font-size: 1.1rem;
     }
 
     .search-container {
@@ -191,6 +235,7 @@
         border-radius: 20px;
         background: #f1f3f4;
         transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        max-width: 600px;
     }
 
     .search-container:focus-within {
@@ -291,6 +336,26 @@
         transform: rotate(15deg);
     }
 
+    .sidebar-toggle-btn {
+        flex-shrink: 0;
+        width: 44px;
+        height: 44px;
+        background: #f1f3f4;
+        color: #1a1a2e;
+        border: none;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .sidebar-toggle-btn:hover {
+        background: var(--primary);
+        color: #fff;
+    }
+
     /* ── Dropdown ─────────────────────────────────────────── */
     .search-overlay-dropdown {
         position: absolute;
@@ -382,6 +447,7 @@
         } 
     }
 
+    private bool _isSidebarCollapsed = false;
     private bool _showUpdateBanner = false;
     private DotNetObjectReference<MainLayout>? _dotNetRef;
     private bool _isOverlayOpen = false;
