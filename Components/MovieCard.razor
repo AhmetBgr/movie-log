@@ -17,7 +17,7 @@
                 
                 @if (IsEditMode)
                 {
-                    <div class="card-checkbox @(IsSelected ? "card-checkbox-checked" : "")" @onclick="@(async () => await OnToggleSelect.InvokeAsync())">
+                    <div class="card-checkbox @(IsSelected ? "card-checkbox-checked" : "") mb-2" @onclick="@(async () => await OnToggleSelect.InvokeAsync())">
                         @if (IsSelected)
                         {
                             <i class="bi bi-check-lg text-white" style="font-size: 0.85rem; line-height: 1;"></i>
@@ -25,19 +25,31 @@
                     </div>
                 }
 
-                @if (CanReorder && !IsEditMode)
+                @if (CanReorder)
                 {
-                    <div class="reorder-controls d-flex flex-column align-items-center gap-2">
-                        @if (Rank > 0)
+                    <div class="reorder-controls d-flex flex-column align-items-center">
+                        @if (IsEditMode)
                         {
-                            <span class="rank-number">@Rank</span>
+                            <div class="rank-box">
+                                <input type="number" 
+                                       class="rank-input shadow-none" 
+                                       value="@Rank" 
+                                       min="1" 
+                                       @onchange="async (e) => { if(int.TryParse(e.Value?.ToString(), out var r)) await OnRankChanged.InvokeAsync(r); }" />
+                            </div>
+                            <div class="reorder-btns-tiny d-flex flex-column mt-1">
+                                <button class="reorder-btn-tiny" @onclick="() => OnMoveUp.InvokeAsync()" title="Move Up">
+                                    <i class="bi bi-chevron-up"></i>
+                                </button>
+                                <button class="reorder-btn-tiny" @onclick="() => OnMoveDown.InvokeAsync()" title="Move Down">
+                                    <i class="bi bi-chevron-down"></i>
+                                </button>
+                            </div>
                         }
-                        <button class="reorder-btn px-0" @onclick="() => OnMoveUp.InvokeAsync()" title="Move Up">
-                            <i class="bi bi-chevron-up"></i>
-                        </button>
-                        <button class="reorder-btn px-0" @onclick="() => OnMoveDown.InvokeAsync()" title="Move Down">
-                            <i class="bi bi-chevron-down"></i>
-                        </button>
+                        else
+                        {
+                            <span class="rank-label">@Rank</span>
+                        }
                     </div>
                 }
             </div>
@@ -218,6 +230,7 @@
     [Parameter] public EventCallback OnToggleSelect { get; set; }
     [Parameter] public EventCallback OnMoveUp { get; set; }
     [Parameter] public EventCallback OnMoveDown { get; set; }
+    [Parameter] public EventCallback<int> OnRankChanged { get; set; }
     [Parameter] public RenderFragment? SidePanel { get; set; }
     [Parameter] public EventCallback<WatchlistItem> OnClick { get; set; }
 
@@ -268,35 +281,30 @@
     .track-btn { width: 26px; height: 26px; padding: 0; border: 1px solid rgba(0,0,0,0.15); background: #fff; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.02rem; transition: background 0.12s; }
     .track-btn:hover { background: #f0f0f0; }
 
-    .rank-number {
-        font-size: 0.72rem;
-        font-weight: 800;
-        color: #999;
-        margin-bottom: -4px;
+    .rank-box {
+        width: 32px; height: 32px; border: 1px solid #ddd; border-radius: 8px;
+        display: flex; align-items: center; justify-content: center; background: #fff;
+    }
+    .rank-label {
+        font-size: 0.85rem; font-weight: 800; color: #aaa; font-family: var(--font-monospace);
+    }
+    .rank-input {
+        width: 100%; height: 100%; border: none; background: transparent; 
+        text-align: center; font-weight: 800; font-size: 0.85rem; color: #333;
         font-family: var(--font-monospace);
     }
+    input[type=number].rank-input::-webkit-inner-spin-button,
+    input[type=number].rank-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type=number].rank-input { -moz-appearance: textfield; }
 
-    .reorder-btn {
-        width: 28px;
-        height: 28px;
-        padding: 0;
-        border: 1px solid rgba(0,0,0,0.1);
-        background: #fff;
-        border-radius: 6px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        color: #666;
-        transition: all 0.15s;
+    .reorder-btns-tiny { gap: 1px; }
+    .reorder-btn-tiny {
+        width: 32px; height: 18px; padding: 0; border: 1px solid rgba(0,0,0,0.05);
+        background: #fff; border-radius: 4px; display: flex; align-items: center; justify-content: center;
+        cursor: pointer; color: #888; transition: all 0.1s;
     }
-    .reorder-btn:hover {
-        background: #6366f1;
-        color: #fff;
-        border-color: #6366f1;
-        box-shadow: 0 2px 6px rgba(99,102,241,0.2);
-    }
-    .reorder-btn i { font-size: 0.9rem; }
+    .reorder-btn-tiny:hover { background: #f0f0f0; color: #111; }
+    .reorder-btn-tiny i { font-size: 0.7rem; }
 
     .tracking-pill { padding: 2px 6px !important; font-size: 0.72rem; transform-origin: left center; transition: transform 0.15s; }
     .tracking-pill .vr { height: 13px !important; }

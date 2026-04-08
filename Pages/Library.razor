@@ -283,7 +283,8 @@
                                    CanReorder="@(ActiveTab == "collections" && SelectedCollectionId != null && CurrentSortColumn == "Order")"
                                    GetRank="@(ActiveTab == "collections" && SelectedCollectionId != null && CurrentSortColumn == "Order" ? (item => SelectedCollection?.Items.FirstOrDefault(ci => ci.ImdbId == item.ImdbId)?.Order + 1 ?? 0) : null)"
                                    OnMoveUp="@((id) => WatchlistSvc.MoveCollectionItemUpAsync(SelectedCollectionId!.Value, id))"
-                                   OnMoveDown="@((id) => WatchlistSvc.MoveCollectionItemDownAsync(SelectedCollectionId!.Value, id))" />
+                                   OnMoveDown="@((id) => WatchlistSvc.MoveCollectionItemDownAsync(SelectedCollectionId!.Value, id))"
+                                   OnRankChanged="@((args) => WatchlistSvc.SetCollectionItemRankAsync(SelectedCollectionId!.Value, args.Id, args.Rank))" />
                 }
                 else
                 {
@@ -307,7 +308,8 @@
                                                CanReorder="@(ActiveTab == "collections" && SelectedCollectionId != null && CurrentSortColumn == "Order")"
                                                Rank="@rank"
                                                OnMoveUp="@(() => WatchlistSvc.MoveCollectionItemUpAsync(SelectedCollectionId.Value, item.ImdbId))"
-                                               OnMoveDown="@(() => WatchlistSvc.MoveCollectionItemDownAsync(SelectedCollectionId.Value, item.ImdbId))" />
+                                               OnMoveDown="@(() => WatchlistSvc.MoveCollectionItemDownAsync(SelectedCollectionId.Value, item.ImdbId))"
+                                               OnRankChanged="@((r) => WatchlistSvc.SetCollectionItemRankAsync(SelectedCollectionId.Value, item.ImdbId, r))" />
                                 </div>
                             </Virtualize>
                         </div>

@@ -1671,6 +1671,33 @@ public class WatchlistService
         await PersistAsync();
         NotifyStateChanged();
     }
+
+    public async Task SetCollectionItemRankAsync(Guid collectionId, string imdbId, int newRank)
+    {
+        var col = Collections.FirstOrDefault(c => c.Id == collectionId);
+        if (col == null) return;
+
+        var items = col.Items.OrderBy(i => i.Order).ToList();
+        var itemToMove = items.FirstOrDefault(i => i.ImdbId == imdbId);
+        if (itemToMove == null) return;
+
+        int oldIdx = items.IndexOf(itemToMove);
+        int newIdx = Math.Clamp(newRank - 1, 0, items.Count - 1);
+
+        if (oldIdx == newIdx) return;
+
+        items.RemoveAt(oldIdx);
+        items.Insert(newIdx, itemToMove);
+
+        // Re-assign orders
+        for (int i = 0; i < items.Count; i++)
+        {
+            items[i].Order = i;
+        }
+
+        await PersistAsync();
+        NotifyStateChanged();
+    }
 }
 
 
