@@ -25,9 +25,10 @@
 
         <!-- Search bar — always fixed to top -->
         <div class="search-bar-wrap">
-        <div class="search-bar-inner d-flex align-items-center gap-3">
-            <NavLink class="app-logo-link d-none d-md-flex" href="" Match="NavLinkMatch.All" title="Home">
-                <img src="icon-192.png" alt="Movie Log" class="app-logo-icon" />
+        <div class="search-bar-inner d-flex align-items-center gap-2 gap-sm-3">
+            <NavLink class="app-logo-text d-none d-md-flex" href="" Match="NavLinkMatch.All" title="Home">
+                <span class="logo-first">MOVIE</span>
+                <span class="logo-last">LOG</span>
             </NavLink>
             <div class="search-container flex-grow-1 shadow-sm">
                     <form class="search-form" @onsubmit="PerformSearch" @onsubmit:preventDefault="true">
@@ -52,8 +53,9 @@
                             }
                         </div>
 
-                        <button type="submit" class="search-btn d-none d-sm-flex">
-                            Search
+                        <button type="submit" class="search-btn" title="Search">
+                            <i class="bi bi-search d-sm-none"></i>
+                            <span class="d-none d-sm-inline">Search</span>
                         </button>
                     </form>
 
@@ -200,23 +202,33 @@
         padding: 0 10px;
     }
 
-    .app-logo-link {
-        flex-shrink: 0;
+    .app-logo-text {
+        text-decoration: none !important;
         display: flex;
         align-items: center;
-        justify-content: center;
+        gap: 5px;
         transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        margin-right: 5px;
+        flex-shrink: 0;
+        cursor: pointer;
     }
     
-    .app-logo-link:hover {
-        transform: scale(1.1);
+    .app-logo-text:hover {
+        transform: scale(1.05);
     }
 
-    .app-logo-icon {
-        width: 36px;
-        height: 36px;
-        border-radius: 8px;
-        object-fit: contain;
+    .logo-first {
+        color: #202124;
+        font-weight: 900;
+        font-size: 1.1rem;
+        letter-spacing: -0.03em;
+    }
+
+    .logo-last {
+        color: #1a73e8;
+        font-weight: 900;
+        font-size: 1.1rem;
+        letter-spacing: -0.03em;
     }
 
     .nav-link-btn {
@@ -322,15 +334,46 @@
     .clear-btn:hover { color: #888; }
 
     .search-btn {
-        background: var(--primary, #1a1a2e);
+        background: linear-gradient(135deg, #1a73e8 0%, #1557b0 100%);
         color: #fff;
         border: none;
         border-radius: 999px;
-        padding: 4px 20px;
-        font-size: 0.75rem;
+        padding: 0 18px;
+        font-size: 0.8rem;
         font-weight: 700;
-        height: 32px;
-        margin-right: 2px;
+        height: 34px;
+        margin-right: 5px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 2px 4px rgba(26, 115, 232, 0.2);
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .search-btn:hover {
+        background: linear-gradient(135deg, #185abc 0%, #104694 100%);
+        box-shadow: 0 4px 10px rgba(24, 90, 188, 0.3);
+        transform: translateY(-1px);
+    }
+
+    .search-btn:active {
+        transform: translateY(0);
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+
+    .search-btn i {
+        font-size: 1.05rem;
+    }
+
+    @@media (max-width: 576px) {
+        .search-btn {
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            margin-right: 4px;
+        }
     }
 
     .random-btn {
@@ -434,11 +477,11 @@
     }
 
     @@media (max-width: 576px) {
-        .search-bar-wrap { padding: 6px 10px; }
+        .search-bar-wrap { padding: 6px 8px; }
         .search-type-toggle { padding: 0 10px; border-right: none; }
         .search-input-wrap { padding: 0 8px; }
         .search-input { font-size: 0.9rem; }
-        .random-btn { width: 38px; height: 38px; font-size: 1.1rem; }
+        .random-btn { width: 36px; height: 36px; font-size: 1rem; }
         .search-overlay-dropdown { 
             position: fixed;
             top: 56px;
@@ -447,6 +490,13 @@
             border-radius: 16px;
             max-height: 70vh;
         }
+    }
+
+    @@media (max-width: 380px) {
+        .search-type-toggle { padding: 0 6px; }
+        .search-input-wrap { padding: 0 4px; }
+        .search-btn { width: 32px; height: 32px; margin-right: 2px; }
+        .random-btn { width: 32px; height: 32px; }
     }
 </style>
 
