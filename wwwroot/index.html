@@ -120,6 +120,19 @@
                     top = Math.max(gutter, rect.top - popRect.height - 6);
                 }
 
+                // Check for transformed parent (like SidePanel)
+                var parent = menu.parentElement;
+                while (parent && parent !== document.body) {
+                    var style = window.getComputedStyle(parent);
+                    if (style.transform !== "none" || style.perspective !== "none" || style.filter !== "none") {
+                        var pRect = parent.getBoundingClientRect();
+                        left -= pRect.left;
+                        top -= pRect.top;
+                        break;
+                    }
+                    parent = parent.parentElement;
+                }
+
                 popover.style.left = left + "px";
                 popover.style.top = top + "px";
                 popover.setAttribute("data-positioned", "true");

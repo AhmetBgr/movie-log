@@ -1472,17 +1472,33 @@ public class WatchlistService
         try
         {
             var escapedTitle = Uri.EscapeDataString(title);
-            var url = $"https://en.wikipedia.org/api/rest_v1/page/summary/{escapedTitle}";
-            var response = await _http.GetFromJsonAsync<WikipediaSnippet>(url);
+            // Use MediaWiki Action API for full intro extracts (or full page if exintro=0)
+            // We'll use exintro=0 to get more than just the first paragraph
+            var url = $"https://en.wikipedia.org/w/api.php?action=query&prop=extracts&exintro=0&explaintext=1&titles={escapedTitle}&format=json&origin=*&formatversion=2";
+            var result = await _http.GetFromJsonAsync<WikipediaApiResponse>(url);
             
-            // Fallback for movies
-            if (response == null || response.Title == "Not found" || response.Extract == null)
+            var page = result?.Query?.Pages?.FirstOrDefault();
+            if (page == null || string.IsNullOrWhiteSpace(page.Extract) || page.Missing)
             {
-                url = $"https://en.wikipedia.org/api/rest_v1/page/summary/{escapedTitle}_(film)";
-                response = await _http.GetFromJsonAsync<WikipediaSnippet>(url);
+                // Try film fallback
+                url = $"https://en.wikipedia.org/w/api.php?action=query&prop=extracts&exintro=0&explaintext=1&titles={escapedTitle}_(film)&format=json&origin=*&formatversion=2";
+                result = await _http.GetFromJsonAsync<WikipediaApiResponse>(url);
+                page = result?.Query?.Pages?.FirstOrDefault();
             }
-            
-            return response;
+
+            if (page != null && !string.IsNullOrWhiteSpace(page.Extract))
+            {
+                return new WikipediaSnippet { 
+                    Title = page.Title ?? title, 
+                    Extract = page.Extract,
+                    ContentUrls = new WikipediaUrls { 
+                        Desktop = new WikipediaDesktopUrls { 
+                            Page = $"https://en.wikipedia.org/wiki/{Uri.EscapeDataString(page.Title ?? title)}" 
+                        } 
+                    }
+                };
+            }
+            return null;
         }
         catch { return null; }
     }
@@ -1493,8 +1509,6 @@ public class WatchlistService
 
         try
         {
-            // OpenSubtitles.com API: /api/v1/subtitles?imdb_id={id}
-            // Requires Api-Key header and usually a User-Agent
             var id = imdbId.StartsWith("tt") ? imdbId[2..] : imdbId;
             var url = $"https://api.opensubtitles.com/api/v1/subtitles?imdb_id={id}";
             
@@ -1509,14 +1523,9 @@ public class WatchlistService
                 return result?.Data ?? new();
             }
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Search subtitles error: {ex.Message}");
-        }
+        catch (Exception ex) { Console.WriteLine($"Search subtitles error: {ex.Message}"); }
         return new();
     }
-
-    // --- Custom Collections ---
     public async Task CreateCollectionAsync(string name)
     {
         if (string.IsNullOrWhiteSpace(name)) return;

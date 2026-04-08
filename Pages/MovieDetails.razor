@@ -36,15 +36,14 @@
             </div>
             
             <div class="container hero-container">
-                <div class="row g-4 align-items-center">
-                    <div class="col-lg-3 col-md-4">
-                        <div class="hero-poster shadow-premium">
-                            <img src="@movie.FullPosterUrl" alt="@movie.Title" />
+                <div class="row justify-content-center w-100 m-0">
+                    <div class="col-lg-10 col-xl-8 text-center">
+                        <div class="hero-poster shadow-premium mb-4 mx-auto" style="max-width: 200px;">
+                            <img src="@movie.FullPosterUrl" alt="@movie.Title" class="rounded-4" />
                         </div>
-                    </div>
-                    <div class="col-lg-9 col-md-8">
+                        
                         <div class="hero-content text-white">
-                            <div class="d-flex align-items-center gap-3 flex-wrap mb-2">
+                            <div class="d-flex align-items-center justify-content-center gap-3 flex-wrap mb-2">
                                 <h1 class="movie-title fw-black m-0">@movie.Title</h1>
                                 <div class="hero-actions-inline">
                                     <OpenOnMenu Title="@movie.Title" 
@@ -56,39 +55,44 @@
                             
                             @if (!string.IsNullOrEmpty(movie.OriginalTitle) && movie.OriginalTitle != movie.Title)
                             {
-                                <h4 class="text-white-50 fw-semibold mb-3">@movie.OriginalTitle</h4>
+                                <h5 class="text-white-50 fw-semibold mb-3">@movie.OriginalTitle</h5>
                             }
                             
-                            <div class="movie-meta d-flex flex-wrap gap-3 mb-4">
-                                <span class="meta-item"><i class="bi bi-calendar3"></i> @(movie.ReleaseDate?.Length >= 4 ? movie.ReleaseDate[..4] : "N/A")</span>
-                                @if (movie.Runtime > 0)
-                                {
-                                    <span class="meta-item"><i class="bi bi-clock"></i> @FormatRuntime(movie.Runtime.Value)</span>
-                                }
-                                <div class="rating-badge">
-                                    <i class="bi bi-star-fill text-warning"></i>
-                                    <span>@movie.VoteAverage.ToString("0.0")</span>
-                                    <small>TMDB</small>
+                            <div class="hero-meta-group d-flex flex-column align-items-center gap-2 mb-4">
+                                <div class="movie-meta d-flex justify-content-center flex-wrap align-items-center gap-3">
+                                    <span class="meta-item text-white-50"><i class="bi bi-calendar3"></i> @(movie.ReleaseDate?.Length >= 4 ? movie.ReleaseDate[..4] : "TBA")</span>
+                                    <span class="meta-item text-white-50"><i class="bi bi-clock"></i> @FormatRuntime(movie.Runtime ?? 0)</span>
+                                    <div class="rating-badge-glass">
+                                        <i class="bi bi-star-fill text-warning"></i>
+                                        <span>@movie.VoteAverage.ToString("0.0")</span>
+                                        <small>TMDB</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="genres-wrap d-flex justify-content-center flex-wrap gap-2">
+                                    @foreach (var g in movie.GenreList)
+                                    {
+                                        <span class="genre-tag-small">@g.Name</span>
+                                    }
                                 </div>
                             </div>
                             
-                            <div class="genres-wrap d-flex flex-wrap gap-2 mb-4">
-                                @foreach (var g in movie.GenreList)
-                                {
-                                    <span class="genre-tag">@g.Name</span>
-                                }
-                            </div>
-                            
-                            <div class="d-flex flex-wrap gap-3">
-                                @if (!string.IsNullOrEmpty(movie.TrailerKey))
-                                {
-                                    <a href="https://www.youtube.com/watch?v=@movie.TrailerKey" target="_blank" class="btn btn-primary btn-lg rounded-pill px-4 fw-bold shadow-sm text-decoration-none d-inline-flex align-items-center">
-                                        <i class="bi bi-play-fill me-2 fs-4"></i> Play Trailer
-                                    </a>
-                                }
-                                <button class="btn btn-glass btn-lg rounded-pill px-4 fw-bold" @onclick="OpenAsPopup">
-                                    <i class="bi bi-layout-sidebar-reverse me-2"></i> Open Summary
-                                </button>
+                            <div class="hero-footer-actions d-flex flex-column align-items-center gap-3">
+                                <div class="d-flex flex-wrap justify-content-center gap-2">
+                                    @if (!string.IsNullOrEmpty(movie.TrailerKey))
+                                    {
+                                        <a href="https://www.youtube.com/watch?v=@movie.TrailerKey" target="_blank" class="btn btn-primary rounded-pill px-3 py-1 fw-bold shadow-sm text-decoration-none d-inline-flex align-items-center" style="font-size: 0.85rem;">
+                                            <i class="bi bi-play-fill me-1 fs-5"></i> Trailer
+                                        </a>
+                                    }
+                                    <button class="btn btn-glass rounded-pill px-3 py-1 fw-bold" style="font-size: 0.85rem;" @onclick="OpenAsPopup">
+                                        <i class="bi bi-layout-sidebar-reverse me-2"></i> Summary
+                                    </button>
+                                </div>
+
+                                <div class="hero-library-box mt-1">
+                                    <CompactLibraryActions Item="libItem" ImdbId="@imdbId" Movie="movie" />
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -96,20 +100,18 @@
             </div>
         </div>
 
-        <div class="container main-content">
-            <div class="row g-4">
-                <!-- Primary Column -->
-                <div class="col-lg-8">
+        <div class="container main-content pb-5">
+            <div class="row justify-content-center">
+                <div class="col-lg-10 col-xl-9">
                     <!-- Overview -->
                     <section class="details-section shadow-sm animate-in">
-                        <h3 class="section-heading"><i class="bi bi-text-left me-2"></i> Overview</h3>
+                        <h3 class="section-heading mb-3"><i class="bi bi-text-left me-2 text-primary"></i> Overview</h3>
                         <p class="overview-p">@movie.Overview</p>
                     </section>
-
-                    <!-- Full Cast & Crew -->
-                    <section class="details-section shadow-sm animate-in">
-                        <h3 class="section-heading mb-4"><i class="bi bi-people me-2"></i> Cast & Crew</h3>
-                        
+                    
+                    <!-- Cast & Crew -->
+                    <section class="details-section shadow-sm animate-in" style="animation-delay: 0.1s;">
+                        <h3 class="section-heading mb-4"><i class="bi bi-people me-2 text-primary"></i> Cast & Crew</h3>
                         <div class="credits-wrap">
                             @if (movie.Credits?.Crew?.Any(c => c.Job == "Director") == true)
                             {
@@ -119,24 +121,15 @@
                                         @foreach (var dir in movie.Credits.Crew.Where(c => c.Job == "Director"))
                                         {
                                             <div class="person-compact-card clickable" @onclick="() => WatchlistSvc.OpenPersonProfileAsync(dir.Id)">
-                                                <img src="@dir.FullProfileUrl" alt="@dir.Name" />
+                                                @if (!string.IsNullOrEmpty(dir.ProfilePath))
+                                                {
+                                                    <img src="@dir.FullProfileUrl" alt="@dir.Name" />
+                                                }
+                                                else
+                                                {
+                                                    <div class="person-placeholder-icon"><i class="bi bi-person-fill"></i></div>
+                                                }
                                                 <span>@dir.Name</span>
-                                            </div>
-                                        }
-                                    </div>
-                                </div>
-                            }
-
-                            @if (movie.Credits?.Crew?.Any(c => c.Job == "Writer" || c.Job == "Screenplay") == true)
-                            {
-                                <div class="crew-group mb-4">
-                                    <label class="group-label">Writers</label>
-                                    <div class="person-grid-small">
-                                        @foreach (var writer in movie.Credits.Crew.Where(c => c.Job == "Writer" || c.Job == "Screenplay").GroupBy(x => x.Id).Select(g => g.First()).Take(6))
-                                        {
-                                            <div class="person-compact-card clickable" @onclick="() => WatchlistSvc.OpenPersonProfileAsync(writer.Id)">
-                                                <img src="@writer.FullProfileUrl" alt="@writer.Name" />
-                                                <span>@writer.Name</span>
                                             </div>
                                         }
                                     </div>
@@ -151,7 +144,14 @@
                                         @foreach (var actor in movie.Credits.Cast.Take(12))
                                         {
                                             <div class="person-compact-card clickable" @onclick="() => WatchlistSvc.OpenPersonProfileAsync(actor.Id)">
-                                                <img src="@actor.FullProfileUrl" alt="@actor.Name" />
+                                                @if (!string.IsNullOrEmpty(actor.ProfilePath))
+                                                {
+                                                    <img src="@actor.FullProfileUrl" alt="@actor.Name" />
+                                                }
+                                                else
+                                                {
+                                                    <div class="person-placeholder-icon"><i class="bi bi-person-fill"></i></div>
+                                                }
                                                 <span>@actor.Name</span>
                                             </div>
                                         }
@@ -160,28 +160,45 @@
                             }
                         </div>
                     </section>
-
-                    <!-- Wikipedia Snippet -->
-                    @if (wikiSnippet != null)
+                    
+                    <!-- Media Gallery -->
+                    @if (movie.BackdropPaths.Count > 1)
                     {
-                        <section class="details-section shadow-sm animate-in">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h3 class="section-heading m-0"><i class="bi bi-wikipedia me-2"></i> From Wikipedia</h3>
-                                <a href="@wikiSnippet.ContentUrls?.Desktop?.Page" target="_blank" class="btn btn-sm btn-outline-secondary rounded-pill">Read More</a>
-                            </div>
-                            <div class="wiki-content">
-                                <p class="mb-0">@wikiSnippet.Extract</p>
+                        <section class="details-section shadow-sm animate-in" style="animation-delay: 0.2s;">
+                            <h3 class="section-heading mb-4"><i class="bi bi-images me-2 text-primary"></i> Gallery</h3>
+                            <div class="row g-3">
+                                @foreach (var path in movie.BackdropPaths.Skip(1).Take(12))
+                                {
+                                    <div class="col-6 col-md-4">
+                                        <div class="gallery-thumb rounded-4 clickable" @onclick="() => OpenLightbox(path)">
+                                            <img src="https://image.tmdb.org/t/p/w500@(path)" class="img-fluid" alt="Backdrop" />
+                                            <div class="thumb-overlay"><i class="bi bi-zoom-in"></i></div>
+                                        </div>
+                                    </div>
+                                }
                             </div>
                         </section>
                     }
-                    else if (isWikiLoading)
+
+                    <!-- Wikipedia -->
+                    @if (wikiSnippet != null)
                     {
-                        <div class="details-section shadow-sm shimmer-box" style="height: 150px;"></div>
+                        <section class="details-section shadow-sm animate-in" style="animation-delay: 0.3s;">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h3 class="section-heading m-0"><i class="bi bi-wikipedia me-2 text-primary"></i> Wikipedia</h3>
+                                <a href="@wikiSnippet.ContentUrls?.Desktop?.Page" target="_blank" class="btn btn-sm btn-outline-secondary rounded-pill">Open Source</a>
+                            </div>
+                            <div class="wiki-content">
+                                <div class="wiki-text" style="white-space: pre-wrap; line-height: 1.8; color: #475569; font-size: 1.05rem;">
+                                    @wikiSnippet.Extract
+                                </div>
+                            </div>
+                        </section>
                     }
 
-                    <!-- Subtitles Section -->
-                    <section class="details-section shadow-sm animate-in">
-                        <h3 class="section-heading mb-3"><i class="bi bi-chat-left-dots me-2"></i> Subtitles</h3>
+                    <!-- Subtitles -->
+                    <section class="details-section shadow-sm animate-in" style="animation-delay: 0.4s;">
+                        <h3 class="section-heading mb-3"><i class="bi bi-chat-left-dots me-2 text-primary"></i> Subtitles</h3>
                         @if (isSubsLoading)
                         {
                             <div class="shimmer-box" style="height: 100px;"></div>
@@ -204,59 +221,21 @@
                                 }
                             </div>
                         }
-                        else
-                        {
-                            <div class="text-center py-3 text-muted">
-                                <i class="bi bi-search mb-2 d-block opacity-50"></i>
-                                @if (string.IsNullOrEmpty(WatchlistSvc.OpenSubtitlesApiKey))
-                                {
-                                    <p class="small mb-0">API Key not configured. Link your OpenSubtitles key in Settings.</p>
-                                }
-                                else
-                                {
-                                    <p class="small mb-0">No subtitles found via API.</p>
-                                }
-                                <a href="https://www.opensubtitles.org/en/search/imdbid-@imdbId" target="_blank" class="btn btn-link btn-sm mt-1">Manual Search <i class="bi bi-box-arrow-up-right ms-1"></i></a>
-                            </div>
-                        }
                     </section>
-                </div>
-
-                <!-- Secondary Column -->
-                <div class="col-lg-4">
-                    <div class="details-section shadow-sm sticky-side status-box accent-border animate-in p-3">
-                        <h4 class="small fw-bold text-secondary text-uppercase tracking-wider mb-3 ms-1" style="font-size: 0.65rem;">Library Actions</h4>
-                        <CompactLibraryActions Item="libItem" ImdbId="@imdbId" Movie="movie" />
-                    </div>
-
-                    <!-- Media Gallery Grid -->
-                    @if (movie.BackdropPaths.Count > 1)
-                    {
-                        <div class="details-section shadow-sm animate-in">
-                            <h4 class="section-label mb-3">Gallery</h4>
-                            <div class="row g-2">
-                                @foreach (var path in movie.BackdropPaths.Skip(1))
-                                {
-                                    <div class="col-6">
-                                        <div class="gallery-thumb rounded-3 clickable" @onclick="() => OpenLightbox(path)">
-                                            <img src="https://image.tmdb.org/t/p/w300@(path)" class="img-fluid" alt="Backdrop" />
-                                            <div class="thumb-overlay"><i class="bi bi-zoom-in"></i></div>
-                                        </div>
-                                    </div>
-                                }
-                            </div>
-                        </div>
-                    }
 
                     <!-- Collection -->
                     @if (movie.Collection != null)
                     {
-                        <div class="details-section shadow-sm collection-promo clickable animate-in" 
-                             style="background-image: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.8)), url('https://image.tmdb.org/t/p/w500@(movie.Collection.BackdropPath)')"
+                        <div class="details-section shadow-sm collection-promo-wide clickable animate-in" 
+                             style="background-image: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.8)), url('https://image.tmdb.org/t/p/original@(movie.Collection.BackdropPath)')"
                              @onclick='() => NavManager.NavigateTo($"franchise/{movie.Collection.Id}")'>
-                            <span class="promo-badge">Collection</span>
-                            <h4 class="m-0 text-white fw-black">@movie.Collection.Name</h4>
-                            <div class="mt-3 text-white-50 small fw-bold">Deep Dive <i class="bi bi-arrow-right ms-1"></i></div>
+                            <div class="d-flex justify-content-between align-items-end h-100" style="min-height: 140px;">
+                                <div>
+                                    <span class="promo-badge">Part of Collection</span>
+                                    <h2 class="m-0 text-white fw-black">@movie.Collection.Name</h2>
+                                </div>
+                                <div class="text-white-50 fw-bold pb-1">View Franchise <i class="bi bi-arrow-right ms-2"></i></div>
+                            </div>
                         </div>
                     }
                 </div>
@@ -293,76 +272,84 @@
         padding-bottom: 200px;
     }
 
-    /* Hero Section - Refactored to avoid overflow Clipping */
+    /* Hero Section - Refactored for centered layout */
     .hero-section {
         position: relative;
-        height: min(60vh, 600px);
-        width: calc(100% + 2rem);
-        margin-left: -1rem;
-        margin-right: -1rem;
-        margin-top: -1.5rem;
-        /* Remove global overflow: hidden; to allow popups to overlay */
-        background: #000;
-        margin-bottom: -100px;
-    }
-    @@media (min-width: 576px) {
-        .hero-section {
-            width: calc(100% + 1.5rem);
-            margin-left: -0.75rem;
-            margin-right: -0.75rem;
-        }
-    }
-    @@media (min-width: 768px) {
-        .hero-section {
-            width: calc(100% + 4.5rem); 
-            margin-left: -2.25rem; 
-            margin-right: -2.25rem;
-        }
-    }
-    @@media (min-width: 1200px) {
-         .hero-section {
-            width: calc(100% + 6rem);
-            margin-left: -3rem;
-            margin-right: -3rem;
-        }
+        min-height: 550px;
+        width: 100vw;
+        margin-left: calc(-50vw + 50%);
+        margin-right: calc(-50vw + 50%);
+        background: #0b0f19;
+        margin-bottom: -60px;
+        display: flex;
+        align-items: center;
+        overflow: hidden;
     }
 
     .hero-bg-wrapper {
         position: absolute;
         inset: 0;
-        overflow: hidden; /* Only clip the background, not the whole section */
         pointer-events: none;
+        z-index: 1;
     }
     .hero-bg {
         position: absolute;
         inset: 0;
         background-size: cover;
         background-position: center 20%;
-        filter: brightness(0.5) blur(2px);
-        transform: scale(1.1);
+        filter: brightness(0.4) blur(3px);
+        transform: scale(1.05);
     }
     .hero-overlay {
         position: absolute;
         inset: 0;
-        background: linear-gradient(0deg, var(--movie-bg) 0%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.6) 100%);
+        background: radial-gradient(circle at center, rgba(11, 15, 25, 0.4) 0%, rgba(11, 15, 25, 0.85) 70%, #0b0f19 100%);
     }
 
     .hero-container {
         position: relative;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        z-index: 100; /* Higher to stay above content */
-        padding-top: 50px;
+        z-index: 50;
+        padding: 80px 0;
+        max-width: 1000px;
     }
     .hero-poster {
-        border-radius: 20px;
-        overflow: hidden;
-        border: 1px solid rgba(255,255,255,0.2);
+        width: 180px;
+        transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
-    .hero-poster img { width: 100%; height: auto; display: block; }
+    .hero-poster:hover { transform: scale(1.05); }
+    .hero-poster img { 
+        width: 100%; 
+        box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+        border: 1px solid rgba(255,255,255,0.1);
+    }
     
-    .movie-title { font-size: clamp(2rem, 5vw, 3.5rem); letter-spacing: -1.5px; line-height: 1.1; }
+    .movie-title { font-size: clamp(2.2rem, 6vw, 3.8rem); letter-spacing: -2px; line-height: 1; }
+    
+    .genre-tag-small {
+        background: rgba(255,255,255,0.08);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255,255,255,0.1);
+        padding: 3px 12px;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+        color: rgba(255,255,255,0.8);
+    }
+
+    .rating-badge-glass {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(255,255,255,0.08);
+        backdrop-filter: blur(12px);
+        padding: 4px 12px;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.15);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    .rating-badge-glass span { font-weight: 800; font-size: 1rem; color: #fff; }
+    .rating-badge-glass small { font-size: 0.6rem; text-transform: uppercase; font-weight: 800; opacity: 0.6; margin-left: -2px; }
     
     /* OpenOnMenu Custom Trigger Styling for Hero */
     .hero-actions-inline .open-on-trigger.btn-dots-white {
@@ -457,6 +444,12 @@
     .person-compact-card img { width: 32px; height: 32px; border-radius: 8px; object-fit: cover; }
     .person-compact-card span { font-weight: 700; font-size: 0.85rem; color: #1e293b; }
 
+    .person-placeholder-icon {
+        width: 32px; height: 32px; border-radius: 8px;
+        background: #e2e8f0; color: #94a3b8;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.1rem;
+    }
 
     /* Wiki & Subs */
     .wiki-content p { font-size: 1rem; line-height: 1.6; color: #475569; }
@@ -469,7 +462,7 @@
     .sub-release { font-weight: 700; font-size: 0.85rem; color: #1e293b; max-width: 200px; display: inline-block; }
 
     /* Media Gallery */
-    .gallery-thumb { position: relative; overflow: hidden; height: 100px; border: 1px solid #e2e8f0; }
+    .gallery-thumb { position: relative; overflow: hidden; height: 140px; border: 1px solid #e2e8f0; }
     .gallery-thumb img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
     .thumb-overlay {
         position: absolute; inset: 0; background: rgba(99, 102, 241, 0.4);
@@ -479,13 +472,16 @@
     .gallery-thumb:hover img { transform: scale(1.1); }
     .gallery-thumb:hover .thumb-overlay { opacity: 1; }
 
-    .collection-promo {
-        height: 180px; border-radius: 24px; padding: 30px;
-        background-size: cover; background-position: center;
-        display: flex; flex-direction: column; justify-content: flex-end;
+    .collection-promo-wide {
+        border-radius: 28px; padding: 35px;
+        background-size: cover; background-position: center 30%;
         position: relative; overflow: hidden;
+        border: 1px solid rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
     }
-    .promo-badge { font-size: 0.6rem; font-weight: 900; background: var(--movie-accent); color: #fff; padding: 2px 8px; border-radius: 999px; width: fit-content; margin-bottom: 8px; text-transform: uppercase; }
+    .collection-promo-wide:hover { transform: translateY(-5px); box-shadow: 0 20px 40px rgba(0,0,0,0.2) !important; }
+    .promo-badge { font-size: 0.65rem; font-weight: 900; background: var(--movie-accent); color: #fff; padding: 4px 12px; border-radius: 999px; width: fit-content; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+
 
     /* Utils */
     .shadow-premium { box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
@@ -524,11 +520,40 @@
     @@keyframes spin { to { transform: rotate(360deg); } }
 
     @@media (max-width: 991px) {
-        .hero-section { height: auto; padding: 120px 0 60px; }
-        .hero-poster { width: 180px; margin: 0 auto; }
-        .hero-content { text-align: center; margin-top: 20px; }
-        .movie-meta, .genres-wrap, .d-flex { justify-content: center; }
-        .sticky-side { position: static !important; }
+        .hero-section { height: auto; padding: 100px 0 60px; margin-bottom: -60px; }
+        .hero-poster { width: 150px; margin: 0 auto; box-shadow: 0 15px 35px rgba(0,0,0,0.4); }
+        .hero-content { text-align: center; margin-top: 25px; }
+        .hero-bg { filter: brightness(0.4) blur(4px); }
+        .movie-title { font-size: 2.2rem; }
+        .movie-meta, .genres-wrap, .d-flex { justify-content: center !important; }
+        .hero-library-box { margin: 0 auto; width: 100%; display: flex; justify-content: center; }
+        
+        .main-content { margin-top: 20px; }
+        .details-section { padding: 20px; border-radius: 20px; }
+        .overview-p { font-size: 1rem; }
+        .section-heading { font-size: 1.15rem; }
+    }
+
+    @@media (max-width: 576px) {
+        .hero-section { padding: 60px 0 40px; }
+        .hero-poster { width: 120px; }
+        .movie-title { font-size: 1.7rem; }
+        .hero-library-box { margin-bottom: -15px; width: 100%; display: flex; justify-content: center; }
+        .meta-item { font-size: 0.8rem; gap: 4px; }
+        .rating-badge-glass { padding: 3px 10px; }
+        .rating-badge-glass span { font-size: 0.9rem; }
+        .genre-tag-small { padding: 2px 10px; font-size: 0.7rem; }
+        
+        .main-content { padding-left: 0px; padding-right: 0px; margin-top: 15px; }
+        .main-content > .row { margin-left: 10; margin-right: 10; }
+        .main-content > .row > [class*="col-"] { padding-left: 0; padding-right: 0; }
+        
+        .details-section { padding: 16px 12px; margin-bottom: 12px; border-radius: 12px; }
+        .section-heading { font-size: 1rem; margin-bottom: 15px !important; }
+        .overview-p { font-size: 0.95rem; line-height: 1.55; }
+        .person-compact-card { padding: 4px 6px; gap: 6px; }
+        .person-compact-card span { font-size: 0.75rem; }
+        .group-label { margin-bottom: 8px; font-size: 0.6rem; }
     }
 </style>
 

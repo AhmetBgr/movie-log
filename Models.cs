@@ -619,3 +619,32 @@ public class OpenSubtitlesFile
     public string? FileName { get; set; }
 }
 
+// --- Wikipedia API Models ---
+public class WikipediaApiResponse
+{
+    [JsonPropertyName("query")]
+    public WikipediaQuery? Query { get; set; }
+}
+
+public class WikipediaQuery
+{
+    [JsonPropertyName("pages")]
+    public List<WikipediaPage>? Pages { get; set; }
+}
+
+public class WikipediaPage
+{
+    [JsonPropertyName("pageid")]
+    public int PageId { get; set; }
+
+    [JsonPropertyName("title")]
+    public string? Title { get; set; }
+
+    [JsonPropertyName("extract")]
+    public string? Extract { get; set; }
+
+    [JsonPropertyName("missing")]
+    public bool Missing { get; set; }
+}
+
+
