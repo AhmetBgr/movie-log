@@ -26,7 +26,7 @@
         <div class="discovery-tabs" role="tablist">
             @foreach (var tab in _tabs)
             {
-                @if (tab.Id == "collections" && SelectedCollectionId != null)
+                @if (tab.Id == "collections" && ActiveTab == "collections" && SelectedCollectionId != null)
                 {
                     <!-- Inside a collection: show name, click to go back -->
                     <button class="disc-tab active" data-tab="collections"
@@ -42,7 +42,7 @@
                 }
                 else
                 {
-                    <button class="disc-tab @(ActiveTab == tab.Id && !(tab.Id == "collections" && SelectedCollectionId != null) ? "active" : "")" 
+                    <button class="disc-tab @(ActiveTab == tab.Id ? "active" : "")" 
                             data-tab="@tab.Id"
                             @onclick="() => SetTab(tab.Id)">
                         <i class="bi @tab.Icon me-1"></i>
