@@ -289,14 +289,14 @@
                 else
                 {
                     <div class="table-wrap table-wrap--wide p-3">
+                        @{
+                            var itemsList = CurrentItems.ToList();
+                            var pagedItems = itemsList.Take(_currentPageSize).ToList();
+                        }
                         <div class="row row-cols-1 g-3">
-                            @{
-                                var itemsList = CurrentItems.ToList();
-                            }
-                            <Virtualize Items="itemsList" Context="item" ItemSize="228" OverscanCount="4">
-                                @{
-                                    var rank = (SelectedCollection != null && CurrentSortColumn == "Order") ? (SelectedCollection.Items.FirstOrDefault(ci => ci.ImdbId == item.ImdbId)?.Order + 1 ?? 0) : 0;
-                                }
+                            @foreach (var item in pagedItems)
+                            {
+                                var rank = (SelectedCollection != null && CurrentSortColumn == "Order") ? (SelectedCollection.Items.FirstOrDefault(ci => ci.ImdbId == item.ImdbId)?.Order + 1 ?? 0) : 0;
                                 <div class="col" @key="item.ImdbId">
                                     <MovieCard Item="item"
                                                IsEditMode="@isEditing"
@@ -311,8 +311,17 @@
                                                OnMoveDown="@(() => WatchlistSvc.MoveCollectionItemDownAsync(SelectedCollectionId.Value, item.ImdbId))"
                                                OnRankChanged="@((r) => WatchlistSvc.SetCollectionItemRankAsync(SelectedCollectionId.Value, item.ImdbId, r))" />
                                 </div>
-                            </Virtualize>
+                            }
                         </div>
+                        
+                        @if (itemsList.Count > _currentPageSize)
+                        {
+                            <div class="discovery-loadmore-wrap">
+                                <button class="btn btn-outline-secondary" @onclick="() => _currentPageSize += DefaultPageSize">
+                                    <i class="bi bi-plus-lg me-1"></i>Load 20 more
+                                </button>
+                            </div>
+                        }
                     </div>
                 }
             }
@@ -454,6 +463,12 @@
         }
     }
 
+    private int _currentPageSize = 20;
+    private const int DefaultPageSize = 20;
+    private string _lastSearchQuery = "";
+    private string _lastSelectedType = "All";
+    private int _lastActiveFilterCount = 0;
+
     private bool IsAllSelected => CurrentItemCount > 0 && CurrentItems.All(i => _selectedIds.Contains(i.ImdbId));
 
     protected override void OnInitialized()
@@ -478,6 +493,7 @@
         }
         else
         {
+            _currentPageSize = DefaultPageSize;
             _isReady = true;
             if (!new[] { "watching", "watched", "watchlist", "collections" }.Contains(ActiveTab))
             {
@@ -563,6 +579,7 @@
 
     private void SetTab(string tabId)
     {
+        _currentPageSize = DefaultPageSize;
         NavManager.NavigateTo($"library/{tabId}");
     }
 
@@ -608,6 +625,7 @@
 
     private void ClearFilters()
     {
+        _currentPageSize = DefaultPageSize;
         WatchlistSvc.SearchQuery = ""; WatchlistSvc.SelectedType = "All"; WatchlistSvc.SelectedGenre = "All";
         WatchlistSvc.StartYear = ""; WatchlistSvc.EndYear = "";
         WatchlistSvc.FilterMinRating20 = 0; WatchlistSvc.FilterMaxRating20 = 100;
@@ -655,6 +673,16 @@
     public void Dispose() { WatchlistSvc.OnStateChanged -= HandleStateChanged; _holdRef?.Dispose(); }
     private void HandleStateChanged() 
     { 
+        if (_lastSearchQuery != WatchlistSvc.SearchQuery || 
+            _lastSelectedType != WatchlistSvc.SelectedType ||
+            _lastActiveFilterCount != activeFilterCount)
+        {
+            _currentPageSize = DefaultPageSize;
+            _lastSearchQuery = WatchlistSvc.SearchQuery ?? "";
+            _lastSelectedType = WatchlistSvc.SelectedType ?? "All";
+            _lastActiveFilterCount = activeFilterCount;
+        }
+
         _selectedIds.IntersectWith(CurrentItems.Select(i => i.ImdbId).ToHashSet()); 
         StateHasChanged(); 
     }
@@ -756,6 +784,13 @@
         background: #f59e0b; 
         color: #fff; 
         box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+    }
+
+    .discovery-loadmore-wrap {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 14px 10px 18px;
     }
 
     .content-scroll { flex: 1; overflow-y: auto; overflow-x: hidden; }
