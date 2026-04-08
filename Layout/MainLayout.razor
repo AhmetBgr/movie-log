@@ -183,6 +183,82 @@
 </div>
 
 <style>
+    /* ── Update banner ────────────────────────────────────── */
+    .update-banner {
+        background: linear-gradient(90deg, #1a73e8 0%, #174ea6 100%);
+        color: #fff;
+        padding: 6px 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        z-index: 1100;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        animation: slideDownBanner 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .update-banner-text {
+        font-weight: 600;
+        font-size: 0.82rem;
+        flex-grow: 1;
+        display: flex;
+        align-items: center;
+    }
+
+    .update-banner-btn {
+        background: #fff;
+        color: #1a73e8;
+        border: none;
+        border-radius: 999px;
+        padding: 4px 14px;
+        font-size: 0.75rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        cursor: pointer;
+        transition: all 0.2s;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        flex-shrink: 0;
+    }
+
+    .update-banner-btn:hover {
+        background: #f8f9fa;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+
+    .update-banner-dismiss {
+        background: transparent;
+        color: rgba(255,255,255,0.7);
+        border: none;
+        padding: 2px;
+        font-size: 1.25rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        transition: all 0.2s;
+        flex-shrink: 0;
+    }
+
+    .update-banner-dismiss:hover {
+        color: #fff;
+        transform: scale(1.1);
+    }
+
+    @@keyframes slideDownBanner {
+        from { transform: translateY(-100%); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+
+    @@media (max-width: 576px) {
+        .update-banner {
+            padding: 8px 12px;
+            gap: 8px;
+        }
+        .update-banner-text { font-size: 0.8rem; }
+        .update-banner-btn { padding: 4px 12px; font-size: 0.72rem; }
+        .update-banner-dismiss { font-size: 1.2rem; }
+    }
+
     /* ── Search bar wrapper ────────────────────────────────── */
     .search-bar-wrap {
         position: sticky;
