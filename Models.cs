@@ -410,6 +410,15 @@ public class TmdbImage
 {
     [JsonPropertyName("file_path")]
     public string FilePath { get; set; } = "";
+
+    [JsonPropertyName("iso_639_1")]
+    public string? Iso6391 { get; set; }
+
+    [JsonPropertyName("aspect_ratio")]
+    public double AspectRatio { get; set; }
+
+    [JsonPropertyName("vote_average")]
+    public double VoteAverage { get; set; }
 }
 
 public class TmdbVideosResponse

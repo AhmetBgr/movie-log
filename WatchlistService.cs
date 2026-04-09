@@ -720,7 +720,16 @@ public class WatchlistService
                         var images = await _http.GetFromJsonAsync<TmdbImages>(imagesUrl);
                         if (images != null)
                         {
-                            movie.BackdropPaths = images.Backdrops.Take(10).Select(b => b.FilePath).ToList();
+                            // Filter for textless images (Iso6391 is null) to avoid title treatments and logos
+                            var filtered = images.Backdrops
+                                .Where(b => string.IsNullOrEmpty(b.Iso6391))
+                                .OrderByDescending(b => b.VoteAverage)
+                                .ToList();
+
+                            if (!filtered.Any()) 
+                                filtered = images.Backdrops.OrderByDescending(b => b.VoteAverage).ToList();
+
+                            movie.BackdropPaths = filtered.Take(15).Select(b => b.FilePath).ToList();
                         }
 
                         var videosUrl = $"https://api.themoviedb.org/3/movie/{tmdbId}/videos?api_key={apiKey}";
@@ -774,7 +783,16 @@ public class WatchlistService
                         var images = await _http.GetFromJsonAsync<TmdbImages>(imagesUrl);
                         if (images != null)
                         {
-                            movie.BackdropPaths = images.Backdrops.Take(10).Select(b => b.FilePath).ToList();
+                            // Filter for textless images (Iso6391 is null) to avoid title treatments and logos
+                            var filtered = images.Backdrops
+                                .Where(b => string.IsNullOrEmpty(b.Iso6391))
+                                .OrderByDescending(b => b.VoteAverage)
+                                .ToList();
+
+                            if (!filtered.Any()) 
+                                filtered = images.Backdrops.OrderByDescending(b => b.VoteAverage).ToList();
+
+                            movie.BackdropPaths = filtered.Take(15).Select(b => b.FilePath).ToList();
                         }
 
                         var videosUrl = $"https://api.themoviedb.org/3/tv/{tv.Id}/videos?api_key={apiKey}";
