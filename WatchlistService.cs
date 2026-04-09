@@ -75,89 +75,54 @@ public class WatchlistService
     /// <summary>Seed the cached isMobile value from the layout on first render.</summary>
     public void PrimeIsMobileCache(bool isMobile) => _lastIsMobile ??= isMobile;
 
-    private string _selectedType = "All";
-    public string SelectedType 
-    { 
-        get => _selectedType; 
-        set { _selectedType = value; NotifyStateChanged(); } 
+    public class TabFilterState
+    {
+        public string SearchQuery { get; set; } = "";
+        public string SelectedType { get; set; } = "All";
+        public string SelectedGenre { get; set; } = "All";
+        public string StartYear { get; set; } = "";
+        public string EndYear { get; set; } = "";
+        public int FilterMinRating20 { get; set; } = 0;
+        public int FilterMaxRating20 { get; set; } = 100;
+        public double FilterMinVote { get; set; } = 0;
+        public double FilterMaxVote { get; set; } = 10;
+        public AdvancedFilterState AdvancedFilter { get; set; } = new() { IsActive = true };
+        public string SortColumn { get; set; } = "DateAdded";
+        public bool SortDescending { get; set; } = true;
     }
 
-    private string _selectedGenre = "All";
-    public string SelectedGenre 
-    { 
-        get => _selectedGenre; 
-        set { _selectedGenre = value; NotifyStateChanged(); } 
-    }
+    private Dictionary<string, TabFilterState> _tabFilters = new()
+    {
+        { "watchlist", new TabFilterState() },
+        { "watched", new TabFilterState() },
+        { "watching", new TabFilterState() },
+        { "collections", new TabFilterState() }
+    };
 
-    private string _startYear = "";
-    public string StartYear 
-    { 
-        get => _startYear; 
-        set { _startYear = value; NotifyStateChanged(); } 
-    }
+    public string ActiveTab { get; set; } = "watchlist";
+    public TabFilterState CurrentFilters => _tabFilters.TryGetValue(ActiveTab.ToLower(), out var f) ? f : _tabFilters["watchlist"];
 
-    private string _endYear = "";
-    public string EndYear 
-    { 
-        get => _endYear; 
-        set { _endYear = value; NotifyStateChanged(); } 
-    }
+    // Basic property redirects for compatibility with existing components
+    public string SelectedType { get => CurrentFilters.SelectedType; set { CurrentFilters.SelectedType = value; NotifyStateChanged(); } }
+    public string SelectedGenre { get => CurrentFilters.SelectedGenre; set { CurrentFilters.SelectedGenre = value; NotifyStateChanged(); } }
+    public string StartYear { get => CurrentFilters.StartYear; set { CurrentFilters.StartYear = value; NotifyStateChanged(); } }
+    public string EndYear { get => CurrentFilters.EndYear; set { CurrentFilters.EndYear = value; NotifyStateChanged(); } }
+    public string SearchQuery { get => CurrentFilters.SearchQuery; set { CurrentFilters.SearchQuery = value; DebounceSearchRefresh(); } }
+    public string SortColumn { get => CurrentFilters.SortColumn; set { CurrentFilters.SortColumn = value; NotifyStateChanged(); } }
+    public bool SortDescending { get => CurrentFilters.SortDescending; set { CurrentFilters.SortDescending = value; NotifyStateChanged(); } }
 
-    private string _searchQuery = "";
-    public string SearchQuery 
-    { 
-        get => _searchQuery; 
-        set
-        {
-            _searchQuery = value;
-            DebounceSearchRefresh();
-        }
-    }
+    public int FilterMinRating20 { get => CurrentFilters.FilterMinRating20; set { CurrentFilters.FilterMinRating20 = value; NotifyStateChanged(); } }
+    public int FilterMaxRating20 { get => CurrentFilters.FilterMaxRating20; set { CurrentFilters.FilterMaxRating20 = value; NotifyStateChanged(); } }
+    public double FilterMinVote { get => CurrentFilters.FilterMinVote; set { CurrentFilters.FilterMinVote = value; NotifyStateChanged(); } }
+    public double FilterMaxVote { get => CurrentFilters.FilterMaxVote; set { CurrentFilters.FilterMaxVote = value; NotifyStateChanged(); } }
+    public AdvancedFilterState AdvancedFilter { get => CurrentFilters.AdvancedFilter; set { CurrentFilters.AdvancedFilter = value; NotifyStateChanged(); } }
 
-    private bool _showDetailedView;
-    public bool ShowDetailedView 
-    { 
-        get => _showDetailedView; 
-        set { _showDetailedView = value; NotifyStateChanged(fullRefresh: false); } 
-    }
+    // Legacy redirects for separate sort properties
+    public string WatchedSortColumn { get => _tabFilters["watched"].SortColumn; set { _tabFilters["watched"].SortColumn = value; NotifyStateChanged(); } }
+    public bool WatchedSortDescending { get => _tabFilters["watched"].SortDescending; set { _tabFilters["watched"].SortDescending = value; NotifyStateChanged(); } }
+    public string WatchingSortColumn { get => _tabFilters["watching"].SortColumn; set { _tabFilters["watching"].SortColumn = value; NotifyStateChanged(); } }
+    public bool WatchingSortDescending { get => _tabFilters["watching"].SortDescending; set { _tabFilters["watching"].SortDescending = value; NotifyStateChanged(); } }
 
-    public string SortColumn { get; set; } = "DateAdded";
-    public bool SortDescending { get; set; } = true;
-
-    public string WatchedSortColumn { get; set; } = "DateAdded";
-    public bool WatchedSortDescending { get; set; } = true;
-    public string WatchingSortColumn { get; set; } = "DateAdded";
-    public bool WatchingSortDescending { get; set; } = true;
-
-    private int _filterMinRating20 = 0;
-    public int FilterMinRating20 
-    { 
-        get => _filterMinRating20; 
-        set { _filterMinRating20 = value; NotifyStateChanged(); } 
-    }
-
-    private int _filterMaxRating20 = 100;
-    public int FilterMaxRating20 
-    { 
-        get => _filterMaxRating20; 
-        set { _filterMaxRating20 = value; NotifyStateChanged(); } 
-    }
-
-    private double _filterMinVote = 0;
-    public double FilterMinVote 
-    { 
-        get => _filterMinVote; 
-        set { _filterMinVote = value; NotifyStateChanged(); } 
-    }
-
-    private double _filterMaxVote = 10;
-    public double FilterMaxVote 
-    { 
-        get => _filterMaxVote; 
-        set { _filterMaxVote = value; NotifyStateChanged(); } 
-    }
-
-    public AdvancedFilterState AdvancedFilter { get; set; } = new();
 
     private RatingSystem _ratingSystem = RatingSystem.HundredPoint;
     public RatingSystem RatingSystem 
@@ -230,12 +195,9 @@ public class WatchlistService
 
     private void RefreshCalculatedLists()
     {
-        int sYear = 0, eYear = 0;
-        bool hasStart = int.TryParse(StartYear, out sYear);
-        bool hasEnd = int.TryParse(EndYear, out eYear);
-        bool checkType = SelectedType != "All";
-        bool checkGenre = SelectedGenre != "All";
-        bool checkSearch = !string.IsNullOrWhiteSpace(SearchQuery);
+        var wl = _tabFilters["watchlist"];
+        var wd = _tabFilters["watched"];
+        var wg = _tabFilters["watching"];
 
         var pendingFiltered = new List<WatchlistItem>();
         var watchedFiltered = new List<WatchlistItem>();
@@ -245,110 +207,121 @@ public class WatchlistService
         {
             if (item.Status == WatchlistStatus.Watching)
             {
-                watching.Add(item);
+                if (PassesFilters(item, wg)) watching.Add(item);
             }
-
-            if (checkType && !item.TitleType.Equals(SelectedType, StringComparison.OrdinalIgnoreCase))
-                continue;
-            if (checkGenre && (item.Genres == null || !item.Genres.Contains(SelectedGenre, StringComparison.OrdinalIgnoreCase)))
-                continue;
-            if (hasStart && item.ParsedYear < sYear)
-                continue;
-            if (hasEnd && item.ParsedYear > eYear)
-                continue;
-            if (checkSearch && !item.Title.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase))
-                continue;
-
-            // Advanced Filtering
-            if (AdvancedFilter.IsActive)
+            else if (item.Status == WatchlistStatus.Pending)
             {
-                // Genre Logic (AND / OR)
-                if (AdvancedFilter.IncludedGenres.Any())
-                {
-                    var itemGenreList = (item.Genres ?? "").Split(',').Select(g => g.Trim()).ToList();
-                    if (AdvancedFilter.GenreLogic == GenreLogic.All)
-                    {
-                        if (!AdvancedFilter.IncludedGenres.All(ig => itemGenreList.Contains(ig, StringComparer.OrdinalIgnoreCase)))
-                            continue;
-                    }
-                    else
-                    {
-                        if (!AdvancedFilter.IncludedGenres.Any(ig => itemGenreList.Contains(ig, StringComparer.OrdinalIgnoreCase)))
-                            continue;
-                    }
-                }
-
-                // Exclusion logic
-                if (AdvancedFilter.ExcludedGenres.Any())
-                {
-                    var itemGenreList = (item.Genres ?? "").Split(',').Select(g => g.Trim()).ToList();
-                    if (AdvancedFilter.ExcludedGenres.Any(eg => itemGenreList.Contains(eg, StringComparer.OrdinalIgnoreCase)))
-                        continue;
-                }
-
-                // Title Search (Panel Specific)
-                if (!string.IsNullOrEmpty(AdvancedFilter.TitleSearch) && !item.Title.Contains(AdvancedFilter.TitleSearch, StringComparison.OrdinalIgnoreCase))
-                    continue;
-
-                // Year Range
-                if (AdvancedFilter.MinYear.HasValue && item.ParsedYear < AdvancedFilter.MinYear.Value) continue;
-                if (AdvancedFilter.MaxYear.HasValue && item.ParsedYear > AdvancedFilter.MaxYear.Value) continue;
-
-                // User Rating Range
-                if (AdvancedFilter.MinUserRating.HasValue && (item.Rating20 ?? 0) < AdvancedFilter.MinUserRating.Value) continue;
-                if (AdvancedFilter.MaxUserRating.HasValue && (item.Rating20 ?? 100) > AdvancedFilter.MaxUserRating.Value) continue;
-
-                // TMDB Rating Range
-                if (AdvancedFilter.MinTmdbRating.HasValue && (item.VoteAverage ?? 0) < AdvancedFilter.MinTmdbRating.Value) continue;
-                if (AdvancedFilter.MaxTmdbRating.HasValue && (item.VoteAverage ?? 10) > AdvancedFilter.MaxTmdbRating.Value) continue;
-
-                // Quick Toggles
-                if (AdvancedFilter.UnratedOnly && item.Rating20.HasValue) continue;
-                if (AdvancedFilter.ShortFilmsOnly && (item.Runtime ?? 999) >= 85) continue;
-            }
-
-            if (item.Status == WatchlistStatus.Pending)
-            {
-                // Apply TMDB vote filter if set
-                if (FilterMinVote > 0 || FilterMaxVote < 10)
-                {
-                    if (!item.VoteAverage.HasValue) continue; // exclude items with no rating data when filter is active
-                    if (item.VoteAverage.Value < FilterMinVote || item.VoteAverage.Value > FilterMaxVote) continue;
-                }
-                pendingFiltered.Add(item);
+                if (PassesFilters(item, wl)) pendingFiltered.Add(item);
             }
             else if (item.Status == WatchlistStatus.Watched)
             {
-                var rating = item.Rating20 ?? 0;
-                if (rating >= FilterMinRating20 && rating <= FilterMaxRating20)
-                    watchedFiltered.Add(item);
+                if (PassesFilters(item, wd)) watchedFiltered.Add(item);
             }
         }
 
-        _watchingCached = (WatchingSortColumn switch
+        _watchingCached = (wg.SortColumn switch
         {
-            "Year" => WatchingSortDescending ? watching.OrderByDescending(m => m.ParsedYear) : watching.OrderBy(m => m.ParsedYear),
-            "Type" => WatchingSortDescending ? watching.OrderByDescending(m => m.TitleType) : watching.OrderBy(m => m.TitleType),
-            "DateAdded" => WatchingSortDescending ? watching.OrderByDescending(m => m.DateAdded) : watching.OrderBy(m => m.DateAdded),
-            _ => WatchingSortDescending ? watching.OrderByDescending(m => m.Title) : watching.OrderBy(m => m.Title)
+            "Year" => wg.SortDescending ? watching.OrderByDescending(m => m.ParsedYear) : watching.OrderBy(m => m.ParsedYear),
+            "Type" => wg.SortDescending ? watching.OrderByDescending(m => m.TitleType) : watching.OrderBy(m => m.TitleType),
+            "DateAdded" => wg.SortDescending ? watching.OrderByDescending(m => m.DateAdded) : watching.OrderBy(m => m.DateAdded),
+            _ => wg.SortDescending ? watching.OrderByDescending(m => m.Title) : watching.OrderBy(m => m.Title)
         }).ToList();
 
-        _filteredCached = (SortColumn switch
+        _filteredCached = (wl.SortColumn switch
         {
-            "Year" => SortDescending ? pendingFiltered.OrderByDescending(m => m.ParsedYear) : pendingFiltered.OrderBy(m => m.ParsedYear),
-            "Type" => SortDescending ? pendingFiltered.OrderByDescending(m => m.TitleType) : pendingFiltered.OrderBy(m => m.TitleType),
-            "DateAdded" => SortDescending ? pendingFiltered.OrderByDescending(m => m.DateAdded) : pendingFiltered.OrderBy(m => m.DateAdded),
-            _ => SortDescending ? pendingFiltered.OrderByDescending(m => m.Title) : pendingFiltered.OrderBy(m => m.Title)
+            "Year" => wl.SortDescending ? pendingFiltered.OrderByDescending(m => m.ParsedYear) : pendingFiltered.OrderBy(m => m.ParsedYear),
+            "Type" => wl.SortDescending ? pendingFiltered.OrderByDescending(m => m.TitleType) : pendingFiltered.OrderBy(m => m.TitleType),
+            "DateAdded" => wl.SortDescending ? pendingFiltered.OrderByDescending(m => m.DateAdded) : pendingFiltered.OrderBy(m => m.DateAdded),
+            _ => wl.SortDescending ? pendingFiltered.OrderByDescending(m => m.Title) : pendingFiltered.OrderBy(m => m.Title)
         }).ToList();
 
-        _filteredWatchedCached = (WatchedSortColumn switch
+        _filteredWatchedCached = (wd.SortColumn switch
         {
-            "Rating" => WatchedSortDescending ? watchedFiltered.OrderByDescending(m => m.Rating20 ?? 0) : watchedFiltered.OrderBy(m => m.Rating20 ?? 0),
-            "Year" => WatchedSortDescending ? watchedFiltered.OrderByDescending(m => m.ParsedYear) : watchedFiltered.OrderBy(m => m.ParsedYear),
-            "Type" => WatchedSortDescending ? watchedFiltered.OrderByDescending(m => m.TitleType) : watchedFiltered.OrderBy(m => m.TitleType),
-            "DateAdded" => WatchedSortDescending ? watchedFiltered.OrderByDescending(m => m.DateAdded) : watchedFiltered.OrderBy(m => m.DateAdded),
-            _ => WatchedSortDescending ? watchedFiltered.OrderByDescending(m => m.Title) : watchedFiltered.OrderBy(m => m.Title)
+            "Rating" => wd.SortDescending ? watchedFiltered.OrderByDescending(m => m.Rating20 ?? 0) : watchedFiltered.OrderBy(m => m.Rating20 ?? 0),
+            "Year" => wd.SortDescending ? watchedFiltered.OrderByDescending(m => m.ParsedYear) : watchedFiltered.OrderBy(m => m.ParsedYear),
+            "Type" => wd.SortDescending ? watchedFiltered.OrderByDescending(m => m.TitleType) : watchedFiltered.OrderBy(m => m.TitleType),
+            "DateAdded" => wd.SortDescending ? watchedFiltered.OrderByDescending(m => m.DateAdded) : watchedFiltered.OrderBy(m => m.DateAdded),
+            _ => wd.SortDescending ? watchedFiltered.OrderByDescending(m => m.Title) : watchedFiltered.OrderBy(m => m.Title)
         }).ToList();
+    }
+
+    private bool PassesFilters(WatchlistItem item, TabFilterState f)
+    {
+        int sYear = 0, eYear = 0;
+        bool hasStart = int.TryParse(f.StartYear, out sYear);
+        bool hasEnd = int.TryParse(f.EndYear, out eYear);
+        bool checkType = f.SelectedType != "All";
+        bool checkGenre = f.SelectedGenre != "All";
+        bool checkSearch = !string.IsNullOrWhiteSpace(f.SearchQuery);
+
+        if (checkType && !item.TitleType.Equals(f.SelectedType, StringComparison.OrdinalIgnoreCase))
+            return false;
+        if (checkGenre && (item.Genres == null || !item.Genres.Contains(f.SelectedGenre, StringComparison.OrdinalIgnoreCase)))
+            return false;
+        if (hasStart && item.ParsedYear < sYear)
+            return false;
+        if (hasEnd && item.ParsedYear > eYear)
+            return false;
+        if (checkSearch && !item.Title.Contains(f.SearchQuery, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        // Custom Status specific logic
+        if (item.Status == WatchlistStatus.Pending)
+        {
+            if (f.FilterMinVote > 0 || f.FilterMaxVote < 10)
+            {
+                if (!item.VoteAverage.HasValue) return false;
+                if (item.VoteAverage.Value < f.FilterMinVote || item.VoteAverage.Value > f.FilterMaxVote) return false;
+            }
+        }
+        else if (item.Status == WatchlistStatus.Watched)
+        {
+            var rating = item.Rating20 ?? 0;
+            if (rating < f.FilterMinRating20 || rating > f.FilterMaxRating20) return false;
+        }
+
+        // Advanced Filtering
+        if (f.AdvancedFilter.IsActive)
+        {
+            if (f.AdvancedFilter.IncludedGenres.Any())
+            {
+                var itemGenreList = (item.Genres ?? "").Split(',').Select(g => g.Trim()).ToList();
+                if (f.AdvancedFilter.GenreLogic == GenreLogic.All)
+                {
+                    if (!f.AdvancedFilter.IncludedGenres.All(ig => itemGenreList.Contains(ig, StringComparer.OrdinalIgnoreCase)))
+                        return false;
+                }
+                else
+                {
+                    if (!f.AdvancedFilter.IncludedGenres.Any(ig => itemGenreList.Contains(ig, StringComparer.OrdinalIgnoreCase)))
+                        return false;
+                }
+            }
+
+            if (f.AdvancedFilter.ExcludedGenres.Any())
+            {
+                var itemGenreList = (item.Genres ?? "").Split(',').Select(g => g.Trim()).ToList();
+                if (f.AdvancedFilter.ExcludedGenres.Any(eg => itemGenreList.Contains(eg, StringComparer.OrdinalIgnoreCase)))
+                    return false;
+            }
+
+            if (!string.IsNullOrEmpty(f.AdvancedFilter.TitleSearch) && !item.Title.Contains(f.AdvancedFilter.TitleSearch, StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            if (f.AdvancedFilter.MinYear.HasValue && item.ParsedYear < f.AdvancedFilter.MinYear.Value) return false;
+            if (f.AdvancedFilter.MaxYear.HasValue && item.ParsedYear > f.AdvancedFilter.MaxYear.Value) return false;
+
+            if (f.AdvancedFilter.MinUserRating.HasValue && (item.Rating20 ?? 0) < f.AdvancedFilter.MinUserRating.Value) return false;
+            if (f.AdvancedFilter.MaxUserRating.HasValue && (item.Rating20 ?? 100) > f.AdvancedFilter.MaxUserRating.Value) return false;
+
+            if (f.AdvancedFilter.MinTmdbRating.HasValue && (item.VoteAverage ?? 0) < f.AdvancedFilter.MinTmdbRating.Value) return false;
+            if (f.AdvancedFilter.MaxTmdbRating.HasValue && (item.VoteAverage ?? 10) > f.AdvancedFilter.MaxTmdbRating.Value) return false;
+
+            if (f.AdvancedFilter.UnratedOnly && item.Rating20.HasValue) return false;
+            if (f.AdvancedFilter.ShortFilmsOnly && (item.Runtime ?? 999) >= 85) return false;
+        }
+
+        return true;
     }
 
     public WatchlistService(HttpClient http, LocalStorageService storage, IConfiguration config, IJSRuntime js, Microsoft.AspNetCore.Components.NavigationManager nav)
