@@ -102,7 +102,7 @@
             <span class="tb-label">Year</span>
         </button>
         
-        @if (ActiveTab == "watched")
+        @if (ActiveTab == "watched" || (ActiveTab == "collections" && SelectedCollectionId != null))
         {
             <button class="tb-btn tb-btn-sort @(CurrentSortColumn == "Rating" ? "sorted" : "")"
                     @onclick='() => ToggleSort("Rating")'>
@@ -423,6 +423,7 @@
                 {
                     items = CurrentSortColumn switch
                     {
+                        "Rating" => CurrentSortDescending ? items.OrderByDescending(m => m.Rating20 ?? 0) : items.OrderBy(m => m.Rating20 ?? 0),
                         "Year" => CurrentSortDescending ? items.OrderByDescending(m => m.ParsedYear) : items.OrderBy(m => m.ParsedYear),
                         "DateAdded" => CurrentSortDescending ? items.OrderByDescending(m => m.DateAdded) : items.OrderBy(m => m.DateAdded),
                         _ => CurrentSortDescending ? items.OrderByDescending(m => m.Title) : items.OrderBy(m => m.Title)
