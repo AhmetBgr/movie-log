@@ -195,36 +195,36 @@
                     }
 
                     <!-- Details -->
-                    <section class="details-section shadow-sm animate-in" style="animation-delay: 0.25s;">
-                        <h3 class="section-heading mb-4"><i class="bi bi-info-circle me-2 text-primary"></i> Details</h3>
+                    <section class="details-section compact-details-section shadow-sm animate-in" style="animation-delay: 0.25s;">
+                        <h3 class="section-heading compact-heading mb-3"><i class="bi bi-info-circle me-2 text-primary"></i> Details</h3>
                         <div class="details-grid">
-                            <div class="detail-card">
-                                <span class="section-label">Language</span>
+                            <div class="detail-card compact-detail-card">
+                                <span class="section-label compact-label">Language</span>
                                 <strong>@GetLanguageLabel(movie.OriginalLanguage)</strong>
                             </div>
-                            <div class="detail-card">
-                                <span class="section-label">Status</span>
+                            <div class="detail-card compact-detail-card">
+                                <span class="section-label compact-label">Status</span>
                                 <strong>@GetDisplayValue(movie.Status)</strong>
                             </div>
-                            <div class="detail-card">
-                                <span class="section-label">Vote Count</span>
+                            <div class="detail-card compact-detail-card">
+                                <span class="section-label compact-label">Vote Count</span>
                                 <strong>@GetCountLabel(movie.VoteCount)</strong>
                             </div>
-                            <div class="detail-card">
-                                <span class="section-label">Popularity Score</span>
+                            <div class="detail-card compact-detail-card">
+                                <span class="section-label compact-label">Popularity</span>
                                 <strong>@GetPopularityLabel(movie.Popularity)</strong>
                             </div>
                             @if (movie.Revenue.GetValueOrDefault() > 0)
                             {
-                                <div class="detail-card">
-                                    <span class="section-label">Revenue</span>
+                                <div class="detail-card compact-detail-card">
+                                    <span class="section-label compact-label">Revenue</span>
                                     <strong>@FormatCurrency(movie.Revenue)</strong>
                                 </div>
                             }
                             @if (movie.Budget.GetValueOrDefault() > 0)
                             {
-                                <div class="detail-card">
-                                    <span class="section-label">Budget</span>
+                                <div class="detail-card compact-detail-card">
+                                    <span class="section-label compact-label">Budget</span>
                                     <strong>@FormatCurrency(movie.Budget)</strong>
                                 </div>
                             }
@@ -232,12 +232,12 @@
 
                         @if (movie.Certifications.Any())
                         {
-                            <div class="detail-block">
-                                <span class="section-label d-block mb-2">Certification</span>
+                            <div class="detail-block compact-detail-block">
+                                <span class="section-label compact-label d-block mb-2">Certification</span>
                                 <div class="tag-wrap">
                                     @foreach (var certification in movie.Certifications.Take(16))
                                     {
-                                        <span class="detail-tag">
+                                        <span class="detail-tag compact-detail-tag">
                                             <span class="detail-tag-region">@certification.Region</span>
                                             <span>@certification.Rating</span>
                                         </span>
@@ -248,12 +248,12 @@
 
                         @if (movie.Keywords.Any())
                         {
-                            <div class="detail-block">
-                                <span class="section-label d-block mb-2">Keywords</span>
+                            <div class="detail-block compact-detail-block">
+                                <span class="section-label compact-label d-block mb-2">Keywords</span>
                                 <div class="tag-wrap">
                                     @foreach (var keyword in movie.Keywords.Take(18))
                                     {
-                                        <span class="detail-tag">@keyword.Name</span>
+                                        <span class="detail-tag compact-detail-tag">@keyword.Name</span>
                                     }
                                 </div>
                             </div>
@@ -528,6 +528,32 @@
     .detail-block {
         margin-top: 22px;
     }
+    .compact-details-section {
+        padding: 22px 24px;
+    }
+    .compact-heading {
+        font-size: 1.1rem;
+    }
+    .compact-detail-card {
+        flex-direction: row;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 12px;
+        border-radius: 12px;
+    }
+    .compact-detail-card strong {
+        font-size: 0.92rem;
+        text-align: right;
+        line-height: 1.25;
+    }
+    .compact-label {
+        font-size: 0.72rem;
+        margin: 0;
+    }
+    .compact-detail-block {
+        margin-top: 14px;
+    }
     .tag-wrap {
         display: flex;
         flex-wrap: wrap;
@@ -545,6 +571,11 @@
         font-weight: 700;
         font-size: 0.85rem;
     }
+    .compact-detail-tag {
+        gap: 6px;
+        padding: 5px 9px;
+        font-size: 0.75rem;
+    }
     .detail-tag-region {
         display: inline-flex;
         align-items: center;
@@ -556,6 +587,11 @@
         color: #1e40af;
         font-size: 0.72rem;
         letter-spacing: 0.6px;
+    }
+    .compact-detail-tag .detail-tag-region {
+        min-width: 28px;
+        padding: 1px 6px;
+        font-size: 0.64rem;
     }
     .details-loading-section {
         padding-top: 22px;
@@ -678,6 +714,7 @@
         .overview-p { font-size: 1rem; }
         .section-heading { font-size: 1.15rem; }
         .details-grid { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+        .compact-details-section { padding: 18px 20px; }
     }
 
     @@media (max-width: 576px) {
@@ -701,6 +738,13 @@
         .detail-card { padding: 12px; border-radius: 14px; }
         .detail-card strong { font-size: 0.92rem; }
         .detail-tag { padding: 6px 10px; font-size: 0.78rem; }
+        .compact-details-section { padding: 14px 12px; }
+        .compact-heading { margin-bottom: 12px !important; }
+        .compact-detail-card { padding: 9px 10px; gap: 8px; }
+        .compact-detail-card strong { font-size: 0.84rem; }
+        .compact-label { font-size: 0.66rem; }
+        .compact-detail-block { margin-top: 10px; }
+        .compact-detail-tag { padding: 5px 8px; font-size: 0.72rem; }
         .details-loading-inline { align-items: flex-start; }
         .person-compact-card { padding: 4px 6px; gap: 6px; }
         .person-compact-card span { font-size: 0.75rem; }
