@@ -104,220 +104,219 @@
         <div class="container main-content pb-5">
             <div class="row justify-content-center">
                 <div class="col-lg-10 col-xl-9">
-                    <!-- Overview -->
-                    <section class="details-section shadow-sm animate-in">
-                        <h3 class="section-heading mb-3"><i class="bi bi-text-left me-2 text-primary"></i> Overview</h3>
-                        <p class="overview-p">@movie.Overview</p>
-                    </section>
-
-                    @if (isEnhancingDetails)
-                    {
-                        <section class="details-section shadow-sm animate-in details-loading-section">
-                            <div class="details-loading-inline">
-                                <div class="spinner-ripple spinner-ripple-sm"></div>
-                                <div>
-                                    <h4 class="m-0">Loading full details</h4>
-                                    <p class="text-secondary m-0">Cast, gallery, certifications, and extra metadata are on the way.</p>
+                    <div class="split-layout">
+                        @if (isEnhancingDetails)
+                        {
+                            <section class="details-section shadow-sm animate-in details-loading-section split-span-2">
+                                <div class="details-loading-inline">
+                                    <div class="spinner-ripple spinner-ripple-sm"></div>
+                                    <div>
+                                        <h4 class="m-0">Loading full details</h4>
+                                        <p class="text-secondary m-0">Cast, gallery, certifications, and extra metadata are on the way.</p>
+                                    </div>
                                 </div>
-                            </div>
-                        </section>
-                    }
+                            </section>
+                        }
 
-                    <!-- Cast & Crew -->
-                    <section class="details-section shadow-sm animate-in" style="animation-delay: 0.1s;">
-                        <h3 class="section-heading mb-4"><i class="bi bi-people me-2 text-primary"></i> Cast & Crew</h3>
-                        <div class="credits-wrap">
-                            @if (movie.Credits?.Crew?.Any(c => c.Job == "Director") == true)
+                        <div class="split-column">
+                            <section class="details-section shadow-sm animate-in">
+                                <h3 class="section-heading mb-3"><i class="bi bi-text-left me-2 text-primary"></i> Overview</h3>
+                                <p class="overview-p">@movie.Overview</p>
+                            </section>
+
+                            @if (movie.BackdropPaths.Count > 1)
                             {
-                                <div class="crew-group mb-4">
-                                    <label class="group-label">Directors</label>
-                                    <div class="person-grid-small">
-                                        @foreach (var dir in movie.Credits.Crew.Where(c => c.Job == "Director"))
+                                <section class="details-section shadow-sm animate-in" style="animation-delay: 0.2s;">
+                                    <h3 class="section-heading mb-4"><i class="bi bi-images me-2 text-primary"></i> Gallery</h3>
+                                    <div class="row g-3">
+                                        @foreach (var path in movie.BackdropPaths.Skip(1).Take(12))
                                         {
-                                            <div class="person-compact-card clickable" @onclick="() => WatchlistSvc.OpenPersonProfileAsync(dir.Id)">
-                                                @if (!string.IsNullOrEmpty(dir.ProfilePath))
-                                                {
-                                                    <img src="@dir.FullProfileUrl" alt="@dir.Name" />
-                                                }
-                                                else
-                                                {
-                                                    <div class="person-placeholder-icon"><i class="bi bi-person-fill"></i></div>
-                                                }
-                                                <span>@dir.Name</span>
+                                            <div class="col-6 col-md-4">
+                                                <div class="gallery-thumb rounded-4 clickable" @onclick="() => OpenLightbox(path)">
+                                                    <img src="https://image.tmdb.org/t/p/w500@(path)" class="img-fluid" alt="Backdrop" />
+                                                    <div class="thumb-overlay"><i class="bi bi-zoom-in"></i></div>
+                                                </div>
                                             </div>
                                         }
                                     </div>
-                                </div>
+                                </section>
                             }
 
-                            @if (movie.Credits?.Cast?.Any() == true)
+                            @if (wikiSnippet != null)
                             {
-                                <div class="crew-group">
-                                    <label class="group-label">Lead Actors</label>
-                                    <div class="person-grid-small">
-                                        @foreach (var actor in movie.Credits.Cast.Take(12))
+                                <section class="details-section shadow-sm animate-in" style="animation-delay: 0.3s;">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h3 class="section-heading m-0"><i class="bi bi-wikipedia me-2 text-primary"></i> Wikipedia</h3>
+                                        <a href="@wikiSnippet.ContentUrls?.Desktop?.Page" target="_blank" class="btn btn-sm btn-outline-secondary rounded-pill">Open Source</a>
+                                    </div>
+                                    <div class="wiki-content">
+                                        <div class="wiki-text" style="white-space: pre-wrap; line-height: 1.8; color: #475569; font-size: 1.05rem;">
+                                            @wikiSnippet.Extract
+                                        </div>
+                                    </div>
+                                </section>
+                            }
+
+                            @if (movie.Collection != null)
+                            {
+                                <div class="details-section shadow-sm collection-promo-wide clickable animate-in"
+                                     style="background-image: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.8)), url('https://image.tmdb.org/t/p/original@(movie.Collection.BackdropPath)')"
+                                     @onclick='() => NavManager.NavigateTo($"franchise/{movie.Collection.Id}")'>
+                                    <div class="d-flex justify-content-between align-items-end h-100" style="min-height: 140px;">
+                                        <div>
+                                            <span class="promo-badge">Part of Collection</span>
+                                            <h2 class="m-0 text-white fw-black">@movie.Collection.Name</h2>
+                                        </div>
+                                        <div class="text-white-50 fw-bold pb-1">View Franchise <i class="bi bi-arrow-right ms-2"></i></div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="split-column">
+                            <section class="details-section shadow-sm animate-in" style="animation-delay: 0.1s;">
+                                <h3 class="section-heading mb-4"><i class="bi bi-people me-2 text-primary"></i> Cast & Crew</h3>
+                                <div class="credits-wrap">
+                                    @if (movie.Credits?.Crew?.Any(c => c.Job == "Director") == true)
+                                    {
+                                        <div class="crew-group mb-4">
+                                            <label class="group-label">Directors</label>
+                                            <div class="person-grid-small">
+                                                @foreach (var dir in movie.Credits.Crew.Where(c => c.Job == "Director"))
+                                                {
+                                                    <div class="person-compact-card clickable" @onclick="() => WatchlistSvc.OpenPersonProfileAsync(dir.Id)">
+                                                        @if (!string.IsNullOrEmpty(dir.ProfilePath))
+                                                        {
+                                                            <img src="@dir.FullProfileUrl" alt="@dir.Name" />
+                                                        }
+                                                        else
+                                                        {
+                                                            <div class="person-placeholder-icon"><i class="bi bi-person-fill"></i></div>
+                                                        }
+                                                        <span>@dir.Name</span>
+                                                    </div>
+                                                }
+                                            </div>
+                                        </div>
+                                    }
+
+                                    @if (movie.Credits?.Cast?.Any() == true)
+                                    {
+                                        <div class="crew-group">
+                                            <label class="group-label">Lead Actors</label>
+                                            <div class="person-grid-small">
+                                                @foreach (var actor in movie.Credits.Cast.Take(12))
+                                                {
+                                                    <div class="person-compact-card clickable" @onclick="() => WatchlistSvc.OpenPersonProfileAsync(actor.Id)">
+                                                        @if (!string.IsNullOrEmpty(actor.ProfilePath))
+                                                        {
+                                                            <img src="@actor.FullProfileUrl" alt="@actor.Name" />
+                                                        }
+                                                        else
+                                                        {
+                                                            <div class="person-placeholder-icon"><i class="bi bi-person-fill"></i></div>
+                                                        }
+                                                        <span>@actor.Name</span>
+                                                    </div>
+                                                }
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </section>
+
+                            <section class="details-section compact-details-section shadow-sm animate-in" style="animation-delay: 0.25s;">
+                                <h3 class="section-heading compact-heading mb-3"><i class="bi bi-info-circle me-2 text-primary"></i> Details</h3>
+                                <div class="details-grid">
+                                    <div class="detail-card compact-detail-card">
+                                        <span class="section-label compact-label">Language</span>
+                                        <strong>@GetLanguageLabel(movie.OriginalLanguage)</strong>
+                                    </div>
+                                    <div class="detail-card compact-detail-card">
+                                        <span class="section-label compact-label">Status</span>
+                                        <strong>@GetDisplayValue(movie.Status)</strong>
+                                    </div>
+                                    <div class="detail-card compact-detail-card">
+                                        <span class="section-label compact-label">Vote Count</span>
+                                        <strong>@GetCountLabel(movie.VoteCount)</strong>
+                                    </div>
+                                    <div class="detail-card compact-detail-card">
+                                        <span class="section-label compact-label">Popularity</span>
+                                        <strong>@GetPopularityLabel(movie.Popularity)</strong>
+                                    </div>
+                                    @if (movie.Revenue.GetValueOrDefault() > 0)
+                                    {
+                                        <div class="detail-card compact-detail-card">
+                                            <span class="section-label compact-label">Revenue</span>
+                                            <strong>@FormatCurrency(movie.Revenue)</strong>
+                                        </div>
+                                    }
+                                    @if (movie.Budget.GetValueOrDefault() > 0)
+                                    {
+                                        <div class="detail-card compact-detail-card">
+                                            <span class="section-label compact-label">Budget</span>
+                                            <strong>@FormatCurrency(movie.Budget)</strong>
+                                        </div>
+                                    }
+                                </div>
+
+                                @if (movie.Certifications.Any())
+                                {
+                                    <div class="detail-block compact-detail-block">
+                                        <span class="section-label compact-label d-block mb-2">Certification</span>
+                                        <div class="tag-wrap">
+                                            @foreach (var certification in movie.Certifications.Take(16))
+                                            {
+                                                <span class="detail-tag compact-detail-tag">
+                                                    <span class="detail-tag-region">@certification.Region</span>
+                                                    <span>@certification.Rating</span>
+                                                </span>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+
+                                @if (movie.Keywords.Any())
+                                {
+                                    <div class="detail-block compact-detail-block">
+                                        <span class="section-label compact-label d-block mb-2">Keywords</span>
+                                        <div class="tag-wrap">
+                                            @foreach (var keyword in movie.Keywords.Take(18))
+                                            {
+                                                <span class="detail-tag compact-detail-tag">@keyword.Name</span>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </section>
+
+                            <section class="details-section shadow-sm animate-in" style="animation-delay: 0.4s;">
+                                <h3 class="section-heading mb-3"><i class="bi bi-chat-left-dots me-2 text-primary"></i> Subtitles</h3>
+                                @if (isSubsLoading)
+                                {
+                                    <div class="shimmer-box" style="height: 100px;"></div>
+                                }
+                                else if (subtitles != null && subtitles.Any())
+                                {
+                                    <div class="subs-list">
+                                        @foreach (var sub in subtitles.OrderByDescending(s => s.Attributes?.DownloadCount).Take(5))
                                         {
-                                            <div class="person-compact-card clickable" @onclick="() => WatchlistSvc.OpenPersonProfileAsync(actor.Id)">
-                                                @if (!string.IsNullOrEmpty(actor.ProfilePath))
-                                                {
-                                                    <img src="@actor.FullProfileUrl" alt="@actor.Name" />
-                                                }
-                                                else
-                                                {
-                                                    <div class="person-placeholder-icon"><i class="bi bi-person-fill"></i></div>
-                                                }
-                                                <span>@actor.Name</span>
+                                            <div class="sub-item">
+                                                <div class="sub-info">
+                                                    <span class="badge bg-secondary me-2">@sub.Attributes?.Language.ToUpper()</span>
+                                                    <span class="sub-release text-truncate">@sub.Attributes?.Release</span>
+                                                </div>
+                                                <div class="sub-stats">
+                                                    <small class="text-muted me-3"><i class="bi bi-download"></i> @sub.Attributes?.DownloadCount</small>
+                                                    <a href="@sub.Attributes?.Url" target="_blank" class="btn btn-xs btn-primary rounded-pill px-3">View</a>
+                                                </div>
                                             </div>
                                         }
                                     </div>
-                                </div>
-                            }
-                        </div>
-                    </section>
-                    
-                    <!-- Media Gallery -->
-                    @if (movie.BackdropPaths.Count > 1)
-                    {
-                        <section class="details-section shadow-sm animate-in" style="animation-delay: 0.2s;">
-                            <h3 class="section-heading mb-4"><i class="bi bi-images me-2 text-primary"></i> Gallery</h3>
-                            <div class="row g-3">
-                                @foreach (var path in movie.BackdropPaths.Skip(1).Take(12))
-                                {
-                                    <div class="col-6 col-md-4">
-                                        <div class="gallery-thumb rounded-4 clickable" @onclick="() => OpenLightbox(path)">
-                                            <img src="https://image.tmdb.org/t/p/w500@(path)" class="img-fluid" alt="Backdrop" />
-                                            <div class="thumb-overlay"><i class="bi bi-zoom-in"></i></div>
-                                        </div>
-                                    </div>
                                 }
-                            </div>
-                        </section>
-                    }
-
-                    <!-- Details -->
-                    <section class="details-section compact-details-section shadow-sm animate-in" style="animation-delay: 0.25s;">
-                        <h3 class="section-heading compact-heading mb-3"><i class="bi bi-info-circle me-2 text-primary"></i> Details</h3>
-                        <div class="details-grid">
-                            <div class="detail-card compact-detail-card">
-                                <span class="section-label compact-label">Language</span>
-                                <strong>@GetLanguageLabel(movie.OriginalLanguage)</strong>
-                            </div>
-                            <div class="detail-card compact-detail-card">
-                                <span class="section-label compact-label">Status</span>
-                                <strong>@GetDisplayValue(movie.Status)</strong>
-                            </div>
-                            <div class="detail-card compact-detail-card">
-                                <span class="section-label compact-label">Vote Count</span>
-                                <strong>@GetCountLabel(movie.VoteCount)</strong>
-                            </div>
-                            <div class="detail-card compact-detail-card">
-                                <span class="section-label compact-label">Popularity</span>
-                                <strong>@GetPopularityLabel(movie.Popularity)</strong>
-                            </div>
-                            @if (movie.Revenue.GetValueOrDefault() > 0)
-                            {
-                                <div class="detail-card compact-detail-card">
-                                    <span class="section-label compact-label">Revenue</span>
-                                    <strong>@FormatCurrency(movie.Revenue)</strong>
-                                </div>
-                            }
-                            @if (movie.Budget.GetValueOrDefault() > 0)
-                            {
-                                <div class="detail-card compact-detail-card">
-                                    <span class="section-label compact-label">Budget</span>
-                                    <strong>@FormatCurrency(movie.Budget)</strong>
-                                </div>
-                            }
+                            </section>
                         </div>
-
-                        @if (movie.Certifications.Any())
-                        {
-                            <div class="detail-block compact-detail-block">
-                                <span class="section-label compact-label d-block mb-2">Certification</span>
-                                <div class="tag-wrap">
-                                    @foreach (var certification in movie.Certifications.Take(16))
-                                    {
-                                        <span class="detail-tag compact-detail-tag">
-                                            <span class="detail-tag-region">@certification.Region</span>
-                                            <span>@certification.Rating</span>
-                                        </span>
-                                    }
-                                </div>
-                            </div>
-                        }
-
-                        @if (movie.Keywords.Any())
-                        {
-                            <div class="detail-block compact-detail-block">
-                                <span class="section-label compact-label d-block mb-2">Keywords</span>
-                                <div class="tag-wrap">
-                                    @foreach (var keyword in movie.Keywords.Take(18))
-                                    {
-                                        <span class="detail-tag compact-detail-tag">@keyword.Name</span>
-                                    }
-                                </div>
-                            </div>
-                        }
-                    </section>
-
-                    <!-- Wikipedia -->
-                    @if (wikiSnippet != null)
-                    {
-                        <section class="details-section shadow-sm animate-in" style="animation-delay: 0.3s;">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h3 class="section-heading m-0"><i class="bi bi-wikipedia me-2 text-primary"></i> Wikipedia</h3>
-                                <a href="@wikiSnippet.ContentUrls?.Desktop?.Page" target="_blank" class="btn btn-sm btn-outline-secondary rounded-pill">Open Source</a>
-                            </div>
-                            <div class="wiki-content">
-                                <div class="wiki-text" style="white-space: pre-wrap; line-height: 1.8; color: #475569; font-size: 1.05rem;">
-                                    @wikiSnippet.Extract
-                                </div>
-                            </div>
-                        </section>
-                    }
-
-                    <!-- Subtitles -->
-                    <section class="details-section shadow-sm animate-in" style="animation-delay: 0.4s;">
-                        <h3 class="section-heading mb-3"><i class="bi bi-chat-left-dots me-2 text-primary"></i> Subtitles</h3>
-                        @if (isSubsLoading)
-                        {
-                            <div class="shimmer-box" style="height: 100px;"></div>
-                        }
-                        else if (subtitles != null && subtitles.Any())
-                        {
-                            <div class="subs-list">
-                                @foreach (var sub in subtitles.OrderByDescending(s => s.Attributes?.DownloadCount).Take(5))
-                                {
-                                    <div class="sub-item">
-                                        <div class="sub-info">
-                                            <span class="badge bg-secondary me-2">@sub.Attributes?.Language.ToUpper()</span>
-                                            <span class="sub-release text-truncate">@sub.Attributes?.Release</span>
-                                        </div>
-                                        <div class="sub-stats">
-                                            <small class="text-muted me-3"><i class="bi bi-download"></i> @sub.Attributes?.DownloadCount</small>
-                                            <a href="@sub.Attributes?.Url" target="_blank" class="btn btn-xs btn-primary rounded-pill px-3">View</a>
-                                        </div>
-                                    </div>
-                                }
-                            </div>
-                        }
-                    </section>
-
-                    <!-- Collection -->
-                    @if (movie.Collection != null)
-                    {
-                        <div class="details-section shadow-sm collection-promo-wide clickable animate-in" 
-                             style="background-image: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.8)), url('https://image.tmdb.org/t/p/original@(movie.Collection.BackdropPath)')"
-                             @onclick='() => NavManager.NavigateTo($"franchise/{movie.Collection.Id}")'>
-                            <div class="d-flex justify-content-between align-items-end h-100" style="min-height: 140px;">
-                                <div>
-                                    <span class="promo-badge">Part of Collection</span>
-                                    <h2 class="m-0 text-white fw-black">@movie.Collection.Name</h2>
-                                </div>
-                                <div class="text-white-50 fw-bold pb-1">View Franchise <i class="bi bi-arrow-right ms-2"></i></div>
-                            </div>
-                        </div>
-                    }
+                    </div>
                 </div>
             </div>
         </div>
@@ -485,6 +484,21 @@
 
     /* Main Content */
     .main-content { position: relative; z-index: 20; }
+    .split-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 24px;
+        align-items: start;
+    }
+    .split-column {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        min-width: 0;
+    }
+    .split-span-2 {
+        grid-column: 1 / -1;
+    }
     .details-section {
         background: var(--movie-card);
         border-radius: 24px;
@@ -710,6 +724,7 @@
         .hero-library-box { margin: 0 auto; width: 100%; display: flex; justify-content: center; }
         
         .main-content { margin-top: 20px; }
+        .split-layout { grid-template-columns: 1fr; gap: 0; }
         .details-section { padding: 20px; border-radius: 20px; }
         .overview-p { font-size: 1rem; }
         .section-heading { font-size: 1.15rem; }
