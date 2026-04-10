@@ -98,10 +98,30 @@ public class TmdbMovie
     [JsonPropertyName("runtime")]
     public int? Runtime { get; set; }
 
+    [JsonPropertyName("original_language")]
+    public string? OriginalLanguage { get; set; }
+
+    [JsonPropertyName("status")]
+    public string? Status { get; set; }
+
+    [JsonPropertyName("vote_count")]
+    public int VoteCount { get; set; }
+
+    [JsonPropertyName("popularity")]
+    public double Popularity { get; set; }
+
+    [JsonPropertyName("revenue")]
+    public long? Revenue { get; set; }
+
+    [JsonPropertyName("budget")]
+    public long? Budget { get; set; }
+
     // --- NEW EXTENDED FIELDS ---
     public TmdbCredits? Credits { get; set; }
     public List<string> BackdropPaths { get; set; } = new();
     public string? TrailerKey { get; set; }
+    public List<TmdbCertification> Certifications { get; set; } = new();
+    public List<TmdbKeyword> Keywords { get; set; } = new();
 
     [JsonPropertyName("belongs_to_collection")]
     public TmdbCollection? Collection { get; set; }
@@ -136,6 +156,18 @@ public class TmdbTvResult
 
     [JsonPropertyName("vote_average")]
     public double VoteAverage { get; set; }
+
+    [JsonPropertyName("original_language")]
+    public string? OriginalLanguage { get; set; }
+
+    [JsonPropertyName("status")]
+    public string? Status { get; set; }
+
+    [JsonPropertyName("vote_count")]
+    public int VoteCount { get; set; }
+
+    [JsonPropertyName("popularity")]
+    public double Popularity { get; set; }
 
     [JsonPropertyName("genres")]
     public List<TmdbGenre> GenreList { get; set; } = new();
@@ -437,6 +469,68 @@ public class TmdbVideo
     
     [JsonPropertyName("type")]
     public string Type { get; set; } = "";
+}
+
+public class TmdbKeyword
+{
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = "";
+}
+
+public class TmdbKeywordResponse
+{
+    [JsonPropertyName("keywords")]
+    public List<TmdbKeyword>? Keywords { get; set; }
+
+    [JsonPropertyName("results")]
+    public List<TmdbKeyword>? Results { get; set; }
+
+    public List<TmdbKeyword> AllKeywords => Keywords ?? Results ?? new();
+}
+
+public class TmdbCertification
+{
+    public string Region { get; set; } = "";
+    public string Rating { get; set; } = "";
+}
+
+public class TmdbMovieReleaseDatesResponse
+{
+    [JsonPropertyName("results")]
+    public List<TmdbMovieReleaseDateRegion> Results { get; set; } = new();
+}
+
+public class TmdbMovieReleaseDateRegion
+{
+    [JsonPropertyName("iso_3166_1")]
+    public string Region { get; set; } = "";
+
+    [JsonPropertyName("release_dates")]
+    public List<TmdbMovieReleaseDateItem> ReleaseDates { get; set; } = new();
+}
+
+public class TmdbMovieReleaseDateItem
+{
+    [JsonPropertyName("certification")]
+    public string? Certification { get; set; }
+}
+
+public class TmdbTvContentRatingsResponse
+{
+    [JsonPropertyName("results")]
+    public List<TmdbTvContentRatingItem> Results { get; set; } = new();
+}
+
+public class TmdbTvContentRatingItem
+{
+    [JsonPropertyName("iso_3166_1")]
+    public string Region { get; set; } = "";
+
+    [JsonPropertyName("rating")]
+    public string? Rating { get; set; }
 }
 // ── Split storage DTOs ───────────────────────────────────────────────────────
 

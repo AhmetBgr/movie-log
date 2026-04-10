@@ -1,5 +1,6 @@
 @page "/movie/{imdbId}"
 @using MyPrivateWatchlist.Models
+@using System.Globalization
 @inject MyPrivateWatchlist.Services.WatchlistService WatchlistSvc
 @inject NavigationManager NavManager
 @inject IJSRuntime JS
@@ -108,7 +109,20 @@
                         <h3 class="section-heading mb-3"><i class="bi bi-text-left me-2 text-primary"></i> Overview</h3>
                         <p class="overview-p">@movie.Overview</p>
                     </section>
-                    
+
+                    @if (isEnhancingDetails)
+                    {
+                        <section class="details-section shadow-sm animate-in details-loading-section">
+                            <div class="details-loading-inline">
+                                <div class="spinner-ripple spinner-ripple-sm"></div>
+                                <div>
+                                    <h4 class="m-0">Loading full details</h4>
+                                    <p class="text-secondary m-0">Cast, gallery, certifications, and extra metadata are on the way.</p>
+                                </div>
+                            </div>
+                        </section>
+                    }
+
                     <!-- Cast & Crew -->
                     <section class="details-section shadow-sm animate-in" style="animation-delay: 0.1s;">
                         <h3 class="section-heading mb-4"><i class="bi bi-people me-2 text-primary"></i> Cast & Crew</h3>
@@ -179,6 +193,72 @@
                             </div>
                         </section>
                     }
+
+                    <!-- Details -->
+                    <section class="details-section shadow-sm animate-in" style="animation-delay: 0.25s;">
+                        <h3 class="section-heading mb-4"><i class="bi bi-info-circle me-2 text-primary"></i> Details</h3>
+                        <div class="details-grid">
+                            <div class="detail-card">
+                                <span class="section-label">Language</span>
+                                <strong>@GetLanguageLabel(movie.OriginalLanguage)</strong>
+                            </div>
+                            <div class="detail-card">
+                                <span class="section-label">Status</span>
+                                <strong>@GetDisplayValue(movie.Status)</strong>
+                            </div>
+                            <div class="detail-card">
+                                <span class="section-label">Vote Count</span>
+                                <strong>@GetCountLabel(movie.VoteCount)</strong>
+                            </div>
+                            <div class="detail-card">
+                                <span class="section-label">Popularity Score</span>
+                                <strong>@GetPopularityLabel(movie.Popularity)</strong>
+                            </div>
+                            @if (movie.Revenue.GetValueOrDefault() > 0)
+                            {
+                                <div class="detail-card">
+                                    <span class="section-label">Revenue</span>
+                                    <strong>@FormatCurrency(movie.Revenue)</strong>
+                                </div>
+                            }
+                            @if (movie.Budget.GetValueOrDefault() > 0)
+                            {
+                                <div class="detail-card">
+                                    <span class="section-label">Budget</span>
+                                    <strong>@FormatCurrency(movie.Budget)</strong>
+                                </div>
+                            }
+                        </div>
+
+                        @if (movie.Certifications.Any())
+                        {
+                            <div class="detail-block">
+                                <span class="section-label d-block mb-2">Certification</span>
+                                <div class="tag-wrap">
+                                    @foreach (var certification in movie.Certifications.Take(16))
+                                    {
+                                        <span class="detail-tag">
+                                            <span class="detail-tag-region">@certification.Region</span>
+                                            <span>@certification.Rating</span>
+                                        </span>
+                                    }
+                                </div>
+                            </div>
+                        }
+
+                        @if (movie.Keywords.Any())
+                        {
+                            <div class="detail-block">
+                                <span class="section-label d-block mb-2">Keywords</span>
+                                <div class="tag-wrap">
+                                    @foreach (var keyword in movie.Keywords.Take(18))
+                                    {
+                                        <span class="detail-tag">@keyword.Name</span>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </section>
 
                     <!-- Wikipedia -->
                     @if (wikiSnippet != null)
@@ -426,6 +506,71 @@
         color: var(--movie-muted);
     }
     .overview-p { font-size: 1.1rem; line-height: 1.7; color: #475569; }
+    .details-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 14px;
+    }
+    .detail-card {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding: 16px 18px;
+        border-radius: 18px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+    }
+    .detail-card strong {
+        font-size: 1rem;
+        color: #1e293b;
+        line-height: 1.4;
+    }
+    .detail-block {
+        margin-top: 22px;
+    }
+    .tag-wrap {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .detail-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: #eff6ff;
+        color: #1e3a8a;
+        border: 1px solid #bfdbfe;
+        font-weight: 700;
+        font-size: 0.85rem;
+    }
+    .detail-tag-region {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 34px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: rgba(30, 64, 175, 0.12);
+        color: #1e40af;
+        font-size: 0.72rem;
+        letter-spacing: 0.6px;
+    }
+    .details-loading-section {
+        padding-top: 22px;
+        padding-bottom: 22px;
+    }
+    .details-loading-inline {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+    .spinner-ripple-sm {
+        width: 32px;
+        height: 32px;
+        flex: 0 0 auto;
+    }
 
     /* Cast & Credits */
     .group-label { display: block; font-size: 0.65rem; font-weight: 800; text-transform: uppercase; color: #94a3b8; margin-bottom: 12px; letter-spacing: 1px; }
@@ -532,6 +677,7 @@
         .details-section { padding: 20px; border-radius: 20px; }
         .overview-p { font-size: 1rem; }
         .section-heading { font-size: 1.15rem; }
+        .details-grid { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
     }
 
     @@media (max-width: 576px) {
@@ -551,6 +697,11 @@
         .details-section { padding: 16px 12px; margin-bottom: 12px; border-radius: 12px; }
         .section-heading { font-size: 1rem; margin-bottom: 15px !important; }
         .overview-p { font-size: 0.95rem; line-height: 1.55; }
+        .details-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+        .detail-card { padding: 12px; border-radius: 14px; }
+        .detail-card strong { font-size: 0.92rem; }
+        .detail-tag { padding: 6px 10px; font-size: 0.78rem; }
+        .details-loading-inline { align-items: flex-start; }
         .person-compact-card { padding: 4px 6px; gap: 6px; }
         .person-compact-card span { font-size: 0.75rem; }
         .group-label { margin-bottom: 8px; font-size: 0.6rem; }
@@ -568,6 +719,7 @@
     
     private List<OpenSubtitlesData>? subtitles;
     private bool isSubsLoading = false;
+    private bool isEnhancingDetails = false;
 
     private bool isTrailerOpen = false;
     private string? selectedLightboxPath;
@@ -576,24 +728,46 @@
     protected override async Task OnParametersSetAsync()
     {
         isLoading = true;
+        isEnhancingDetails = false;
         movie = null;
         libItem = null;
         wikiSnippet = null;
         subtitles = null;
         StateHasChanged();
 
-        movie = await WatchlistSvc.GetTmdbDetailsAsync(imdbId);
+        movie = await WatchlistSvc.GetTmdbBasicDetailsAsync(imdbId);
         
         if (movie != null)
         {
             libItem = WatchlistSvc.Items.FirstOrDefault(i => i.ImdbId == imdbId);
 
-            // Fire off external API requests
+            // Render basic metadata first, then hydrate heavier details in the background.
             _ = LoadWikiDataAsync();
             _ = LoadSubtitlesAsync();
+            _ = EnhanceMovieDetailsAsync(movie.Id);
         }
 
         isLoading = false;
+    }
+
+    private async Task EnhanceMovieDetailsAsync(int currentMovieId)
+    {
+        isEnhancingDetails = true;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            var fullMovie = await WatchlistSvc.GetTmdbDetailsAsync(imdbId);
+            if (fullMovie != null && movie?.Id == currentMovieId)
+            {
+                movie = fullMovie;
+            }
+        }
+        finally
+        {
+            isEnhancingDetails = false;
+            await InvokeAsync(StateHasChanged);
+        }
     }
 
     private async Task LoadWikiDataAsync()
@@ -619,6 +793,48 @@
         var h = minutes / 60;
         var m = minutes % 60;
         return h > 0 ? $"{h}h {m}m" : $"{m}m";
+    }
+
+    private static string GetDisplayValue(string? value)
+        => string.IsNullOrWhiteSpace(value) ? "Unknown" : value;
+
+    private static string GetCountLabel(int count)
+        => count > 0 ? count.ToString("N0", CultureInfo.InvariantCulture) : "Unknown";
+
+    private static string GetPopularityLabel(double popularity)
+        => popularity > 0 ? popularity.ToString("0.0", CultureInfo.InvariantCulture) : "Unknown";
+
+    private static string FormatCurrency(long? amount)
+    {
+        var value = amount.GetValueOrDefault();
+        return value > 0
+            ? string.Format(CultureInfo.GetCultureInfo("en-US"), "{0:C0}", value)
+            : "Unknown";
+    }
+
+    private static string GetLanguageLabel(string? languageCode)
+    {
+        if (string.IsNullOrWhiteSpace(languageCode))
+            return "Unknown";
+
+        try
+        {
+            var normalized = languageCode.Trim().ToLowerInvariant();
+            var culture = CultureInfo
+                .GetCultures(CultureTypes.NeutralCultures)
+                .FirstOrDefault(c => string.Equals(c.TwoLetterISOLanguageName, normalized, StringComparison.OrdinalIgnoreCase));
+
+            if (!string.IsNullOrWhiteSpace(culture?.EnglishName) &&
+                !string.Equals(culture.EnglishName, normalized, StringComparison.OrdinalIgnoreCase))
+            {
+                return $"{culture.EnglishName} ({normalized.ToUpperInvariant()})";
+            }
+        }
+        catch
+        {
+        }
+
+        return languageCode.ToUpperInvariant();
     }
 
     private void OpenLightbox(string path) => selectedLightboxPath = path;

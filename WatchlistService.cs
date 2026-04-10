@@ -656,6 +656,51 @@ public class WatchlistService
         return null;
     }
 
+    public async Task<TmdbMovie?> GetTmdbBasicDetailsAsync(string imdbId)
+    {
+        var apiKey = _config["TmdbApiKey"];
+        var url = $"https://api.themoviedb.org/3/find/{imdbId}?api_key={apiKey}&external_source=imdb_id";
+
+        try
+        {
+            var response = await _http.GetFromJsonAsync<TmdbFindResult>(url);
+
+            if (response?.MovieResults?.Any() == true)
+            {
+                var movie = response.MovieResults.First();
+                movie.ImdbId ??= imdbId;
+                return movie;
+            }
+
+            if (response?.TvResults?.Any() == true)
+            {
+                var tv = response.TvResults.First();
+                return new TmdbMovie
+                {
+                    Id = tv.Id,
+                    ImdbId = imdbId,
+                    Title = tv.Name,
+                    OriginalTitle = tv.OriginalName,
+                    Overview = tv.Overview,
+                    PosterPath = tv.PosterPath,
+                    ReleaseDate = tv.FirstAirDate,
+                    VoteAverage = tv.VoteAverage,
+                    OriginalLanguage = tv.OriginalLanguage,
+                    Status = tv.Status,
+                    VoteCount = tv.VoteCount,
+                    Popularity = tv.Popularity,
+                    GenreList = tv.GenreList
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"API Error fetching basic details for {imdbId}: {ex.Message}");
+        }
+
+        return null;
+    }
+
     public async Task<TmdbMovie?> GetTmdbDetailsByIdAsync(int tmdbId, string mediaType)
     {
         var apiKey = _config["TmdbApiKey"];
@@ -708,6 +753,35 @@ public class WatchlistService
                         var videosUrl = $"https://api.themoviedb.org/3/movie/{tmdbId}/videos?api_key={apiKey}";
                         var videos = await _http.GetFromJsonAsync<TmdbVideosResponse>(videosUrl);
                         movie.TrailerKey = videos?.Results?.FirstOrDefault(v => v.Site == "YouTube" && v.Type == "Trailer")?.Key;
+
+                        var keywordsUrl = $"https://api.themoviedb.org/3/movie/{tmdbId}/keywords?api_key={apiKey}";
+                        var keywordResponse = await _http.GetFromJsonAsync<TmdbKeywordResponse>(keywordsUrl);
+                        if (keywordResponse != null)
+                        {
+                            movie.Keywords = keywordResponse.AllKeywords
+                                .Where(k => !string.IsNullOrWhiteSpace(k.Name))
+                                .GroupBy(k => k.Name, StringComparer.OrdinalIgnoreCase)
+                                .Select(g => g.First())
+                                .OrderBy(k => k.Name)
+                                .ToList();
+                        }
+
+                        var releaseDatesUrl = $"https://api.themoviedb.org/3/movie/{tmdbId}/release_dates?api_key={apiKey}";
+                        var releaseDates = await _http.GetFromJsonAsync<TmdbMovieReleaseDatesResponse>(releaseDatesUrl);
+                        if (releaseDates != null)
+                        {
+                            movie.Certifications = releaseDates.Results
+                                .Select(region => new TmdbCertification
+                                {
+                                    Region = region.Region,
+                                    Rating = region.ReleaseDates
+                                        .Select(r => r.Certification?.Trim())
+                                        .FirstOrDefault(r => !string.IsNullOrWhiteSpace(r)) ?? ""
+                                })
+                                .Where(c => !string.IsNullOrWhiteSpace(c.Region) && !string.IsNullOrWhiteSpace(c.Rating))
+                                .OrderBy(c => c.Region)
+                                .ToList();
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -733,7 +807,11 @@ public class WatchlistService
                         VoteAverage = tv.VoteAverage,
                         ReleaseDate = tv.FirstAirDate,
                         GenreList = tv.GenreList,
-                        Runtime = tv.EpisodeRunTime?.FirstOrDefault()
+                        Runtime = tv.EpisodeRunTime?.FirstOrDefault(),
+                        OriginalLanguage = tv.OriginalLanguage,
+                        Status = tv.Status,
+                        VoteCount = tv.VoteCount,
+                        Popularity = tv.Popularity
                     };
 
                     try
@@ -771,6 +849,33 @@ public class WatchlistService
                         var videosUrl = $"https://api.themoviedb.org/3/tv/{tv.Id}/videos?api_key={apiKey}";
                         var videos = await _http.GetFromJsonAsync<TmdbVideosResponse>(videosUrl);
                         movie.TrailerKey = videos?.Results?.FirstOrDefault(v => v.Site == "YouTube" && v.Type == "Trailer")?.Key;
+
+                        var keywordsUrl = $"https://api.themoviedb.org/3/tv/{tv.Id}/keywords?api_key={apiKey}";
+                        var keywordResponse = await _http.GetFromJsonAsync<TmdbKeywordResponse>(keywordsUrl);
+                        if (keywordResponse != null)
+                        {
+                            movie.Keywords = keywordResponse.AllKeywords
+                                .Where(k => !string.IsNullOrWhiteSpace(k.Name))
+                                .GroupBy(k => k.Name, StringComparer.OrdinalIgnoreCase)
+                                .Select(g => g.First())
+                                .OrderBy(k => k.Name)
+                                .ToList();
+                        }
+
+                        var ratingsUrl = $"https://api.themoviedb.org/3/tv/{tv.Id}/content_ratings?api_key={apiKey}";
+                        var ratings = await _http.GetFromJsonAsync<TmdbTvContentRatingsResponse>(ratingsUrl);
+                        if (ratings != null)
+                        {
+                            movie.Certifications = ratings.Results
+                                .Select(r => new TmdbCertification
+                                {
+                                    Region = r.Region,
+                                    Rating = r.Rating?.Trim() ?? ""
+                                })
+                                .Where(c => !string.IsNullOrWhiteSpace(c.Region) && !string.IsNullOrWhiteSpace(c.Rating))
+                                .OrderBy(c => c.Region)
+                                .ToList();
+                        }
                     }
                     catch (Exception ex)
                     {
