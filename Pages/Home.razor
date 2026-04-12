@@ -44,31 +44,31 @@
         <div class="col">
             <div class="stat-card">
                 <div class="stat-card-title">
-                    <i class="bi bi-pie-chart-fill text-primary"></i> Status Distribution
+                    <i class="bi bi-pie-chart-fill text-dark opacity-75"></i> Library Overview
                 </div>
                 <div class="row row-cols-2 g-3 mt-2">
                     <div class="col">
-                        <div class="p-3 bg-indigo bg-opacity-10 rounded-3 text-center h-100 d-flex flex-column justify-content-center">
+                        <div class="p-3 rounded-3 text-center h-100 d-flex flex-column justify-content-center" style="background: rgba(99, 102, 241, 0.08);">
                             <div class="fs-2 fw-bold" style="color: #6366f1;">@WatchedCount</div>
-                            <div class="small text-muted text-uppercase fw-semibold mt-1">Watched</div>
+                            <div class="small fw-semibold mt-1" style="color: #6366f1; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">Watched</div>
                         </div>
                     </div>
                     <div class="col">
-                        <div class="p-3 bg-primary bg-opacity-10 rounded-3 text-center h-100 d-flex flex-column justify-content-center">
-                            <div class="fs-2 fw-bold text-primary">@WatchlistCount</div>
-                            <div class="small text-muted text-uppercase fw-semibold mt-1">Watchlist</div>
+                        <div class="p-3 rounded-3 text-center h-100 d-flex flex-column justify-content-center" style="background: rgba(100, 116, 139, 0.08);">
+                            <div class="fs-2 fw-bold" style="color: #64748b;">@WatchlistCount</div>
+                            <div class="small fw-semibold mt-1" style="color: #64748b; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">Watchlist</div>
                         </div>
                     </div>
                     <div class="col">
-                        <div class="p-3 bg-success bg-opacity-10 rounded-3 text-center h-100 d-flex flex-column justify-content-center">
-                            <div class="fs-2 fw-bold text-success">@WatchingCount</div>
-                            <div class="small text-muted text-uppercase fw-semibold mt-1">Watching</div>
+                        <div class="p-3 rounded-3 text-center h-100 d-flex flex-column justify-content-center" style="background: rgba(16, 185, 129, 0.08);">
+                            <div class="fs-2 fw-bold" style="color: #10b981;">@WatchingCount</div>
+                            <div class="small fw-semibold mt-1" style="color: #10b981; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">Watching</div>
                         </div>
                     </div>
                     <div class="col">
-                        <div class="p-3 bg-warning bg-opacity-10 rounded-3 text-center h-100 d-flex flex-column justify-content-center">
-                            <div class="fs-2 fw-bold text-warning">@CollectionCount</div>
-                            <div class="small text-muted text-uppercase fw-semibold mt-1">Collections</div>
+                        <div class="p-3 rounded-3 text-center h-100 d-flex flex-column justify-content-center" style="background: rgba(245, 158, 11, 0.08);">
+                            <div class="fs-2 fw-bold" style="color: #f59e0b;">@CollectionCount</div>
+                            <div class="small fw-semibold mt-1" style="color: #f59e0b; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">Collections</div>
                         </div>
                     </div>
                 </div>
@@ -79,7 +79,7 @@
         <div class="col">
             <div class="stat-card d-flex flex-column">
                 <div class="stat-card-title d-flex justify-content-between align-items-center">
-                    <div><i class="bi bi-bar-chart-fill text-success"></i> Watched In @SelectedYear</div>
+                    <div><i class="bi bi-bar-chart-fill" style="color: #22c55e;"></i> Watched In @SelectedYear</div>
                     <div class="d-flex align-items-center gap-2">
                         @if (AvailableYears.Count > 1)
                         {
@@ -90,7 +90,7 @@
                                 }
                             </select>
                         }
-                        <div class="badge bg-success bg-opacity-10 text-success rounded-pill px-3 py-2 fw-bolder" style="font-size: 0.9rem;">@YearlyTotal</div>
+                        <div class="badge rounded-pill px-3 py-2 fw-bolder" style="font-size: 0.9rem; background: rgba(34, 197, 94, 0.1); color: #22c55e;">@YearlyTotal</div>
                     </div>
                 </div>
                 <div class="flex-grow-1 d-flex flex-column justify-content-end">
@@ -101,7 +101,7 @@
                             var h = maxMonth > 0 ? (m.Value * 140 / maxMonth) : 0;
                             <div class="d-flex flex-column align-items-center justify-content-end h-100" style="flex: 1;">
                                 <div class="text-muted mb-1 fw-bold" style="font-size: 0.75rem; height: 1.2rem;">@(m.Value > 0 ? m.Value.ToString() : "")</div>
-                                <div class="bg-success rounded-top" style="width: 60%; max-width: 24px; height: @(h)px; min-height: @(m.Value > 0 ? "4px" : "0px"); transition: height 0.5s ease; @(m.Value == 0 ? "display:none;" : "")"></div>
+                                <div class="rounded-top" style="width: 60%; max-width: 24px; height: @(h)px; background-color: #22c55e; min-height: @(m.Value > 0 ? "4px" : "0px"); transition: height 0.5s ease; @(m.Value == 0 ? "display:none;" : "")"></div>
                                 <div class="mt-2 text-secondary fw-semibold" style="font-size: 0.65rem; height: 40px; display: flex; align-items: center; justify-content: center; writing-mode: vertical-rl; transform: rotate(180deg);">@m.Key</div>
                             </div>
                         }
@@ -114,7 +114,7 @@
         <div class="col">
             <div class="stat-card d-flex flex-column">
                 <div class="stat-card-title">
-                    <i class="bi bi-star-fill text-warning"></i> Rating Distribution
+                    <i class="bi bi-star-fill" style="color: #f59e0b;"></i> Rating Distribution
                 </div>
                 
                 <div class="row mb-4">
@@ -159,7 +159,7 @@
         <div class="col">
             <div class="stat-card">
                 <div class="stat-card-title">
-                    <i class="bi bi-tags-fill text-danger"></i> Top Watched Genres
+                    <i class="bi bi-tags-fill" style="color: #ef4444;"></i> Top Watched Genres
                 </div>
                 @if (!TopGenres.Any())
                 {
@@ -177,7 +177,7 @@
                                 <span class="fw-bold text-secondary">@g.Value <span class="fw-normal text-muted small" style="font-size: 0.75em;">movies</span></span>
                             </div>
                             <div class="progress" style="height: 8px;">
-                                <div class="progress-bar bg-danger" style="width: @pct%"></div>
+                                <div class="progress-bar" style="width: @pct%; background-color: #ef4444;"></div>
                             </div>
                         </div>
                     }
@@ -189,7 +189,7 @@
         <div class="col">
             <div class="stat-card">
                 <div class="stat-card-title">
-                    <i class="bi bi-person-video2 text-info"></i> Most Watched Directors
+                    <i class="bi bi-person-video2" style="color: #0ea5e9;"></i> Most Watched Directors
                 </div>
                 @if (!TopDirectors.Any())
                 {
@@ -207,7 +207,7 @@
                                 <span class="fw-bold text-secondary">@d.Value <span class="fw-normal text-muted small" style="font-size: 0.75em;">movies</span></span>
                             </div>
                             <div class="progress" style="height: 8px;">
-                                <div class="progress-bar bg-info" style="width: @pct%"></div>
+                                <div class="progress-bar" style="width: @pct%; background-color: #0ea5e9;"></div>
                             </div>
                         </div>
                     }
@@ -219,7 +219,7 @@
         <div class="col">
             <div class="stat-card d-flex flex-column">
                 <div class="stat-card-title">
-                    <i class="bi bi-hourglass-split text-indigo" style="color: #6366f1;"></i> Era Distribution
+                    <i class="bi bi-hourglass-split" style="color: #8b5cf6;"></i> Era Distribution
                 </div>
                 <div class="flex-grow-1 d-flex flex-column justify-content-end">
                     @{ var maxDecade = DecadeDistribution.Any() ? DecadeDistribution.Max(x => x.Value) : 0; }
@@ -229,7 +229,7 @@
                             var h = maxDecade > 0 ? (d.Value * 100 / maxDecade) : 0;
                             <div class="d-flex flex-column align-items-center justify-content-end h-100" style="flex: 1;" title="@d.Key: @d.Value movies">
                                 <div class="text-muted mb-1 fw-bold" style="font-size: 0.7rem; height: 1.1rem;">@(d.Value > 0 ? d.Value.ToString() : "")</div>
-                                <div class="bg-indigo rounded-top" style="width: 70%; max-width: 28px; height: @(h)px; background-color: #6366f1; min-height: @(d.Value > 0 ? "4px" : "0px"); transition: height 0.5s ease; @(d.Value == 0 ? "display:none;" : "")"></div>
+                                <div class="rounded-top" style="width: 70%; max-width: 28px; height: @(h)px; background-color: #8b5cf6; min-height: @(d.Value > 0 ? "4px" : "0px"); transition: height 0.5s ease; @(d.Value == 0 ? "display:none;" : "")"></div>
                                 <div class="mt-2 text-secondary text-center fw-bold" style="font-size: 0.75rem; height: 1.2rem;">@d.Key</div>
                             </div>
                         }
@@ -242,7 +242,7 @@
         <div class="col">
             <div class="stat-card">
                 <div class="stat-card-title">
-                    <i class="bi bi-star-half text-warning"></i> Highest Rated Genres
+                    <i class="bi bi-shield-star" style="color: #ec4899;"></i> Highest Rated Genres
                 </div>
                 @if (!GenreQuality.Any())
                 {
@@ -259,7 +259,7 @@
                                 <span class="fw-bold" style="color: hsl(@hue, 70%, 40%);">@g.Value.ToString("0.0")</span>
                             </div>
                             <div class="progress" style="height: 8px;">
-                                <div class="progress-bar" style="width: @g.Value%; background-color: hsl(@hue, 70%, 45%);"></div>
+                                <div class="progress-bar" style="width: @g.Value%; background-color: #ec4899;"></div>
                             </div>
                         </div>
                     }
@@ -271,7 +271,7 @@
         <div class="col">
             <div class="stat-card d-flex flex-column">
                 <div class="stat-card-title">
-                    <i class="bi bi-clock-history text-primary"></i> Runtime Distribution
+                    <i class="bi bi-clock-history" style="color: #3b82f6;"></i> Runtime Distribution
                 </div>
                 <div class="flex-grow-1 d-flex flex-column justify-content-end">
                     @{ var maxRuntime = RuntimeDistribution.Any() ? RuntimeDistribution.Max(x => x.Value) : 0; }
@@ -281,7 +281,7 @@
                             var h = maxRuntime > 0 ? (r.Value * 100 / maxRuntime) : 0;
                             <div class="d-flex flex-column align-items-center justify-content-end h-100" style="flex: 1;" title="@r.Key: @r.Value movies">
                                 <div class="text-muted mb-1 fw-bold" style="font-size: 0.7rem; height: 1.1rem;">@(r.Value > 0 ? r.Value.ToString() : "")</div>
-                                <div class="bg-primary rounded-top" style="width: 70%; max-width: 28px; height: @(h)px; min-height: @(r.Value > 0 ? "4px" : "0px"); transition: height 0.5s ease; @(r.Value == 0 ? "display:none;" : "")"></div>
+                                <div class="rounded-top" style="width: 70%; max-width: 28px; height: @(h)px; background-color: #3b82f6; min-height: @(r.Value > 0 ? "4px" : "0px"); transition: height 0.5s ease; @(r.Value == 0 ? "display:none;" : "")"></div>
                                 <div class="mt-2 text-secondary text-center fw-bold" style="font-size: 0.7rem; height: 1.2rem; line-height: 1.1;">@r.Key.Replace(" ", "\n")</div>
                             </div>
                         }
@@ -294,7 +294,7 @@
         <div class="col">
             <div class="stat-card d-flex flex-column">
                 <div class="stat-card-title">
-                    <i class="bi bi-graph-up-arrow text-success"></i> Ratings by Decade
+                    <i class="bi bi-graph-up-arrow" style="color: #14b8a6;"></i> Ratings by Decade
                 </div>
                 <div class="flex-grow-1 d-flex flex-column justify-content-end">
                     @{ var maxTrend = DecadeRatingTrend.Any() ? DecadeRatingTrend.Max(x => x.Value) : 0; }
@@ -305,7 +305,7 @@
                             var hue = (d.Value / 100.0) * 120;
                             <div class="d-flex flex-column align-items-center justify-content-end h-100" style="flex: 1;" title="@d.Key: @d.Value.ToString("0.0") avg">
                                 <div class="fw-bold mb-1" style="font-size: 0.7rem; height: 1.1rem; color: hsl(@hue, 70%, 40%);">@d.Value.ToString("0.0")</div>
-                                <div class="rounded-top" style="width: 70%; max-width: 28px; height: @(d.Value)px; background-color: hsl(@hue, 70%, 45%); transition: height 0.5s ease;"></div>
+                                <div class="rounded-top" style="width: 70%; max-width: 28px; height: @(d.Value)px; background-color: #14b8a6; transition: height 0.5s ease;"></div>
                                 <div class="mt-2 text-secondary text-center fw-bold" style="font-size: 0.75rem; height: 1.2rem;">@d.Key</div>
                             </div>
                         }
