@@ -167,6 +167,46 @@ public class AutoSyncService : IDisposable
         }
     }
 
+    public async Task ManualPullAsync()
+    {
+        try
+        {
+            var settings = await _gistSyncSvc.GetSettingsAsync();
+            if (!HasCredentials(settings))
+                throw new InvalidOperationException("Gist settings are missing.");
+
+            var remote = await _gistSyncSvc.LoadSnapshotAsync();
+            await ApplyRemoteAsync(remote, "Pull (Force)");
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+            NotifyStatusChanged();
+            throw;
+        }
+    }
+
+    public async Task ManualPushAsync()
+    {
+        try
+        {
+            var settings = await _gistSyncSvc.GetSettingsAsync();
+            if (!HasCredentials(settings))
+                throw new InvalidOperationException("Gist settings are missing.");
+
+            var localItems = _watchlistSvc.Items.ToList();
+            var localCollections = _watchlistSvc.Collections.ToList();
+            var localHash = WatchlistSyncData.ComputeHash(localItems, localCollections);
+            await PushLocalAsync(localItems, localCollections, localHash, "Push (Force)");
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+            NotifyStatusChanged();
+            throw;
+        }
+    }
+
     public void MarkLocalStateApplied()
     {
         var localHash = WatchlistSyncData.ComputeHash(_watchlistSvc.Items, _watchlistSvc.Collections);

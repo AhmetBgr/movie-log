@@ -356,7 +356,13 @@
                             <i class="bi bi-arrow-repeat me-1"></i>Check Sync
                         </button>
                         <button class="btn btn-outline-success btn-sm rounded-pill px-3" @onclick="SyncNowAsync" disabled="@(syncBusy || !syncActionNeeded)">
-                            <i class="bi bi-cloud-check me-1"></i>Sync Now
+                            <i class="bi bi-stars me-1"></i>Smart Sync
+                        </button>
+                        <button class="btn btn-outline-info btn-sm rounded-pill px-3" @onclick="PullNowAsync" disabled="@syncBusy">
+                            <i class="bi bi-cloud-download me-1"></i>Pull from Gist
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm rounded-pill px-3" @onclick="PushNowAsync" disabled="@syncBusy">
+                            <i class="bi bi-cloud-upload me-1"></i>Push to Gist
                         </button>
                     </div>
 
@@ -562,12 +568,62 @@
             });
             await AutoSync.SyncNowAsync();
 
-            gistStatusMessage = "Manual sync completed.";
+            gistStatusMessage = "Smart sync completed.";
         }
         catch (Exception ex)
         {
             gistStatusIsError = true;
             gistStatusMessage = $"Sync failed: {ex.Message}";
+        }
+        finally
+        {
+            syncBusy = false;
+        }
+    }
+
+    private async Task PullNowAsync()
+    {
+        try
+        {
+            var confirmed = await JS.InvokeAsync<bool>("confirm", "This will OVERWRITE your local library with the data from GitHub. Are you sure?");
+            if (!confirmed) return;
+
+            syncBusy = true;
+            gistStatusMessage = "";
+            gistStatusIsError = false;
+
+            await AutoSync.ManualPullAsync();
+            gistStatusMessage = "Local data updated from Gist.";
+        }
+        catch (Exception ex)
+        {
+            gistStatusIsError = true;
+            gistStatusMessage = $"Pull failed: {ex.Message}";
+        }
+        finally
+        {
+            syncBusy = false;
+        }
+    }
+
+    private async Task PushNowAsync()
+    {
+        try
+        {
+            var confirmed = await JS.InvokeAsync<bool>("confirm", "This will OVERWRITE the data on GitHub with your local library. Are you sure?");
+            if (!confirmed) return;
+
+            syncBusy = true;
+            gistStatusMessage = "";
+            gistStatusIsError = false;
+
+            await AutoSync.ManualPushAsync();
+            gistStatusMessage = "Gist data updated from local library.";
+        }
+        catch (Exception ex)
+        {
+            gistStatusIsError = true;
+            gistStatusMessage = $"Push failed: {ex.Message}";
         }
         finally
         {
