@@ -139,8 +139,10 @@
     <!-- Actions Area -->
     <div class="filter-footer">
         <div class="d-grid gap-2">
-            <button class="btn btn-primary py-2 fw-bold shadow-sm" @onclick="ApplyFilters">
-                <i class="bi bi-check2-circle me-1"></i> Apply Filters
+            <button class="btn @(IsDirty ? "btn-success" : "btn-outline-secondary") py-2 fw-bold shadow-sm" 
+                    disabled="@(!IsDirty)"
+                    @onclick="ApplyFilters">
+                <i class="bi bi-check2-circle me-1"></i> Apply
             </button>
             <div class="d-flex gap-2">
                  <button class="btn btn-outline-secondary btn-sm flex-grow-1" @onclick="PickRandom" title="Pick a random movie from currently filtered results">
@@ -200,6 +202,29 @@
             UnratedOnly = s.UnratedOnly,
             ShortFilmsOnly = s.ShortFilmsOnly
         };
+    }
+
+    private bool IsDirty => !AreStatesEqual(_localFilter, WatchlistSvc.AdvancedFilter);
+
+    private bool AreStatesEqual(AdvancedFilterState a, AdvancedFilterState b)
+    {
+        if ((a.TitleSearch ?? "") != (b.TitleSearch ?? "")) return false;
+        if (a.GenreLogic != b.GenreLogic) return false;
+        if (a.MinYear != b.MinYear) return false;
+        if (a.MaxYear != b.MaxYear) return false;
+        if (a.MinUserRating != b.MinUserRating) return false;
+        if (a.MaxUserRating != b.MaxUserRating) return false;
+        if (a.MinTmdbRating != b.MinTmdbRating) return false;
+        if (a.MaxTmdbRating != b.MaxTmdbRating) return false;
+        if (a.UnratedOnly != b.UnratedOnly) return false;
+        if (a.ShortFilmsOnly != b.ShortFilmsOnly) return false;
+        
+        if (!a.IncludedGenres.SetEquals(b.IncludedGenres)) return false;
+        if (!a.ExcludedGenres.SetEquals(b.ExcludedGenres)) return false;
+        if (!a.IncludedTypes.SetEquals(b.IncludedTypes)) return false;
+        if (!a.ExcludedTypes.SetEquals(b.ExcludedTypes)) return false;
+        
+        return true;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

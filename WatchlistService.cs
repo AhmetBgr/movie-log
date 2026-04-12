@@ -334,7 +334,17 @@ public class WatchlistService
             if (f.AdvancedFilter.MaxTmdbRating.HasValue && (item.VoteAverage ?? 10) > f.AdvancedFilter.MaxTmdbRating.Value) return false;
 
             if (f.AdvancedFilter.UnratedOnly && item.Rating20.HasValue) return false;
-            if (f.AdvancedFilter.ShortFilmsOnly && ((item.Runtime ?? 0) > 40 || (item.Runtime ?? 0) <= 0)) return false;
+            
+            if (f.AdvancedFilter.ShortFilmsOnly)
+            {
+                // Only include films/shorts, exclude TV series and anime
+                bool isFilm = item.TitleType.Equals("Movie", StringComparison.OrdinalIgnoreCase) || 
+                              item.TitleType.Equals("TV Movie", StringComparison.OrdinalIgnoreCase) ||
+                              item.TitleType.Equals("Short", StringComparison.OrdinalIgnoreCase);
+                              
+                if (!isFilm || (item.Runtime ?? 0) > 40 || (item.Runtime ?? 0) <= 0) 
+                    return false;
+            }
         }
 
         return true;
