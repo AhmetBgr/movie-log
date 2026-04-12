@@ -2,7 +2,6 @@
 
 ## TODO
 - [ ] **Export to CSV**: Export your filtered Watchlist view back to a file.
-- [ ] **Watchlist Statistics**: Pie charts or stats for genre distribution and year ranges.
 - [ ] **Dark/Light Mode Toggle**: Manual theme switcher (currently defaults to system/premium dark).
 - [ ] private notes/reviews
 - [ ] advanced search. similar to imdb
@@ -40,5 +39,4 @@
       )
       
       
-- [ ] episodes view
 - [ ] palette?? colors=E36E40-161B4B-D8C5C5-FFFFFF-000000
