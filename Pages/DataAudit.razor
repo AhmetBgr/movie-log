@@ -259,13 +259,16 @@
     {
         var issues = new List<string>();
 
+        bool isMovie = string.Equals(item.TitleType, "Movie", StringComparison.OrdinalIgnoreCase);
+
         if (IsMissing(item.Genres)) issues.Add("Missing Genre");
         if (IsMissing(item.Overview)) issues.Add("No Overview");
         if (IsMissing(item.PosterPath)) issues.Add("Missing Poster");
         if (item.TmdbId == null || item.TmdbId == 0) issues.Add("No TMDB ID");
-        if ((item.Runtime ?? 0) == 0) issues.Add("Missing Runtime");
         
-        bool isMovie = string.Equals(item.TitleType, "Movie", StringComparison.OrdinalIgnoreCase);
+        // TV shows often have variable episode runtimes, so we only flag missing runtime for movies
+        if (isMovie && (item.Runtime ?? 0) == 0) issues.Add("Missing Runtime");
+        
         if (isMovie && IsMissing(item.Director)) issues.Add("Missing Director");
 
         return issues;
