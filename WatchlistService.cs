@@ -1242,57 +1242,55 @@ public class WatchlistService
 
     private async Task BackgroundHydrationLoop()
     {
-        // Initial delay so the app can fully load before starting background work
-        await Task.Delay(5000);
+        await Task.Delay(5000); // Initial boot delay
         
         while (true)
         {
+            int nextDelay = 5000; // Idle delay
             try
             {
                 if (FetchPreference == DataFetchPreference.Background)
                 {
-                    var itemWithMissingData = Items
+                    var item = Items
                         .Where(i => NeedsHydration(i) && CanAttemptHydration(i.ImdbId))
                         .OrderByDescending(i => string.IsNullOrEmpty(i.Overview))
                         .FirstOrDefault();
 
-                    if (itemWithMissingData != null)
+                    if (item != null)
                     {
-                        _hydratingNow.Add(itemWithMissingData.ImdbId);
-
+                        nextDelay = 600; // Active work delay
+                        _hydratingNow.Add(item.ImdbId);
                         try
                         {
-                            var details = await GetTmdbEssentialsAsync(itemWithMissingData.ImdbId);
+                            var details = await GetTmdbEssentialsAsync(item.ImdbId);
                             if (details != null)
                             {
-                                var changed = await HydrateMissingMetadataAsync(itemWithMissingData, details);
-                                if (changed)
+                                if (await HydrateMissingMetadataAsync(item, details))
                                 {
-                                    _ = ShowToastAsync($"Synced: {itemWithMissingData.Title}", 2500);
-                                    // Remove from cache so the full detail view re-fetches fresh data next time
-                                    _movieCache.Remove(itemWithMissingData.ImdbId);
+                                    _ = ShowToastAsync($"Synced: {item.Title}", 2500);
+                                    _movieCache.Remove(item.ImdbId);
                                 }
                             }
 
-                            if (NeedsHydration(itemWithMissingData))
-                            {
-                                _hydrationRetryAfter[itemWithMissingData.ImdbId] = DateTimeOffset.UtcNow.Add(HydrationRetryCooldown);
-                            }
+                            if (NeedsHydration(item))
+                                _hydrationRetryAfter[item.ImdbId] = DateTimeOffset.UtcNow.Add(HydrationRetryCooldown);
                             else
                             {
-                                _hydratedThisSession.Add(itemWithMissingData.ImdbId);
-                                _hydrationRetryAfter.Remove(itemWithMissingData.ImdbId);
+                                _hydratedThisSession.Add(item.ImdbId);
+                                _hydrationRetryAfter.Remove(item.ImdbId);
                             }
                         }
-                        finally
-                        {
-                            _hydratingNow.Remove(itemWithMissingData.ImdbId);
-                        }
+                        finally { _hydratingNow.Remove(item.ImdbId); }
                     }
                 }
             }
-            catch { /* Ignore background errors */ }
-            await Task.Delay(10000);
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Sync Error: {ex.Message}");
+                nextDelay = 10000; // Back off on error
+            }
+
+            await Task.Delay(nextDelay);
         }
     }
 
