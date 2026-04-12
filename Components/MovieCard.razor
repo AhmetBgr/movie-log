@@ -60,7 +60,7 @@
                 <!-- Top Group: Poster and Data Column -->
                 <div class="d-flex">
                     <!-- Left Side: Poster -->
-                    <div class="position-relative p-0 m-0 poster-wrap" style="width: 96px; flex-shrink: 0;">
+                    <div class="position-relative p-0 m-0 poster-wrap" style="width: 80px; flex-shrink: 0;">
                         <div class="h-100 w-100 d-flex align-items-center justify-content-center p-0 m-0 poster-bg">
                             @if (!string.IsNullOrEmpty(Item.FullPosterUrl) && !Item.FullPosterUrl.Contains("data:image/png;base64"))
                             {
@@ -79,7 +79,7 @@
                     </div>
 
                     <!-- Right Side: Data Column (Vertical Stack) -->
-                    <div class="flex-grow-1 p-3 data-col">
+                    <div class="flex-grow-1 p-2 data-col">
                         <!-- Rating Badge -->
                         <!-- 
                         @if (Item.Rating20.HasValue)
@@ -93,7 +93,7 @@
                         -->
 
                         <!-- Row 1: Title -->
-                        <div class="mb-1">
+                        <div class="mb-0">
                             <div class="d-flex align-items-start gap-2">
                                 <h6 class="card-title fw-bold mb-0 movie-title">@Item.Title</h6>
                                 <OpenOnMenu Title="@Item.Title" Year="@Item.Year" ImdbId="@RealImdbId" FetchImdbIdAsync="FetchImdbIdOnDemand" />
@@ -107,7 +107,7 @@
                         </div>
 
                         <!-- Row 2: Release Year & Type -->
-                        <div class="mb-2">
+                        <div class="mb-1">
                             <div class="d-flex align-items-center gap-2">
                                 @if (!string.IsNullOrEmpty(Item.Year))
                                 {
@@ -356,7 +356,7 @@
         display: flex;
         flex-direction: column;
         gap: 6px;
-        padding: 6px 0;
+        padding: 4px 0;
         cursor: pointer;
         /*transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1), background 0.15s, border-width 0.3s;*/
         overflow: hidden;
@@ -393,14 +393,14 @@
 
     .poster-wrap {
         flex-shrink: 0 !important;
-        min-width: 96px !important;
-        width: 96px !important;
+        min-width: 80px !important;
+        width: 80px !important;
         border-radius: 0;
         overflow: hidden;
     }
     .poster-bg {
         background: #f0f0f0;
-        min-height: 130px;
+        min-height: 115px;
     }
     .rating-badge {
         display: inline-flex;
@@ -421,13 +421,13 @@
         border-left: 1px solid rgba(0,0,0,0.05);
     }
     .movie-title {
-        font-size: 0.92rem;
+        font-size: 0.7rem;
         color: #111;
         line-height: 1.35;
         letter-spacing: -0.01em;
     }
     .meta-text {
-        font-size: 0.73rem;
+        font-size: 0.62rem;
         color: #888;
         display: block;
     }
@@ -455,24 +455,24 @@
     }
 
     .overview-section {
-        padding: 10px 14px 12px;
+        padding: 6px 14px 8px;
         border-top: 1px solid rgba(0,0,0,0.05);
         background: #fafafa;
         border-radius: 0 0 10px 10px;
     }
     .overview-text {
-        font-size: 0.82rem;
+        font-size: 0.68rem;
         color: #555;
-        line-height: 1.55;
+        line-height: 1.45;
     }
 
     @@media (max-width: 768px) {
         .selection-panel.active { width: 36px; }
-        .poster-bg    { min-height: 130px; }
+        .poster-bg    { min-height: 100px; }
         .data-col     { padding: 8px !important; }
-        .movie-title  { font-size: 0.8rem !important; }
-        .meta-text    { font-size: 0.68rem !important; }
-        .rating-badge { min-width: 30px; height: 30px; font-size: 0.7rem; }
+        .movie-title  { font-size: 0.6rem !important; }
+        .meta-text    { font-size: 0.5rem !important; }
+        .rating-badge { min-width: 25px; height: 25px; font-size: 0.7rem; }
         .overview-section { padding: 7px 10px 9px; }
         .overview-text    { font-size: 0.75rem; }
         .genre-pill   { font-size: 0.6rem; padding: 1px 6px; }
