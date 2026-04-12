@@ -215,6 +215,139 @@
             </div>
         </div>
 
+        <!-- 6. Era Distribution (Decades) -->
+        <div class="col">
+            <div class="stat-card d-flex flex-column">
+                <div class="stat-card-title">
+                    <i class="bi bi-hourglass-split text-indigo" style="color: #6366f1;"></i> Era Distribution
+                </div>
+                <div class="flex-grow-1 d-flex flex-column justify-content-end">
+                    @{ var maxDecade = DecadeDistribution.Any() ? DecadeDistribution.Max(x => x.Value) : 0; }
+                    <div class="d-flex align-items-end justify-content-between pt-2" style="height: 140px;">
+                        @foreach(var d in DecadeDistribution)
+                        {
+                            var h = maxDecade > 0 ? (d.Value * 100 / maxDecade) : 0;
+                            <div class="d-flex flex-column align-items-center justify-content-end h-100" style="flex: 1;" title="@d.Key: @d.Value movies">
+                                <div class="text-muted mb-1 fw-bold" style="font-size: 0.7rem; height: 1.1rem;">@(d.Value > 0 ? d.Value.ToString() : "")</div>
+                                <div class="bg-indigo rounded-top" style="width: 70%; max-width: 28px; height: @(h)px; background-color: #6366f1; min-height: @(d.Value > 0 ? "4px" : "0px"); transition: height 0.5s ease; @(d.Value == 0 ? "display:none;" : "")"></div>
+                                <div class="mt-2 text-secondary text-center fw-bold" style="font-size: 0.75rem; height: 1.2rem;">@d.Key</div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 7. Top Rated Genres -->
+        <div class="col">
+            <div class="stat-card">
+                <div class="stat-card-title">
+                    <i class="bi bi-star-half text-warning"></i> Highest Rated Genres
+                </div>
+                @if (!GenreQuality.Any())
+                {
+                    <div class="text-muted fst-italic py-3">No rated genre data.</div>
+                }
+                else
+                {
+                    @foreach(var g in GenreQuality)
+                    {
+                        var hue = (g.Value / 100.0) * 120;
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="fw-semibold text-dark">@g.Key</span>
+                                <span class="fw-bold" style="color: hsl(@hue, 70%, 40%);">@g.Value.ToString("0.0")</span>
+                            </div>
+                            <div class="progress" style="height: 8px;">
+                                <div class="progress-bar" style="width: @g.Value%; background-color: hsl(@hue, 70%, 45%);"></div>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+
+        <!-- 8. Runtime Distribution -->
+        <div class="col">
+            <div class="stat-card d-flex flex-column">
+                <div class="stat-card-title">
+                    <i class="bi bi-clock-history text-primary"></i> Runtime Distribution
+                </div>
+                <div class="flex-grow-1 d-flex flex-column justify-content-end">
+                    @{ var maxRuntime = RuntimeDistribution.Any() ? RuntimeDistribution.Max(x => x.Value) : 0; }
+                    <div class="d-flex align-items-end justify-content-between pt-2" style="height: 140px;">
+                        @foreach(var r in RuntimeDistribution)
+                        {
+                            var h = maxRuntime > 0 ? (r.Value * 100 / maxRuntime) : 0;
+                            <div class="d-flex flex-column align-items-center justify-content-end h-100" style="flex: 1;" title="@r.Key: @r.Value movies">
+                                <div class="text-muted mb-1 fw-bold" style="font-size: 0.7rem; height: 1.1rem;">@(r.Value > 0 ? r.Value.ToString() : "")</div>
+                                <div class="bg-primary rounded-top" style="width: 70%; max-width: 28px; height: @(h)px; min-height: @(r.Value > 0 ? "4px" : "0px"); transition: height 0.5s ease; @(r.Value == 0 ? "display:none;" : "")"></div>
+                                <div class="mt-2 text-secondary text-center fw-bold" style="font-size: 0.7rem; height: 1.2rem; line-height: 1.1;">@r.Key.Replace(" ", "\n")</div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 9. Avg Rating by Decade -->
+        <div class="col">
+            <div class="stat-card d-flex flex-column">
+                <div class="stat-card-title">
+                    <i class="bi bi-graph-up-arrow text-success"></i> Ratings by Decade
+                </div>
+                <div class="flex-grow-1 d-flex flex-column justify-content-end">
+                    @{ var maxTrend = DecadeRatingTrend.Any() ? DecadeRatingTrend.Max(x => x.Value) : 0; }
+                    <div class="d-flex align-items-end justify-content-between pt-2" style="height: 140px;">
+                        @foreach(var d in DecadeRatingTrend)
+                        {
+                            var h = maxTrend > 0 ? (d.Value * 100 / 100) : 0; // Scale to 100
+                            var hue = (d.Value / 100.0) * 120;
+                            <div class="d-flex flex-column align-items-center justify-content-end h-100" style="flex: 1;" title="@d.Key: @d.Value.ToString("0.0") avg">
+                                <div class="fw-bold mb-1" style="font-size: 0.7rem; height: 1.1rem; color: hsl(@hue, 70%, 40%);">@d.Value.ToString("0.0")</div>
+                                <div class="rounded-top" style="width: 70%; max-width: 28px; height: @(d.Value)px; background-color: hsl(@hue, 70%, 45%); transition: height 0.5s ease;"></div>
+                                <div class="mt-2 text-secondary text-center fw-bold" style="font-size: 0.75rem; height: 1.2rem;">@d.Key</div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 10. Activity Heatmap -->
+        <div class="col-12">
+            <div class="stat-card">
+                <div class="stat-card-title">
+                    <i class="bi bi-calendar3 text-dark"></i> Activity Heatmap (Last 12 Months)
+                </div>
+                <div class="d-flex flex-wrap gap-1 mt-3" style="max-height: 140px; overflow-y: auto;">
+                    @foreach(var date in Enumerable.Range(0, 365).Select(i => DateTime.Today.AddDays(-364 + i)))
+                    {
+                        var count = ActivityHeatmap.GetValueOrDefault(date.Date);
+                        var color = count switch {
+                            0 => "#f3f4f6", // gray-100
+                            1 => "#dcfce7", // green-100
+                            2 => "#86efac", // green-300
+                            3 => "#22c55e", // green-500
+                            _ => "#15803d"  // green-700
+                        };
+                        <div style="width: 10px; height: 10px; background: @color; border-radius: 2px; flex-shrink: 0;" title="@date.ToShortDateString(): @count movies"></div>
+                    }
+                </div>
+                <div class="d-flex align-items-center gap-3 mt-3 small text-muted fw-semibold">
+                    <span>Less</span>
+                    <div class="d-flex gap-1">
+                        <div style="width: 10px; height: 10px; background: #f3f4f6; border-radius: 2px;"></div>
+                        <div style="width: 10px; height: 10px; background: #dcfce7; border-radius: 2px;"></div>
+                        <div style="width: 10px; height: 10px; background: #86efac; border-radius: 2px;"></div>
+                        <div style="width: 10px; height: 10px; background: #22c55e; border-radius: 2px;"></div>
+                        <div style="width: 10px; height: 10px; background: #15803d; border-radius: 2px;"></div>
+                    </div>
+                    <span>More</span>
+                </div>
+            </div>
+        </div>
+
     </div>
 </div>
 
@@ -224,7 +357,6 @@
     private int WatchingCount => Watchlist.Items.Count(i => i.Status == WatchlistStatus.Watching);
     private int WatchedCount => Watchlist.Items.Count(i => i.Status == WatchlistStatus.Watched);
     private int CollectionCount => Watchlist.Collections.Count;
-
     private int SelectedYear = DateTime.Now.Year;
     private int YearlyTotal = 0;
     private List<string> AvailableYears = new();
@@ -236,6 +368,11 @@
     private double AvgRating = 0;
     private int MostCommonRating = 0;
     private List<KeyValuePair<string, int>> RatingDistribution = new();
+    private List<KeyValuePair<string, int>> DecadeDistribution = new();
+    private List<KeyValuePair<string, double>> GenreQuality = new();
+    private List<KeyValuePair<string, int>> RuntimeDistribution = new();
+    private List<KeyValuePair<string, double>> DecadeRatingTrend = new();
+    private Dictionary<DateTime, int> ActivityHeatmap = new();
 
     protected override void OnInitialized()
     {
@@ -270,15 +407,28 @@
             .OrderByDescending(y => y)
             .ToList();
 
-        // --- 2. Top Watched Genres ---
-        TopGenres = watched
+        // --- 2. Top Watched Genres & ---
+        // --- 2b. Average Rating by Genre ---
+        var genreGroups = watched
             .Where(m => !string.IsNullOrWhiteSpace(m.Genres))
             .SelectMany(m => m.Genres.Split(','))
             .Select(g => g.Trim())
             .GroupBy(g => g)
+            .ToList();
+
+        TopGenres = genreGroups
             .OrderByDescending(g => g.Count())
             .Take(5)
             .Select(g => new KeyValuePair<string, int>(g.Key, g.Count()))
+            .ToList();
+
+        GenreQuality = watched
+            .Where(m => !string.IsNullOrWhiteSpace(m.Genres) && m.Rating20.HasValue)
+            .SelectMany(m => m.Genres.Split(',').Select(g => new { G = g.Trim(), R = m.Rating20!.Value }))
+            .GroupBy(x => x.G)
+            .OrderByDescending(g => g.Average(x => x.R))
+            .Take(5)
+            .Select(g => new KeyValuePair<string, double>(g.Key, g.Average(x => x.R)))
             .ToList();
 
         // --- 5. Most Watched Directors ---
@@ -311,7 +461,6 @@
             AvgRating = ratedMovies.Average(m => m.Rating20.Value);
             
             var distList = new List<KeyValuePair<string, int>>();
-            // Bucket by ranges: 1-10, 11-20, ... 91-100
             for (int i = 10; i <= 100; i += 10)
             {
                 int lower = i - 9;
@@ -326,10 +475,42 @@
         }
         else
         {
-            AvgRating = 0;
-            MostCommonRating = 0;
-            RatingDistribution = new();
+            AvgRating = 0; MostCommonRating = 0; RatingDistribution = new();
         }
+
+        // --- 6. Era Distribution (Decades) ---
+        DecadeDistribution = watched
+            .Where(m => m.ParsedYear > 0)
+            .GroupBy(m => (m.ParsedYear / 10 * 10).ToString() + "s")
+            .OrderBy(g => g.Key)
+            .Select(g => new KeyValuePair<string, int>(g.Key, g.Count()))
+            .ToList();
+
+        // --- 7. Decade Rating Trend ---
+        DecadeRatingTrend = watched
+            .Where(m => m.ParsedYear > 0 && m.Rating20.HasValue)
+            .GroupBy(m => (m.ParsedYear / 10 * 10).ToString() + "s")
+            .OrderBy(g => g.Key)
+            .Select(g => new KeyValuePair<string, double>(g.Key, g.Average(m => m.Rating20!.Value)))
+            .ToList();
+
+        // --- 8. Runtime Distribution ---
+        var runtimes = watched.Where(m => m.Runtime > 0).ToList();
+        RuntimeDistribution = new List<KeyValuePair<string, int>> {
+            new("< 90m", runtimes.Count(m => m.Runtime < 90)),
+            new("90-120m", runtimes.Count(m => m.Runtime >= 90 && m.Runtime <= 120)),
+            new("121-150m", runtimes.Count(m => m.Runtime > 120 && m.Runtime <= 150)),
+            new("150-180m", runtimes.Count(m => m.Runtime > 150 && m.Runtime <= 180)),
+            new("> 180m", runtimes.Count(m => m.Runtime > 180))
+        };
+
+        // --- 9. Activity Heatmap (Last 365 Days) ---
+        var today = DateTime.Today;
+        var startDate = today.AddDays(-364);
+        ActivityHeatmap = watched
+            .Where(m => m.DateAdded.Date >= startDate)
+            .GroupBy(m => m.DateAdded.Date)
+            .ToDictionary(g => g.Key, g => g.Count());
     }
 
     public void Dispose()
