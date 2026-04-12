@@ -669,6 +669,7 @@ public class WatchlistService
             {
                 var movie = response.MovieResults.First();
                 movie.ImdbId ??= imdbId;
+                movie.MediaType = "movie";
                 return movie;
             }
 
@@ -689,7 +690,8 @@ public class WatchlistService
                     Status = tv.Status,
                     VoteCount = tv.VoteCount,
                     Popularity = tv.Popularity,
-                    GenreList = tv.GenreList
+                    GenreList = tv.GenreList,
+                    MediaType = "tv"
                 };
             }
         }
@@ -788,6 +790,7 @@ public class WatchlistService
                         Console.WriteLine($"Details enrichment error for movie {tmdbId}: {ex.Message}");
                     }
                     _movieDetailsByIdCache[cacheKey] = movie;
+                    movie.MediaType = "movie";
                     return movie;
                 }
             }
@@ -811,7 +814,9 @@ public class WatchlistService
                         OriginalLanguage = tv.OriginalLanguage,
                         Status = tv.Status,
                         VoteCount = tv.VoteCount,
-                        Popularity = tv.Popularity
+                        Popularity = tv.Popularity,
+                        Seasons = tv.Seasons,
+                        MediaType = "tv"
                     };
 
                     try
@@ -891,6 +896,22 @@ public class WatchlistService
             Console.WriteLine($"API Error fetching TMDB ID {tmdbId}: {ex.Message}");
         }
         return null;
+    }
+
+    public async Task<List<TmdbEpisode>> GetTmdbEpisodesAsync(int tvId, int seasonNumber)
+    {
+        var apiKey = _config["TmdbApiKey"];
+        var url = $"https://api.themoviedb.org/3/tv/{tvId}/season/{seasonNumber}?api_key={apiKey}";
+        try
+        {
+            var res = await _http.GetFromJsonAsync<TmdbSeason>(url);
+            return res?.Episodes ?? new();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching episodes for TV {tvId} S{seasonNumber}: {ex.Message}");
+            return new();
+        }
     }
 
     public async Task<TmdbMovie?> GetTmdbDetailsByImdbIdAsync(string imdbId)

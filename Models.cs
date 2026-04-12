@@ -129,6 +129,12 @@ public class TmdbMovie
     [JsonPropertyName("genres")]
     public List<TmdbGenre> GenreList { get; set; } = new();
 
+    [JsonPropertyName("seasons")]
+    public List<TmdbSeason>? Seasons { get; set; }
+
+    [JsonPropertyName("media_type")]
+    public string? MediaType { get; set; } 
+
     public string FullPosterUrl => string.IsNullOrEmpty(PosterPath)
         ? "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" 
         : $"https://image.tmdb.org/t/p/w500{PosterPath}";
@@ -174,6 +180,74 @@ public class TmdbTvResult
 
     [JsonPropertyName("episode_run_time")]
     public List<int> EpisodeRunTime { get; set; } = new();
+
+    [JsonPropertyName("seasons")]
+    public List<TmdbSeason>? Seasons { get; set; }
+}
+
+public class TmdbSeason
+{
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+    
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = "";
+    
+    [JsonPropertyName("overview")]
+    public string? Overview { get; set; }
+    
+    [JsonPropertyName("poster_path")]
+    public string? PosterPath { get; set; }
+    
+    [JsonPropertyName("season_number")]
+    public int SeasonNumber { get; set; }
+    
+    [JsonPropertyName("episode_count")]
+    public int EpisodeCount { get; set; }
+    
+    [JsonPropertyName("air_date")]
+    public string? AirDate { get; set; }
+    
+    [JsonPropertyName("episodes")]
+    public List<TmdbEpisode>? Episodes { get; set; }
+
+    public string FullPosterUrl => string.IsNullOrEmpty(PosterPath)
+        ? "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" 
+        : $"https://image.tmdb.org/t/p/w185{PosterPath}";
+}
+
+public class TmdbEpisode
+{
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+    
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = "";
+    
+    [JsonPropertyName("overview")]
+    public string? Overview { get; set; }
+    
+    [JsonPropertyName("still_path")]
+    public string? StillPath { get; set; }
+    
+    [JsonPropertyName("season_number")]
+    public int SeasonNumber { get; set; }
+    
+    [JsonPropertyName("episode_number")]
+    public int EpisodeNumber { get; set; }
+    
+    [JsonPropertyName("air_date")]
+    public string? AirDate { get; set; }
+    
+    [JsonPropertyName("vote_average")]
+    public double VoteAverage { get; set; }
+    
+    [JsonPropertyName("runtime")]
+    public int? Runtime { get; set; }
+
+    public string FullStillUrl => string.IsNullOrEmpty(StillPath)
+        ? "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" 
+        : $"https://image.tmdb.org/t/p/w300{StillPath}";
 }
 
 // --- NEW TMDB CREDITS CLASSES ---
@@ -750,4 +824,36 @@ public class WikipediaPage
     public bool Missing { get; set; }
 }
 
+public class WikipediaParseResponse
+{
+    [JsonPropertyName("parse")]
+    public WikipediaParse? Parse { get; set; }
+}
 
+public class WikipediaParse
+{
+    [JsonPropertyName("title")]
+    public string? Title { get; set; }
+
+    [JsonPropertyName("text")]
+    public WikipediaText? Text { get; set; }
+}
+
+public class WikipediaText
+{
+    [JsonPropertyName("*")]
+    public string? Value { get; set; }
+}
+
+// Added missing models for search result compatibility
+public class TmdbSearchResult
+{
+    [JsonPropertyName("results")]
+    public List<TmdbSearchResultItem>? Results { get; set; }
+}
+
+public class TmdbExternalIds
+{
+    [JsonPropertyName("imdb_id")]
+    public string? ImdbId { get; set; }
+}

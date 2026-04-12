@@ -125,9 +125,11 @@
                                 <p class="overview-p">@movie.Overview</p>
                             </section>
 
+
+
                             @if (movie.BackdropPaths.Count > 1)
                             {
-                                <section class="details-section shadow-sm animate-in" style="animation-delay: 0.2s;">
+                                <section class="details-section shadow-sm animate-in" style="animation-delay: 0.3s;">
                                     <h3 class="section-heading mb-4"><i class="bi bi-images me-2 text-primary"></i> Gallery</h3>
                                     <div class="row g-3">
                                         @foreach (var path in movie.BackdropPaths.Skip(1).Take(12))
@@ -263,6 +265,88 @@
                             </section>
                         </div>
                     </div>
+
+                    @* Full Width Episodes Section *@
+                    @if (movie.MediaType == "tv" && movie.Seasons != null && movie.Seasons.Any())
+                    {
+                        <section class="details-section shadow-sm animate-in episodes-section-wide" style="animation-delay: 0.1s; margin-top: 20px;">
+                            <div class="d-flex flex-column gap-4">
+                                <div class="episodes-header-block d-flex justify-content-between align-items-center flex-wrap gap-3">
+                                    <h3 class="section-heading m-0"><i class="bi bi-collection-play me-2 text-primary"></i> Episodes</h3>
+                                    <div class="season-tabs-wrap">
+                                        <div class="season-tabs">
+                                            @foreach (var season in movie.Seasons.OrderBy(s => s.SeasonNumber))
+                                            {
+                                                <button class="season-tab-btn @(selectedSeasonNumber == season.SeasonNumber ? "active" : "")" 
+                                                        @onclick="() => SetSeason(season.SeasonNumber)">
+                                                    @(string.IsNullOrEmpty(season.Name) || season.Name.StartsWith("Season ") ? $"S{season.SeasonNumber}" : season.Name)
+                                                </button>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+
+                                @if (isLoadingEpisodes)
+                                {
+                                    <div class="episodes-loading text-center py-5">
+                                        <div class="spinner-ripple spinner-ripple-sm mx-auto mb-3"></div>
+                                        <p class="text-secondary small fw-bold">Syncing episode data...</p>
+                                    </div>
+                                }
+                                else if (episodes != null && episodes.Any())
+                                {
+                                    <div class="row row-cols-1 row-cols-md-2 g-3">
+                                        @foreach (var ep in episodes)
+                                        {
+                                            <div class="col">
+                                                <div class="episode-card h-100 p-3 rounded-4 bg-light-soft border-0 shadow-sm-hover transition-all">
+                                                    <div class="d-flex gap-3 h-100">
+                                                        <div class="episode-thumb-wrap flex-shrink-0">
+                                                            <div class="episode-thumb rounded-3 overflow-hidden shadow-sm">
+                                                                @if (!string.IsNullOrEmpty(ep.StillPath))
+                                                                {
+                                                                    <img src="@ep.FullStillUrl" alt="@ep.Name" class="w-100 h-100 object-fit-cover" />
+                                                                }
+                                                                else
+                                                                {
+                                                                    <div class="ep-placeholder d-flex align-items-center justify-content-center">
+                                                                        <i class="bi bi-play-circle text-white-50 fs-2"></i>
+                                                                    </div>
+                                                                }
+                                                                <div class="ep-number-tag">E@(ep.EpisodeNumber)</div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="episode-content flex-grow-1 d-flex flex-column min-width-0">
+                                                            <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+                                                                <h5 class="episode-title m-0">@ep.Name</h5>
+                                                                @if (ep.VoteAverage > 0)
+                                                                {
+                                                                    <div class="ep-rating-badge flex-shrink-0">
+                                                                        <i class="bi bi-star-fill text-warning me-1"></i>@ep.VoteAverage.ToString("0.0")
+                                                                    </div>
+                                                                }
+                                                            </div>
+                                                            <p class="episode-desc flex-grow-1 mb-2">@ep.Overview</p>
+                                                            <div class="episode-footer-meta d-flex gap-3 mt-auto">
+                                                                @if (!string.IsNullOrEmpty(ep.AirDate))
+                                                                {
+                                                                    <span class="ep-meta-item"><i class="bi bi-calendar2-event me-1"></i> @ep.AirDate</span>
+                                                                }
+                                                                @if (ep.Runtime.HasValue)
+                                                                {
+                                                                    <span class="ep-meta-item"><i class="bi bi-clock me-1"></i> @ep.Runtime min</span>
+                                                                }
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        </section>
+                    }
 
                     @* Full Width Wikipedia Section *@
                     @if (wikiSnippet != null)
@@ -845,6 +929,116 @@
         padding-top: 5px;
     }
 
+    /* Episodes Wide Styling */
+    .episodes-section-wide { 
+        padding: 20px !important; 
+        overflow: hidden; /* Prevent horizontal spill */
+    }
+    .bg-light-soft { background: #f8fafc; border: 1px solid #f1f5f9; }
+    .shadow-sm-hover:hover { 
+        box-shadow: 0 8px 15px rgba(0,0,0,0.04); 
+        transform: translateY(-1px); 
+        border-color: var(--movie-accent); 
+        background: #fff; 
+    }
+    .transition-all { transition: all 0.2s ease; }
+
+    .season-tabs-wrap {
+        max-width: 100%;
+        min-width: 0;
+    }
+    .season-tabs {
+        display: flex;
+        gap: 6px;
+        overflow-x: auto;
+        padding: 4px 0;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+    .season-tabs::-webkit-scrollbar { display: none; }
+    
+    .season-tab-btn {
+        white-space: nowrap;
+        padding: 4px 12px;
+        border-radius: 999px;
+        font-weight: 700;
+        font-size: 0.72rem;
+        background: #f1f5f9;
+        color: #64748b;
+        border: 1px solid #e2e8f0;
+        transition: all 0.2s;
+    }
+    .season-tab-btn:hover { background: #e2e8f0; color: #1e293b; }
+    .season-tab-btn.active {
+        background: var(--movie-accent);
+        color: #fff;
+        border-color: var(--movie-accent);
+        box-shadow: 0 4px 10px rgba(99, 102, 241, 0.25);
+    }
+
+    .episode-card { 
+        padding: 10px !important; 
+        display: flex;
+        flex-direction: row;
+        gap: 12px;
+    }
+    .episode-thumb-wrap { 
+        width: 100px; 
+        flex: 0 0 100px; 
+    }
+    .episode-thumb { 
+        width: 100px; 
+        height: 56px; 
+        position: relative; 
+        background: #1e293b;
+        border-radius: 6px;
+        overflow: hidden;
+    }
+    .ep-placeholder { width: 100%; height: 100%; background: #1e293b; }
+    .ep-number-tag {
+        position: absolute; top: 4px; left: 4px;
+        background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+        color: #fff; font-size: 0.5rem; font-weight: 900;
+        padding: 1px 4px; border-radius: 3px;
+    }
+    .episode-title { 
+        font-size: 0.85rem; 
+        font-weight: 800; 
+        color: #1e293b; 
+        margin-bottom: 2px !important;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        line-height: 1.2;
+    }
+    .episode-desc {
+        font-size: 0.75rem; 
+        color: #64748b; 
+        line-height: 1.4;
+        display: block;
+        margin-bottom: 8px !important;
+    }
+    .ep-rating-badge { font-size: 0.7rem; font-weight: 800; color: #334155; }
+    .ep-meta-item { font-size: 0.65rem; color: #94a3b8; font-weight: 700; display: flex; align-items: center; }
+
+    @@media (max-width: 768px) {
+        .episodes-section-wide { padding: 15px !important; }
+        .episode-card { gap: 10px; }
+        .episode-thumb-wrap { width: 80px; flex: 0 0 80px; }
+        .episode-thumb { width: 80px; height: 45px; }
+        .episode-title { font-size: 0.8rem; }
+    }
+
+    @@media (max-width: 576px) {
+        .episode-card { p: 10px !important; }
+        .episode-thumb-wrap { width: 70px; flex: 0 0 70px; }
+        .episode-thumb { width: 70px; height: 40px; }
+        .episode-title { font-size: 0.78rem; }
+        .ep-meta-item { font-size: 0.58rem; }
+        .episodes-header-block { flex-direction: column; align-items: flex-start !important; }
+    }
+
     @@media (max-width: 768px) {
         .wiki-html-content .infobox {
             float: none;
@@ -870,6 +1064,10 @@
     private bool isTrailerOpen = false;
     private string? selectedLightboxPath;
     private bool showSavedIndicator = false;
+
+    private List<TmdbEpisode>? episodes;
+    private int selectedSeasonNumber = 1;
+    private bool isLoadingEpisodes = false;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -912,7 +1110,44 @@
         finally
         {
             isEnhancingDetails = false;
+            if (movie?.MediaType == "tv" && movie.Seasons != null && movie.Seasons.Any())
+            {
+                selectedSeasonNumber = libItem?.CurrentSeason ?? movie.Seasons.OrderBy(s => s.SeasonNumber).FirstOrDefault()?.SeasonNumber ?? 1;
+                _ = LoadEpisodesAsync();
+            }
             await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task OnSeasonChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var s))
+        {
+            await SetSeason(s);
+        }
+    }
+
+    private async Task SetSeason(int s)
+    {
+        selectedSeasonNumber = s;
+        await LoadEpisodesAsync();
+    }
+
+    private async Task LoadEpisodesAsync()
+    {
+        if (movie == null || movie.MediaType != "tv") return;
+        
+        isLoadingEpisodes = true;
+        StateHasChanged();
+        
+        try
+        {
+            episodes = await WatchlistSvc.GetTmdbEpisodesAsync(movie.Id, selectedSeasonNumber);
+        }
+        finally
+        {
+            isLoadingEpisodes = false;
+            StateHasChanged();
         }
     }
 
