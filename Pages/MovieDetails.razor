@@ -101,23 +101,24 @@
             </div>
         </div>
 
-        <div class="container main-content pb-5">
+        <div class="container-fluid main-content pb-5">
             <div class="row justify-content-center">
-                <div class="col-lg-12 col-xl-11">
-                    <div class="split-layout">
-                        @if (isEnhancingDetails)
-                        {
-                            <section class="details-section shadow-sm animate-in details-loading-section split-span-2">
-                                <div class="details-loading-inline">
-                                    <div class="spinner-ripple spinner-ripple-sm"></div>
-                                    <div>
-                                        <h4 class="m-0">Loading full details</h4>
-                                        <p class="text-secondary m-0">Cast, gallery, certifications, and extra metadata are on the way.</p>
-                                    </div>
+                <div class="col-12">
+                    @if (isEnhancingDetails)
+                    {
+                        <div class="details-section shadow-sm animate-in details-loading-section">
+                            <div class="details-loading-inline">
+                                <div class="spinner-ripple spinner-ripple-sm"></div>
+                                <div>
+                                    <h4 class="m-0">Loading full details</h4>
+                                    <p class="text-secondary m-0">Cast, gallery, certifications, and extra metadata are on the way.</p>
                                 </div>
-                            </section>
-                        }
+                            </div>
+                        </div>
+                    }
 
+                    <div class="split-layout">
+                        @* Column 1: Overview & Gallery *@
                         <div class="split-column">
                             <section class="details-section shadow-sm animate-in">
                                 <h3 class="section-heading mb-3"><i class="bi bi-text-left me-2 text-primary"></i> Overview</h3>
@@ -141,38 +142,9 @@
                                     </div>
                                 </section>
                             }
-
-                            @if (wikiSnippet != null)
-                            {
-                                <section class="details-section shadow-sm animate-in" style="animation-delay: 0.3s;">
-                                    <div class="d-flex justify-content-between align-items-center mb-3">
-                                        <h3 class="section-heading m-0"><i class="bi bi-wikipedia me-2 text-primary"></i> Wikipedia</h3>
-                                        <a href="@wikiSnippet.ContentUrls?.Desktop?.Page" target="_blank" class="btn btn-sm btn-outline-secondary rounded-pill">Open Source</a>
-                                    </div>
-                                    <div class="wiki-content">
-                                        <div class="wiki-text wiki-html-content">
-                                            @((MarkupString)GetProcessedWikiExtract())
-                                        </div>
-                                    </div>
-                                </section>
-                            }
-
-                            @if (movie.Collection != null)
-                            {
-                                <div class="details-section shadow-sm collection-promo-wide clickable animate-in"
-                                     style="background-image: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.8)), url('https://image.tmdb.org/t/p/original@(movie.Collection.BackdropPath)')"
-                                     @onclick='() => NavManager.NavigateTo($"franchise/{movie.Collection.Id}")'>
-                                    <div class="d-flex justify-content-between align-items-end h-100" style="min-height: 140px;">
-                                        <div>
-                                            <span class="promo-badge">Part of Collection</span>
-                                            <h2 class="m-0 text-white fw-black">@movie.Collection.Name</h2>
-                                        </div>
-                                        <div class="text-white-50 fw-bold pb-1">View Franchise <i class="bi bi-arrow-right ms-2"></i></div>
-                                    </div>
-                                </div>
-                            }
                         </div>
 
+                        @* Column 2: Cast & Details *@
                         <div class="split-column">
                             <section class="details-section shadow-sm animate-in" style="animation-delay: 0.1s;">
                                 <h3 class="section-heading mb-4"><i class="bi bi-people me-2 text-primary"></i> Cast & Crew</h3>
@@ -289,34 +261,40 @@
                                     </div>
                                 }
                             </section>
-
-                            <section class="details-section shadow-sm animate-in" style="animation-delay: 0.4s;">
-                                <h3 class="section-heading mb-3"><i class="bi bi-chat-left-dots me-2 text-primary"></i> Subtitles</h3>
-                                @if (isSubsLoading)
-                                {
-                                    <div class="shimmer-box" style="height: 100px;"></div>
-                                }
-                                else if (subtitles != null && subtitles.Any())
-                                {
-                                    <div class="subs-list">
-                                        @foreach (var sub in subtitles.OrderByDescending(s => s.Attributes?.DownloadCount).Take(5))
-                                        {
-                                            <div class="sub-item">
-                                                <div class="sub-info">
-                                                    <span class="badge bg-secondary me-2">@sub.Attributes?.Language.ToUpper()</span>
-                                                    <span class="sub-release text-truncate">@sub.Attributes?.Release</span>
-                                                </div>
-                                                <div class="sub-stats">
-                                                    <small class="text-muted me-3"><i class="bi bi-download"></i> @sub.Attributes?.DownloadCount</small>
-                                                    <a href="@sub.Attributes?.Url" target="_blank" class="btn btn-xs btn-primary rounded-pill px-3">View</a>
-                                                </div>
-                                            </div>
-                                        }
-                                    </div>
-                                }
-                            </section>
                         </div>
                     </div>
+
+                    @* Full Width Wikipedia Section *@
+                    @if (wikiSnippet != null)
+                    {
+                        <section class="details-section shadow-sm animate-in" style="animation-delay: 0.3s; margin-top: 20px;">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h3 class="section-heading m-0"><i class="bi bi-wikipedia me-2 text-primary"></i> Wikipedia</h3>
+                                <a href="@wikiSnippet.ContentUrls?.Desktop?.Page" target="_blank" class="btn btn-sm btn-outline-secondary rounded-pill">Open Source</a>
+                            </div>
+                            <div class="wiki-content">
+                                <div class="wiki-text wiki-html-content">
+                                    @((MarkupString)GetProcessedWikiExtract())
+                                </div>
+                            </div>
+                        </section>
+                    }
+
+                    @* Full Width Collection Section *@
+                    @if (movie.Collection != null)
+                    {
+                        <div class="details-section shadow-sm collection-promo-wide clickable animate-in"
+                             style="background-image: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.8)), url('https://image.tmdb.org/t/p/original@(movie.Collection.BackdropPath)')"
+                             @onclick='() => NavManager.NavigateTo($"franchise/{movie.Collection.Id}")'>
+                            <div class="d-flex justify-content-between align-items-end h-100" style="min-height: 140px;">
+                                <div>
+                                    <span class="promo-badge">Part of Collection</span>
+                                    <h2 class="m-0 text-white fw-black">@movie.Collection.Name</h2>
+                                </div>
+                                <div class="text-white-50 fw-bold pb-1">View Franchise <i class="bi bi-arrow-right ms-2"></i></div>
+                            </div>
+                        </div>
+                    }
                 </div>
             </div>
         </div>
@@ -483,7 +461,9 @@
     .main-content {
         position: relative;
         z-index: 20;
-        max-width: min(1440px, 96vw);
+        max-width: 1200px;
+        width: 100%;
+        margin: 0 auto;
     }
     .split-layout {
         display: grid;
@@ -771,7 +751,6 @@
         color: #64748b;
         font-size: 0.94rem;
         line-height: 1.8;
-        max-width: 850px;
     }
     .wiki-html-content p {
         margin-bottom: 1.5rem;
@@ -810,6 +789,68 @@
     }
     .wiki-html-content li {
         margin-bottom: 0.5rem;
+    }
+
+    /* Wikipedia Infobox Mirroring */
+    .wiki-html-content .infobox {
+        float: right;
+        clear: right;
+        width: 300px;
+        margin: 0 0 1.5rem 1.5rem;
+        padding: 8px;
+        border: 1px solid #e2e8f0;
+        background: #f8fafc;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        line-height: 1.5;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+    }
+    .wiki-html-content .infobox th {
+        padding: 4px 10px 4px 0;
+        text-align: left;
+        color: #1e293b;
+        font-weight: 700;
+        vertical-align: top;
+        width: 35%;
+    }
+    .wiki-html-content .infobox td {
+        padding: 4px 0;
+        vertical-align: top;
+    }
+    .wiki-html-content .infobox .infobox-above {
+        font-size: 1rem;
+        font-weight: 900;
+        text-align: center;
+        padding: 10px 0;
+        background: #f1f5f9;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        color: #0f172a;
+    }
+    .wiki-html-content .infobox img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 6px;
+        margin: 5px 0;
+    }
+    .wiki-html-content .infobox-image {
+        text-align: center;
+        padding: 10px 0;
+    }
+    .wiki-html-content .infobox-caption {
+        font-size: 0.75rem;
+        color: #64748b;
+        text-align: center;
+        line-height: 1.3;
+        padding-top: 5px;
+    }
+
+    @@media (max-width: 768px) {
+        .wiki-html-content .infobox {
+            float: none;
+            width: 100%;
+            margin: 0 0 1.5rem 0;
+        }
     }
 </style>
 
