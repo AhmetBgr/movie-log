@@ -1561,36 +1561,41 @@ public class WatchlistService
         return null;
     }
 
-    public async Task<WikipediaSnippet?> GetWikipediaSnippetAsync(string title)
+    public async Task<WikipediaSnippet?> GetWikipediaSnippetAsync(string title, int? year = null)
     {
         try
         {
-            var escapedTitle = Uri.EscapeDataString(title);
-            // Use MediaWiki Action API for full intro extracts (or full page if exintro=0)
-            // We'll use exintro=0 to get more than just the first paragraph
-            var url = $"https://en.wikipedia.org/w/api.php?action=query&prop=extracts&exintro=0&explaintext=1&titles={escapedTitle}&format=json&origin=*&formatversion=2";
-            var result = await _http.GetFromJsonAsync<WikipediaApiResponse>(url);
-            
-            var page = result?.Query?.Pages?.FirstOrDefault();
-            if (page == null || string.IsNullOrWhiteSpace(page.Extract) || page.Missing)
-            {
-                // Try film fallback
-                url = $"https://en.wikipedia.org/w/api.php?action=query&prop=extracts&exintro=0&explaintext=1&titles={escapedTitle}_(film)&format=json&origin=*&formatversion=2";
-                result = await _http.GetFromJsonAsync<WikipediaApiResponse>(url);
-                page = result?.Query?.Pages?.FirstOrDefault();
-            }
+            string[] searchAttempts = year.HasValue 
+                ? new[] { $"{title} ({year} film)", $"{title} (film)", title }
+                : new[] { $"{title} (film)", title };
 
-            if (page != null && !string.IsNullOrWhiteSpace(page.Extract))
+            foreach (var query in searchAttempts)
             {
-                return new WikipediaSnippet { 
-                    Title = page.Title ?? title, 
-                    Extract = page.Extract,
-                    ContentUrls = new WikipediaUrls { 
-                        Desktop = new WikipediaDesktopUrls { 
-                            Page = $"https://en.wikipedia.org/wiki/{Uri.EscapeDataString(page.Title ?? title)}" 
-                        } 
+                var escapedQuery = Uri.EscapeDataString(query);
+                var url = $"https://en.wikipedia.org/w/api.php?action=query&prop=extracts&exintro=0&explaintext=1&titles={escapedQuery}&format=json&origin=*&formatversion=2";
+                var result = await _http.GetFromJsonAsync<WikipediaApiResponse>(url);
+                
+                var page = result?.Query?.Pages?.FirstOrDefault();
+                if (page != null && !page.Missing && !string.IsNullOrWhiteSpace(page.Extract))
+                {
+                    // Robust disambiguation check
+                    var isDisambiguation = page.Extract.Contains("most commonly refers to:", StringComparison.OrdinalIgnoreCase) || 
+                                          page.Extract.Contains("may refer to:", StringComparison.OrdinalIgnoreCase) ||
+                                          (page.Title?.Contains("(disambiguation)", StringComparison.OrdinalIgnoreCase) ?? false);
+                    
+                    if (!isDisambiguation)
+                    {
+                        return new WikipediaSnippet { 
+                            Title = page.Title ?? query, 
+                            Extract = page.Extract,
+                            ContentUrls = new WikipediaUrls { 
+                                Desktop = new WikipediaDesktopUrls { 
+                                    Page = $"https://en.wikipedia.org/wiki/{Uri.EscapeDataString(page.Title ?? query)}" 
+                                } 
+                            }
+                        };
                     }
-                };
+                }
             }
             return null;
         }

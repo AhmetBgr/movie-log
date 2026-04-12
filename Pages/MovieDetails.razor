@@ -150,8 +150,15 @@
                                         <a href="@wikiSnippet.ContentUrls?.Desktop?.Page" target="_blank" class="btn btn-sm btn-outline-secondary rounded-pill">Open Source</a>
                                     </div>
                                     <div class="wiki-content">
-                                        <div class="wiki-text" style="white-space: pre-wrap; line-height: 1.8; color: #475569; font-size: 1.05rem;">
-                                            @wikiSnippet.Extract
+                                        <div class="wiki-text" style="color: #64748b; font-size: 0.94rem; line-height: 1.8; max-width: 750px;">
+                                            @if (!string.IsNullOrWhiteSpace(wikiSnippet?.Extract))
+                                            {
+                                                @foreach (var paragraph in wikiSnippet.Extract.Split(new[] { "\n", "\r\n" }, StringSplitOptions.RemoveEmptyEntries))
+                                                {
+                                                    if (paragraph.Trim().Length < 3) continue;
+                                                    <p class="mb-4">@paragraph.Trim()</p>
+                                                }
+                                            }
                                         </div>
                                     </div>
                                 </section>
@@ -405,26 +412,24 @@
     .movie-title { font-size: clamp(2.2rem, 6vw, 3.8rem); letter-spacing: -2px; line-height: 1; }
     
     .genre-tag-small {
-        background: rgba(255,255,255,0.08);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255,255,255,0.1);
+        background: rgba(255,255,255,0.15);
+        border: 1px solid rgba(255,255,255,0.2);
         padding: 3px 12px;
         border-radius: 999px;
         font-size: 0.75rem;
         font-weight: 700;
         letter-spacing: 0.3px;
-        color: rgba(255,255,255,0.8);
+        color: rgba(255,255,255,0.9);
     }
 
     .rating-badge-glass {
         display: flex;
         align-items: center;
         gap: 8px;
-        background: rgba(255,255,255,0.08);
-        backdrop-filter: blur(12px);
+        background: rgba(255,255,255,0.12);
         padding: 4px 12px;
         border-radius: 999px;
-        border: 1px solid rgba(255,255,255,0.15);
+        border: 1px solid rgba(255,255,255,0.2);
         box-shadow: 0 4px 15px rgba(0,0,0,0.2);
     }
     .rating-badge-glass span { font-weight: 800; font-size: 1rem; color: #fff; }
@@ -472,8 +477,7 @@
     }
 
     .btn-glass {
-        background: rgba(255,255,255,0.1);
-        backdrop-filter: blur(10px);
+        background: rgba(255,255,255,0.15);
         border: 1px solid rgba(255,255,255,0.2);
         color: #fff;
     }
@@ -504,13 +508,12 @@
         grid-column: 1 / -1;
     }
     .details-section {
-        background: rgba(255, 255, 255, 0.78);
-        backdrop-filter: blur(14px);
+        background: #ffffff;
         border-radius: 18px;
         padding: 18px 20px;
         margin-bottom: 18px;
-        border: 1px solid rgba(255, 255, 255, 0.7);
-        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.05);
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
     }
     .section-heading {
         font-weight: 900;
@@ -839,7 +842,12 @@
     {
         if (movie == null) return;
         isWikiLoading = true;
-        wikiSnippet = await WatchlistSvc.GetWikipediaSnippetAsync(movie.Title);
+        
+        int? movieYear = null;
+        if (movie.ReleaseDate?.Length >= 4 && int.TryParse(movie.ReleaseDate[..4], out var y))
+            movieYear = y;
+
+        wikiSnippet = await WatchlistSvc.GetWikipediaSnippetAsync(movie.Title, movieYear);
         isWikiLoading = false;
         StateHasChanged();
     }
