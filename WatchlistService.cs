@@ -611,6 +611,35 @@ public class WatchlistService
         NotifyStateChanged();
     }
 
+    public async Task<bool> HydrateItemAsync(WatchlistItem item)
+    {
+        if (string.IsNullOrEmpty(item.ImdbId)) return false;
+
+        var tmdb = await GetTmdbDetailsAsync(item.ImdbId);
+        if (tmdb == null) return false;
+
+        item.Title = tmdb.Title;
+        item.Year = tmdb.ReleaseDate?.Length >= 4 ? tmdb.ReleaseDate[..4] : item.Year;
+        item.Genres = string.Join(", ", tmdb.GenreList?.Select(g => g.Name) ?? Enumerable.Empty<string>());
+        
+        if (!string.IsNullOrWhiteSpace(tmdb.Overview)) item.Overview = tmdb.Overview;
+        if (!string.IsNullOrWhiteSpace(tmdb.PosterPath)) item.PosterPath = tmdb.PosterPath;
+        
+        item.TmdbId = tmdb.Id;
+        item.Runtime = tmdb.Runtime ?? item.Runtime;
+        item.VoteAverage = tmdb.VoteAverage;
+
+        if (tmdb.Credits?.Crew != null)
+        {
+            var director = tmdb.Credits.Crew.FirstOrDefault(c => c.Job == "Director");
+            if (director != null) item.Director = director.Name;
+        }
+
+        ScheduleSave();
+        NotifyStateChanged();
+        return true;
+    }
+
     public async Task<TmdbMovie?> GetTmdbDetailsAsync(string imdbId)
     {
         if (_movieCache.TryGetValue(imdbId, out var cachedMovie))

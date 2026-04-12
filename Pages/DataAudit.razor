@@ -21,9 +21,26 @@
                 </div>
             </div>
             <div class="col-md-4 text-md-end mt-3 mt-md-0">
-                <div class="stat-card shadow-sm">
-                    <div class="stat-val">@auditItems.Count</div>
-                    <div class="stat-label">Items with Issues</div>
+                <div class="d-flex flex-column align-items-md-end gap-2">
+                    <div class="stat-card shadow-sm w-100 w-md-auto">
+                        <div class="stat-val">@auditItems.Count</div>
+                        <div class="stat-label">Items with Issues</div>
+                    </div>
+                    @if (auditItems.Any())
+                    {
+                        <button class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm w-100 w-md-auto" 
+                                @onclick="FixAllAsync" disabled="@isFixingAll">
+                            @if (isFixingAll)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                @($"Fixing ({fixProgress}/{auditItems.Count})")
+                            }
+                            else
+                            {
+                                <i class="bi bi-magic me-2"></i> @("Fix All Issues")
+                            }
+                        </button>
+                    }
                 </div>
             </div>
         </div>
@@ -63,9 +80,16 @@
                                             </div>
                                         </div>
                                         <div class="btn-group-audit">
-                                            <button class="btn btn-sm btn-outline-primary rounded-pill px-3" @onclick='() => NavManager.NavigateTo($"movie/{audit.Item.ImdbId}")'>
-                                                Fix <i class="bi bi-wrench-adjustable ms-1"></i>
-                                            </button>
+                                            @if (fixingIds.Contains(audit.Item.ImdbId))
+                                            {
+                                                <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                                            }
+                                            else
+                                            {
+                                                <button class="btn btn-sm btn-outline-primary rounded-pill px-3" @onclick="() => FixItemAsync(audit)">
+                                                    Fix <i class="bi bi-wrench-adjustable ms-1"></i>
+                                                </button>
+                                            }
                                         </div>
                                     </div>
                                     
@@ -157,6 +181,9 @@
 
 @code {
     private List<AuditRecord> auditItems = new();
+    private bool isFixingAll = false;
+    private int fixProgress = 0;
+    private HashSet<string> fixingIds = new();
 
     protected override void OnInitialized()
     {
@@ -169,6 +196,56 @@
             .Select(item => new AuditRecord { Item = item, Issues = GetIssues(item) })
             .Where(a => a.Issues.Any())
             .ToList();
+    }
+
+    private async Task FixItemAsync(AuditRecord audit)
+    {
+        if (fixingIds.Contains(audit.Item.ImdbId)) return;
+        
+        fixingIds.Add(audit.Item.ImdbId);
+        StateHasChanged();
+
+        await WatchlistSvc.HydrateItemAsync(audit.Item);
+        
+        fixingIds.Remove(audit.Item.ImdbId);
+        PerformAudit();
+        StateHasChanged();
+    }
+
+    private async Task FixAllAsync()
+    {
+        if (isFixingAll) return;
+        
+        isFixingAll = true;
+        fixProgress = 0;
+        StateHasChanged();
+
+        // Work on a copy of the list since PerformAudit will change the original list
+        var itemsToFix = auditItems.ToList();
+
+        foreach (var audit in itemsToFix)
+        {
+            fixProgress++;
+            fixingIds.Add(audit.Item.ImdbId);
+            StateHasChanged();
+
+            await WatchlistSvc.HydrateItemAsync(audit.Item);
+            
+            fixingIds.Remove(audit.Item.ImdbId);
+            
+            // TMDB Rate Limit Friendly Delay (approx 3.3 requests per second)
+            await Task.Delay(300);
+            
+            if (fixProgress % 5 == 0)
+            {
+                PerformAudit();
+                StateHasChanged();
+            }
+        }
+
+        isFixingAll = false;
+        PerformAudit();
+        StateHasChanged();
     }
 
     private bool IsMissing(string? value)
