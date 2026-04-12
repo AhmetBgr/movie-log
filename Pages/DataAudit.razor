@@ -1,0 +1,195 @@
+@page "/audit"
+@using MyPrivateWatchlist.Models
+@inject MyPrivateWatchlist.Services.WatchlistService WatchlistSvc
+@inject NavigationManager NavManager
+
+<PageTitle>Data Audit - Movie Log</PageTitle>
+
+<div class="audit-page py-5">
+    <div class="container">
+        <!-- Header -->
+        <div class="row align-items-center mb-5">
+            <div class="col-md-8">
+                <div class="d-flex align-items-center gap-3 mb-2">
+                    <div class="audit-icon-wrap shadow-sm">
+                        <i class="bi bi-clipboard2-pulse-fill text-primary"></i>
+                    </div>
+                    <div>
+                        <h1 class="fw-black m-0 mb-1">Library Health Audit</h1>
+                        <p class="text-secondary mb-0">Scan your library for missing metadata and data inconsistencies.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                <div class="stat-card shadow-sm">
+                    <div class="stat-val">@auditItems.Count</div>
+                    <div class="stat-label">Items with Issues</div>
+                </div>
+            </div>
+        </div>
+
+        @if (!auditItems.Any())
+        {
+            <div class="empty-state text-center py-5 animate-in">
+                <div class="success-glow mb-4">
+                    <i class="bi bi-shield-check text-success display-1"></i>
+                </div>
+                <h3 class="fw-black">Your library is spotless!</h3>
+                <p class="text-secondary">Excellent! All movies and series in your collection have complete metadata.</p>
+                <button class="btn btn-primary rounded-pill px-4 mt-3" @onclick='() => NavManager.NavigateTo("library")'>Back to library</button>
+            </div>
+        }
+        else
+        {
+            <div class="audit-grid">
+                @foreach (var audit in auditItems)
+                {
+                    <div class="audit-row animate-in" style="animation-delay: @(auditItems.IndexOf(audit) * 0.05)s">
+                        <div class="audit-item-card shadow-sm rounded-4 overflow-hidden mb-3 bg-white border">
+                            <div class="row g-0">
+                                <div class="col-auto">
+                                    <div class="audit-poster-wrap clickable" @onclick='() => NavManager.NavigateTo($"movie/{audit.Item.ImdbId}")'>
+                                        <img src="@audit.Item.FullPosterUrl" alt="Poster" />
+                                        <div class="poster-overlay-info"><i class="bi bi-eye"></i></div>
+                                    </div>
+                                </div>
+                                <div class="col p-3 d-flex flex-column justify-content-center">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <div class="min-width-0">
+                                            <h5 class="fw-bold m-0 text-truncate">@audit.Item.Title</h5>
+                                            <div class="d-flex align-items-center gap-2 mt-1">
+                                                <span class="badge bg-light text-dark fw-bold border small py-1">@audit.Item.Year</span>
+                                                <span class="badge bg-primary-soft text-primary fw-bold small py-1">@audit.Item.TitleType</span>
+                                            </div>
+                                        </div>
+                                        <div class="btn-group-audit">
+                                            <button class="btn btn-sm btn-outline-primary rounded-pill px-3" @onclick='() => NavManager.NavigateTo($"movie/{audit.Item.ImdbId}")'>
+                                                Fix <i class="bi bi-wrench-adjustable ms-1"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="issue-chips d-flex flex-wrap gap-2">
+                                        @foreach (var issue in audit.Issues)
+                                        {
+                                            <div class="issue-pill">
+                                                <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                                                @issue
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+    .audit-page { background: #f8fafc; min-height: 100vh; }
+    .fw-black { font-weight: 900; }
+    
+    .audit-icon-wrap {
+        width: 56px; height: 56px; 
+        background: #fff; border-radius: 16px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.8rem;
+    }
+
+    .stat-card {
+        background: #fff; padding: 12px 24px; border-radius: 20px;
+        display: inline-block; border: 1px solid #e2e8f0;
+    }
+    .stat-val { font-size: 1.8rem; font-weight: 900; color: #ef4444; line-height: 1; }
+    .stat-label { font-size: 0.72rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin-top: 4px; }
+
+    .audit-item-card { transition: all 0.2s ease; border-color: #f1f5f9 !important; }
+    .audit-item-card:hover { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(15, 23, 42, 0.05) !important; border-color: #e2e8f0 !important; }
+
+    .audit-poster-wrap { width: 70px; height: 105px; position: relative; overflow: hidden; }
+    .audit-poster-wrap img { width: 100%; height: 100%; object-fit: cover; }
+    .poster-overlay-info { 
+        position: absolute; inset: 0; background: rgba(0,0,0,0.4); 
+        color: #fff; display: flex; align-items: center; justify-content: center;
+        opacity: 0; transition: opacity 0.2s;
+    }
+    .audit-poster-wrap:hover .poster-overlay-info { opacity: 1; }
+
+    .issue-pill {
+        background: rgba(239, 68, 68, 0.08);
+        border: 1px solid rgba(239, 68, 68, 0.2);
+        color: #dc2626;
+        padding: 4px 12px;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+    }
+
+    .bg-primary-soft { background-color: rgba(99, 102, 241, 0.1); }
+
+    .animate-in {
+        animation: slideUp 0.4s ease-out forwards;
+        opacity: 0;
+    }
+
+    @@keyframes slideUp {
+        from { opacity: 0; transform: translateY(15px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .success-glow {
+        display: inline-block;
+        position: relative;
+    }
+    .success-glow::after {
+        content: '';
+        position: absolute;
+        inset: -20px;
+        background: radial-gradient(circle, rgba(16, 185, 129, 0.2) 0%, transparent 70%);
+        z-index: -1;
+    }
+</style>
+
+@code {
+    private List<AuditRecord> auditItems = new();
+
+    protected override void OnInitialized()
+    {
+        PerformAudit();
+    }
+
+    private void PerformAudit()
+    {
+        auditItems = WatchlistSvc.Items
+            .Select(item => new AuditRecord { Item = item, Issues = GetIssues(item) })
+            .Where(a => a.Issues.Any())
+            .ToList();
+    }
+
+    private List<string> GetIssues(WatchlistItem item)
+    {
+        var issues = new List<string>();
+
+        if (string.IsNullOrWhiteSpace(item.Genres)) issues.Add("Missing Genre");
+        if (string.IsNullOrWhiteSpace(item.Overview)) issues.Add("No Overview");
+        if (string.IsNullOrWhiteSpace(item.PosterPath)) issues.Add("Missing Poster");
+        if (item.TmdbId == null || item.TmdbId == 0) issues.Add("No TMDB ID");
+        if ((item.Runtime ?? 0) == 0) issues.Add("Missing Runtime");
+        
+        bool isMovie = string.Equals(item.TitleType, "Movie", StringComparison.OrdinalIgnoreCase);
+        if (isMovie && string.IsNullOrWhiteSpace(item.Director)) issues.Add("Missing Director");
+
+        return issues;
+    }
+
+    private class AuditRecord
+    {
+        public WatchlistItem Item { get; set; } = null!;
+        public List<string> Issues { get; set; } = new();
+    }
+}

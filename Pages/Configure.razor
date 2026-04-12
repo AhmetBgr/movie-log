@@ -7,6 +7,7 @@
 @inject MyPrivateWatchlist.Services.GistSyncService GistSync
 @inject MyPrivateWatchlist.Services.AutoSyncService AutoSync
 @inject MyPrivateWatchlist.Services.OpenOnLinkService OpenOnLinks
+@inject NavigationManager NavManager
 @inject IJSRuntime JS
 @implements IDisposable
 
@@ -97,6 +98,26 @@
                             <i class="bi bi-trash3 me-2"></i> Clear History Now
                         </button>
                     }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Advanced Tools -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-12">
+            <div class="card shadow-sm border-0 rounded-3" style="background: linear-gradient(90deg, #f8faff 0%, #ffffff 100%);">
+                <div class="card-body p-4 d-flex align-items-center flex-wrap gap-4">
+                    <div class="bg-primary bg-opacity-10 text-primary p-3 rounded-circle shadow-sm">
+                         <i class="bi bi-clipboard2-pulse-fill fs-3"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h5 class="fw-bold mb-1 text-dark">Data Integrity & Health Audit</h5>
+                        <p class="text-secondary small mb-0">Identify items in your library with missing genres, overviews, runtimes, or posters.</p>
+                    </div>
+                    <button class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm" @onclick='() => NavManager.NavigateTo("audit")'>
+                        Run Health Audit
+                    </button>
                 </div>
             </div>
         </div>
