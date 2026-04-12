@@ -1582,13 +1582,27 @@ public class WatchlistService
         return null;
     }
 
-    public async Task<WikipediaSnippet?> GetWikipediaSnippetAsync(string title, int? year = null)
+    public async Task<WikipediaSnippet?> GetWikipediaSnippetAsync(string title, int? year = null, string? mediaType = "movie")
     {
         try
         {
-            string[] searchAttempts = year.HasValue 
-                ? new[] { $"{title} ({year} film)", $"{title} (film)", title }
-                : new[] { $"{title} (film)", title };
+            var suffixes = mediaType == "tv" 
+                ? new[] { "TV series", "TV show", "series" } 
+                : new[] { "film", "movie" };
+
+            var attemptsList = new List<string>();
+            if (year.HasValue)
+            {
+                foreach (var s in suffixes) attemptsList.Add($"{title} ({year} {s})");
+                foreach (var s in suffixes) attemptsList.Add($"{title} ({s})");
+            }
+            else
+            {
+                foreach (var s in suffixes) attemptsList.Add($"{title} ({s})");
+            }
+            attemptsList.Add(title);
+
+            string[] searchAttempts = attemptsList.ToArray();
 
             foreach (var query in searchAttempts)
             {

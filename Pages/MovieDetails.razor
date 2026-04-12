@@ -1154,7 +1154,7 @@
         if (movie.ReleaseDate?.Length >= 4 && int.TryParse(movie.ReleaseDate[..4], out var y))
             movieYear = y;
 
-        wikiSnippet = await WatchlistSvc.GetWikipediaSnippetAsync(movie.Title, movieYear);
+        wikiSnippet = await WatchlistSvc.GetWikipediaSnippetAsync(movie.Title, movieYear, movie.MediaType);
         isWikiLoading = false;
         StateHasChanged();
     }
