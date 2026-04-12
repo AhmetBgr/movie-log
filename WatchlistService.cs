@@ -1458,7 +1458,9 @@ public class WatchlistService
                 Title = searchItem.DisplayTitle,
                 OriginalTitle = searchItem.DisplayOriginalTitle,
                 Year = searchItem.DisplayDate,
-                TitleType = searchItem.MediaType == "movie" ? "Movie" : "TV Series"
+                TitleType = searchItem.MediaType == "tv" 
+                    ? "TV Series" 
+                    : (searchItem.MediaType == "movie" && searchItem.GenreIds?.Contains(10770) == true ? "TV Movie" : "Movie")
             };
             
             SelectedItem = tempItem;
