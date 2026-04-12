@@ -78,19 +78,31 @@
         <!-- 3. Watched Movies Per Month -->
         <div class="col">
             <div class="stat-card d-flex flex-column">
-                <div class="stat-card-title">
-                    <i class="bi bi-bar-chart-fill text-success"></i> Watched Per Month
+                <div class="stat-card-title d-flex justify-content-between align-items-center">
+                    <div><i class="bi bi-bar-chart-fill text-success"></i> Watched In @SelectedYear</div>
+                    <div class="d-flex align-items-center gap-2">
+                        @if (AvailableYears.Count > 1)
+                        {
+                            <select class="form-select form-select-sm border-0 bg-light fw-bold" style="width: auto; cursor: pointer;" @onchange="OnYearChanged">
+                                @foreach (var y in AvailableYears)
+                                {
+                                    <option value="@y" selected="@(y == SelectedYear.ToString())">@y</option>
+                                }
+                            </select>
+                        }
+                        <div class="badge bg-success bg-opacity-10 text-success rounded-pill px-3 py-2 fw-bolder" style="font-size: 0.9rem;">@YearlyTotal</div>
+                    </div>
                 </div>
                 <div class="flex-grow-1 d-flex flex-column justify-content-end">
                     @{ var maxMonth = MoviesPerMonth.Any() ? MoviesPerMonth.Max(x => x.Value) : 0; }
-                    <div class="d-flex align-items-end justify-content-between pt-3" style="height: 180px;">
+                    <div class="d-flex align-items-end justify-content-between pt-3" style="height: 200px;">
                         @foreach(var m in MoviesPerMonth)
                         {
                             var h = maxMonth > 0 ? (m.Value * 140 / maxMonth) : 0;
-                            <div class="d-flex flex-column align-items-center" style="flex: 1;">
-                                <div class="text-muted mb-1 fw-bold" style="font-size: 0.75rem;">@(m.Value > 0 ? m.Value.ToString() : "")</div>
-                                <div class="bg-success rounded-top" style="width: 60%; max-width: 24px; height: @(h)px; min-height: 4px; transition: height 0.5s ease;"></div>
-                                <div class="mt-2 text-secondary fw-semibold" style="font-size: 0.7rem; writing-mode: vertical-rl; transform: rotate(180deg);">@m.Key</div>
+                            <div class="d-flex flex-column align-items-center justify-content-end h-100" style="flex: 1;">
+                                <div class="text-muted mb-1 fw-bold" style="font-size: 0.75rem; height: 1.2rem;">@(m.Value > 0 ? m.Value.ToString() : "")</div>
+                                <div class="bg-success rounded-top" style="width: 60%; max-width: 24px; height: @(h)px; min-height: @(m.Value > 0 ? "4px" : "0px"); transition: height 0.5s ease; @(m.Value == 0 ? "display:none;" : "")"></div>
+                                <div class="mt-2 text-secondary fw-semibold" style="font-size: 0.65rem; height: 40px; display: flex; align-items: center; justify-content: center; writing-mode: vertical-rl; transform: rotate(180deg);">@m.Key</div>
                             </div>
                         }
                     </div>
@@ -106,26 +118,36 @@
                 </div>
                 
                 <div class="row mb-4">
+                    @{
+                        var avgHue = (AvgRating / 100.0) * 120;
+                        var mostCommonHue = (MostCommonRating / 100.0) * 120;
+                    }
                     <div class="col-6 text-center border-end">
-                        <div class="fs-2 fw-bold text-warning">@(AvgRating > 0 ? AvgRating.ToString("0.0") : "—")</div>
+                        <div class="fs-2 fw-bold" style="color: hsl(@avgHue, 70%, 45%);">@(AvgRating > 0 ? AvgRating.ToString("0.0") : "—")</div>
                         <div class="small text-muted text-uppercase fw-semibold" style="letter-spacing: 0.5px;">Avg Rating</div>
                     </div>
                     <div class="col-6 text-center">
-                        <div class="fs-2 fw-bold text-success">@(MostCommonRating > 0 ? MostCommonRating.ToString() : "—")</div>
+                        <div class="fs-2 fw-bold" style="color: hsl(@mostCommonHue, 70%, 45%);">@(MostCommonRating > 0 ? MostCommonRating.ToString() : "—")</div>
                         <div class="small text-muted text-uppercase fw-semibold" style="letter-spacing: 0.5px;">Most Common</div>
                     </div>
                 </div>
 
                 <div class="flex-grow-1 d-flex flex-column justify-content-end">
                     @{ var maxRating = RatingDistribution.Any() ? RatingDistribution.Max(x => x.Value) : 0; }
-                    <div class="d-flex align-items-end justify-content-between pt-2" style="height: 120px;">
+                    <div class="d-flex align-items-end justify-content-between pt-2" style="height: 140px;">
                         @foreach(var r in RatingDistribution)
                         {
                             var h = maxRating > 0 ? (r.Value * 90 / maxRating) : 0;
-                            <div class="d-flex flex-column align-items-center" style="flex: 1;" title="@r.Key: @r.Value movies">
-                                <div class="text-muted mb-1 fw-bold" style="font-size: 0.7rem;">@(r.Value > 0 ? r.Value.ToString() : "")</div>
-                                <div class="bg-warning rounded-top" style="width: 70%; max-width: 28px; height: @(h)px; min-height: 4px;"></div>
-                                <div class="mt-2 small fw-bold text-secondary" style="font-size: 0.75rem;">@r.Key</div>
+                            // Extract upper bound for color calculation (e.g. "71-80" -> 80)
+                            int upper = 0;
+                            if (int.TryParse(r.Key.Split('-').LastOrDefault(), out var val)) upper = val;
+                            var hue = (upper / 100.0) * 120;
+                            var color = $"hsl({hue}, 70%, 40%)";
+                            
+                            <div class="d-flex flex-column align-items-center justify-content-end h-100" style="flex: 1;" title="@r.Key: @r.Value movies">
+                                <div class="text-muted mb-1 fw-bold" style="font-size: 0.65rem; height: 1.1rem; white-space: nowrap;">@(r.Value > 0 ? r.Value.ToString() : "")</div>
+                                <div class="rounded-top" style="width: 70%; max-width: 28px; height: @(h)px; min-height: @(r.Value > 0 ? "4px" : "0px"); background-color: @color; transition: height 0.5s ease; @(r.Value == 0 ? "display:none;" : "")"></div>
+                                <div class="mt-2 text-secondary text-center fw-bold" style="font-size: 0.6rem; height: 1.2rem; line-height: 1.1;">@r.Key.Replace("-", "-\n")</div>
                             </div>
                         }
                     </div>
@@ -203,13 +225,17 @@
     private int WatchedCount => Watchlist.Items.Count(i => i.Status == WatchlistStatus.Watched);
     private int CollectionCount => Watchlist.Collections.Count;
 
+    private int SelectedYear = DateTime.Now.Year;
+    private int YearlyTotal = 0;
+    private List<string> AvailableYears = new();
+
     private List<KeyValuePair<string, int>> TopGenres = new();
     private List<KeyValuePair<string, int>> TopDirectors = new();
     private List<KeyValuePair<string, int>> MoviesPerMonth = new();
     
     private double AvgRating = 0;
     private int MostCommonRating = 0;
-    private List<KeyValuePair<int, int>> RatingDistribution = new();
+    private List<KeyValuePair<string, int>> RatingDistribution = new();
 
     protected override void OnInitialized()
     {
@@ -223,10 +249,27 @@
         InvokeAsync(StateHasChanged);
     }
 
+    private void OnYearChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var year))
+        {
+            SelectedYear = year;
+            CalculateStats();
+        }
+    }
+
     private void CalculateStats()
     {
         var watched = Watchlist.WatchedItems.ToList();
         
+        // --- 0. Metadata for Select ---
+        AvailableYears = watched
+            .Select(m => m.DateAdded.Year.ToString())
+            .Append(DateTime.Now.Year.ToString())
+            .Distinct()
+            .OrderByDescending(y => y)
+            .ToList();
+
         // --- 2. Top Watched Genres ---
         TopGenres = watched
             .Where(m => !string.IsNullOrWhiteSpace(m.Genres))
@@ -249,15 +292,16 @@
             .Select(g => new KeyValuePair<string, int>(g.Key, g.Count()))
             .ToList();
 
-        // --- 3. Watched Movies Per Month (Last 12 Months) ---
-        var last12Months = Enumerable.Range(0, 12)
-            .Select(i => DateTime.Now.AddMonths(-11 + i))
-            .ToList();
-            
-        MoviesPerMonth = last12Months.Select(d => 
+        // --- 3. Watched Movies Per Month (Selected Year) ---
+        var monthsInYear = Enumerable.Range(1, 12).ToList();
+        var yearData = watched.Where(m => m.DateAdded.Year == SelectedYear).ToList();
+        YearlyTotal = yearData.Count;
+
+        MoviesPerMonth = monthsInYear.Select(m => 
         {
-            int count = watched.Count(m => m.DateAdded.Year == d.Year && m.DateAdded.Month == d.Month);
-            return new KeyValuePair<string, int>(d.ToString("MMM"), count);
+            int count = yearData.Count(x => x.DateAdded.Month == m);
+            var monthName = new DateTime(SelectedYear, m, 1).ToString("MMM");
+            return new KeyValuePair<string, int>(monthName, count);
         }).ToList();
 
         // --- 4. Rating Distribution ---
@@ -266,17 +310,17 @@
         {
             AvgRating = ratedMovies.Average(m => m.Rating20.Value);
             
-            // Assuming ratings are up to 100, we bucket by 10s (10, 20, 30 ... 100)
-            var distList = new List<KeyValuePair<int, int>>();
+            var distList = new List<KeyValuePair<string, int>>();
+            // Bucket by ranges: 1-10, 11-20, ... 91-100
             for (int i = 10; i <= 100; i += 10)
             {
-                int count = ratedMovies.Count(m => m.Rating20 > i - 10 && m.Rating20 <= i);
-                distList.Add(new KeyValuePair<int, int>(i, count));
+                int lower = i - 9;
+                int upper = i;
+                int count = ratedMovies.Count(m => m.Rating20 >= lower && m.Rating20 <= upper);
+                distList.Add(new KeyValuePair<string, int>($"{lower}-{upper}", count));
             }
             RatingDistribution = distList;
 
-            // Most common specific rating (or most common bucket)
-            // Let's use the actual most common exact rating they gave
             var exactCounts = ratedMovies.GroupBy(m => m.Rating20.Value).OrderByDescending(g => g.Count());
             MostCommonRating = exactCounts.First().Key;
         }
