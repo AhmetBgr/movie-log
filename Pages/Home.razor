@@ -1,159 +1,198 @@
 @page "/"
 @inject WatchlistService Watchlist
 
-<PageTitle>Dashboard</PageTitle>
+<PageTitle>Library Statistics</PageTitle>
 
 <div class="container py-4" style="padding-left: 4.5px; padding-right: 4.5px;">
     <style>
         @@media (max-width: 768px) {
             .container {
-                padding-left: 2px !important;
-                padding-right: 2px !important;
+                padding-left: 8px !important;
+                padding-right: 8px !important;
             }
         }
+        .stat-card {
+            background: #fff;
+            border-radius: 12px;
+            border: 1px solid #e8eaed;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+            padding: 20px;
+            height: 100%;
+        }
+        .stat-card-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+        .stat-card-title i {
+            margin-right: 8px;
+            color: #6366f1;
+        }
     </style>
-    <div class="mb-5 pb-3 border-bottom">
-        <h1 class="mb-1 fw-bolder text-dark">Home</h1>
+    
+    <div class="mb-4 pb-3 border-bottom">
+        <h1 class="mb-1 fw-bolder text-dark">Statistics</h1>
+        <p class="text-muted mb-0">Insights and graphs about your library.</p>
     </div>
 
-    <!-- Stats Dashboard -->
-    <div class="row g-4 mb-5">
-        <div class="col-md-4">
-            <a href="library/watchlist" class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden bg-white text-decoration-none text-dark hover-lift transition-all d-block cursor-pointer">
-                <div class="card-body p-4">
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="bg-primary bg-opacity-10 text-primary d-inline-flex align-items-center justify-content-center rounded-3 me-3 flex-shrink-0" style="width: 56px; height: 56px;">
-                            <i class="bi bi-archive fs-3"></i>
-                        </div>
-                        <div>
-                            <h6 class="text-secondary small fw-bold text-uppercase mb-1">Watchlist</h6>
-                            <h2 class="fw-bolder mb-0">@WatchlistCount</h2>
-                        </div>
-                    </div>
-                    <div class="progress" style="height: 6px; opacity: 0.1;">
-                        <div class="progress-bar bg-primary" style="width: 100%"></div>
-                    </div>
+    <div class="row row-cols-1 row-cols-lg-2 g-4 mb-5">
+        
+        <!-- 1. Status Distribution -->
+        <div class="col">
+            <div class="stat-card">
+                <div class="stat-card-title">
+                    <i class="bi bi-pie-chart-fill text-primary"></i> Status Distribution
                 </div>
-            </a>
-        </div>
-
-        <div class="col-md-4">
-            <a href="library/watching" class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden bg-white text-decoration-none text-dark hover-lift transition-all d-block cursor-pointer">
-                <div class="card-body p-4">
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="bg-success bg-opacity-10 text-success d-inline-flex align-items-center justify-content-center rounded-3 me-3 flex-shrink-0" style="width: 56px; height: 56px;">
-                            <i class="bi bi-play-circle fs-3"></i>
-                        </div>
-                        <div>
-                            <h6 class="text-secondary small fw-bold text-uppercase mb-1">Paused / Watching</h6>
-                            <h2 class="fw-bolder mb-0">@WatchingCount</h2>
+                <div class="row row-cols-2 g-3 mt-2">
+                    <div class="col">
+                        <div class="p-3 bg-indigo bg-opacity-10 rounded-3 text-center h-100 d-flex flex-column justify-content-center">
+                            <div class="fs-2 fw-bold" style="color: #6366f1;">@WatchedCount</div>
+                            <div class="small text-muted text-uppercase fw-semibold mt-1">Watched</div>
                         </div>
                     </div>
-                    <div class="progress" style="height: 6px; opacity: 0.1;">
-                        <div class="progress-bar bg-success" style="width: @(TotalCount > 0 ? (WatchingCount * 100 / TotalCount) : 0)%"></div>
-                    </div>
-                </div>
-            </a>
-        </div>
-
-        <div class="col-md-4">
-            <a href="library/watched" class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden bg-white text-decoration-none text-dark hover-lift transition-all d-block cursor-pointer">
-                <div class="card-body p-4">
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="bg-indigo bg-opacity-10 text-indigo d-inline-flex align-items-center justify-content-center rounded-3 me-3 flex-shrink-0" style="width: 56px; height: 56px; color: #6366f1;">
-                            <i class="bi bi-check2-circle fs-3" style="color: #6366f1;"></i>
-                        </div>
-                        <div>
-                            <h6 class="text-secondary small fw-bold text-uppercase mb-1">Completed</h6>
-                            <h2 class="fw-bolder mb-0">@WatchedCount</h2>
+                    <div class="col">
+                        <div class="p-3 bg-primary bg-opacity-10 rounded-3 text-center h-100 d-flex flex-column justify-content-center">
+                            <div class="fs-2 fw-bold text-primary">@WatchlistCount</div>
+                            <div class="small text-muted text-uppercase fw-semibold mt-1">Watchlist</div>
                         </div>
                     </div>
-                    <div class="progress" style="height: 6px; opacity: 0.1;">
-                        <div class="progress-bar bg-indigo" style="width: @(TotalCount > 0 ? (WatchedCount * 100 / TotalCount) : 0)%; background-color: #6366f1;"></div>
-                    </div>
-                </div>
-            </a>
-        </div>
-    </div>
-
-    <!-- Features Highlight -->
-    <div class="mb-5 mt-5 pt-3 border-top">
-        <h3 class="fw-bold text-dark mb-4 d-flex align-items-center">
-            <i class="bi bi-stars text-warning me-3 fs-4"></i> Features
-        </h3>
-        <div class="row g-4">
-            <!-- Feature 1 -->
-            <div class="col-md-4">
-                <div class="card border-0 shadow-sm rounded-4 h-100 bg-white hover-lift transition-all">
-                    <div class="card-body p-4 text-center">
-                        <div class="bg-primary bg-opacity-10 text-primary d-inline-flex align-items-center justify-content-center rounded-3 mb-4" style="width: 50px; height: 50px;">
-                            <i class="bi bi-search fs-4"></i>
+                    <div class="col">
+                        <div class="p-3 bg-success bg-opacity-10 rounded-3 text-center h-100 d-flex flex-column justify-content-center">
+                            <div class="fs-2 fw-bold text-success">@WatchingCount</div>
+                            <div class="small text-muted text-uppercase fw-semibold mt-1">Watching</div>
                         </div>
-                        <h5 class="fw-bold text-dark mb-2">Global Movie Search</h5>
                     </div>
-                </div>
-            </div>
-            
-            <!-- Feature 2 -->
-            <div class="col-md-4">
-                <div class="card border-0 shadow-sm rounded-4 h-100 bg-white hover-lift transition-all">
-                    <div class="card-body p-4 text-center">
-                        <div class="bg-success bg-opacity-10 text-success d-inline-flex align-items-center justify-content-center rounded-3 mb-4" style="width: 50px; height: 50px;">
-                            <i class="bi bi-tv fs-4"></i>
+                    <div class="col">
+                        <div class="p-3 bg-warning bg-opacity-10 rounded-3 text-center h-100 d-flex flex-column justify-content-center">
+                            <div class="fs-2 fw-bold text-warning">@CollectionCount</div>
+                            <div class="small text-muted text-uppercase fw-semibold mt-1">Collections</div>
                         </div>
-                        <h5 class="fw-bold text-dark mb-2">TV Show Tracking</h5>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Feature 3 -->
-            <div class="col-md-4">
-                <div class="card border-0 shadow-sm rounded-4 h-100 bg-white hover-lift transition-all">
-                    <div class="card-body p-4 text-center">
-                        <div class="bg-danger bg-opacity-10 text-danger d-inline-flex align-items-center justify-content-center rounded-3 mb-4" style="width: 50px; height: 50px;">
-                            <i class="bi bi-dice-5 fs-4"></i>
-                        </div>
-                        <h5 class="fw-bold text-dark mb-2">Random Movie Picker</h5>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Feature 4 -->
-            <div class="col-md-4">
-                <div class="card border-0 shadow-sm rounded-4 h-100 bg-white hover-lift transition-all">
-                    <div class="card-body p-4 text-center">
-                        <div class="bg-info bg-opacity-10 text-info d-inline-flex align-items-center justify-content-center rounded-3 mb-4" style="width: 50px; height: 50px;">
-                            <i class="bi bi-funnel fs-4"></i>
-                        </div>
-                        <h5 class="fw-bold text-dark mb-2">Filters</h5>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Feature 5 -->
-            <div class="col-md-4">
-                <div class="card border-0 shadow-sm rounded-4 h-100 bg-white hover-lift transition-all">
-                    <div class="card-body p-4 text-center">
-                        <div class="bg-warning bg-opacity-10 text-warning d-inline-flex align-items-center justify-content-center rounded-3 mb-4" style="width: 50px; height: 50px;">
-                            <i class="bi bi-star-fill fs-4"></i>
-                        </div>
-                        <h5 class="fw-bold text-dark mb-2">Custom Ratings</h5>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Feature 6 -->
-            <div class="col-md-4">
-                <div class="card border-0 shadow-sm rounded-4 h-100 bg-white hover-lift transition-all">
-                    <div class="card-body p-4 text-center">
-                        <div class="bg-dark bg-opacity-10 text-dark d-inline-flex align-items-center justify-content-center rounded-3 mb-4" style="width: 50px; height: 50px;">
-                            <i class="bi bi-shield-lock-fill fs-4"></i>
-                        </div>
-                        <h5 class="fw-bold text-dark mb-2">Local Library</h5>
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- 3. Watched Movies Per Month -->
+        <div class="col">
+            <div class="stat-card d-flex flex-column">
+                <div class="stat-card-title">
+                    <i class="bi bi-bar-chart-fill text-success"></i> Watched Per Month
+                </div>
+                <div class="flex-grow-1 d-flex flex-column justify-content-end">
+                    @{ var maxMonth = MoviesPerMonth.Any() ? MoviesPerMonth.Max(x => x.Value) : 0; }
+                    <div class="d-flex align-items-end justify-content-between pt-3" style="height: 180px;">
+                        @foreach(var m in MoviesPerMonth)
+                        {
+                            var h = maxMonth > 0 ? (m.Value * 140 / maxMonth) : 0;
+                            <div class="d-flex flex-column align-items-center" style="flex: 1;">
+                                <div class="text-muted mb-1 fw-bold" style="font-size: 0.75rem;">@(m.Value > 0 ? m.Value.ToString() : "")</div>
+                                <div class="bg-success rounded-top" style="width: 60%; max-width: 24px; height: @(h)px; min-height: 4px; transition: height 0.5s ease;"></div>
+                                <div class="mt-2 text-secondary fw-semibold" style="font-size: 0.7rem; writing-mode: vertical-rl; transform: rotate(180deg);">@m.Key</div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Rating Distribution -->
+        <div class="col">
+            <div class="stat-card d-flex flex-column">
+                <div class="stat-card-title">
+                    <i class="bi bi-star-fill text-warning"></i> Rating Distribution
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-6 text-center border-end">
+                        <div class="fs-2 fw-bold text-warning">@(AvgRating > 0 ? AvgRating.ToString("0.0") : "—")</div>
+                        <div class="small text-muted text-uppercase fw-semibold" style="letter-spacing: 0.5px;">Avg Rating</div>
+                    </div>
+                    <div class="col-6 text-center">
+                        <div class="fs-2 fw-bold text-success">@(MostCommonRating > 0 ? MostCommonRating.ToString() : "—")</div>
+                        <div class="small text-muted text-uppercase fw-semibold" style="letter-spacing: 0.5px;">Most Common</div>
+                    </div>
+                </div>
+
+                <div class="flex-grow-1 d-flex flex-column justify-content-end">
+                    @{ var maxRating = RatingDistribution.Any() ? RatingDistribution.Max(x => x.Value) : 0; }
+                    <div class="d-flex align-items-end justify-content-between pt-2" style="height: 120px;">
+                        @foreach(var r in RatingDistribution)
+                        {
+                            var h = maxRating > 0 ? (r.Value * 90 / maxRating) : 0;
+                            <div class="d-flex flex-column align-items-center" style="flex: 1;" title="@r.Key: @r.Value movies">
+                                <div class="text-muted mb-1 fw-bold" style="font-size: 0.7rem;">@(r.Value > 0 ? r.Value.ToString() : "")</div>
+                                <div class="bg-warning rounded-top" style="width: 70%; max-width: 28px; height: @(h)px; min-height: 4px;"></div>
+                                <div class="mt-2 small fw-bold text-secondary" style="font-size: 0.75rem;">@r.Key</div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 2. Top Watched Genres -->
+        <div class="col">
+            <div class="stat-card">
+                <div class="stat-card-title">
+                    <i class="bi bi-tags-fill text-danger"></i> Top Watched Genres
+                </div>
+                @if (!TopGenres.Any())
+                {
+                    <div class="text-muted fst-italic py-3">No genre data available.</div>
+                }
+                else
+                {
+                    var maxGenre = TopGenres.First().Value;
+                    @foreach(var g in TopGenres)
+                    {
+                        var pct = maxGenre > 0 ? (g.Value * 100 / maxGenre) : 0;
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="fw-semibold text-dark">@g.Key</span>
+                                <span class="fw-bold text-secondary">@g.Value <span class="fw-normal text-muted small" style="font-size: 0.75em;">movies</span></span>
+                            </div>
+                            <div class="progress" style="height: 8px;">
+                                <div class="progress-bar bg-danger" style="width: @pct%"></div>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+
+        <!-- 5. Most Watched Directors -->
+        <div class="col">
+            <div class="stat-card">
+                <div class="stat-card-title">
+                    <i class="bi bi-person-video2 text-info"></i> Most Watched Directors
+                </div>
+                @if (!TopDirectors.Any())
+                {
+                    <div class="text-muted fst-italic py-3">No director data available.</div>
+                }
+                else
+                {
+                    var maxDir = TopDirectors.First().Value;
+                    @foreach(var d in TopDirectors)
+                    {
+                        var pct = maxDir > 0 ? (d.Value * 100 / maxDir) : 0;
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="fw-semibold text-dark">@d.Key</span>
+                                <span class="fw-bold text-secondary">@d.Value <span class="fw-normal text-muted small" style="font-size: 0.75em;">movies</span></span>
+                            </div>
+                            <div class="progress" style="height: 8px;">
+                                <div class="progress-bar bg-info" style="width: @pct%"></div>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+
     </div>
 </div>
 
@@ -162,14 +201,95 @@
     private int WatchlistCount => Watchlist.Items.Count(i => i.Status == WatchlistStatus.Pending);
     private int WatchingCount => Watchlist.Items.Count(i => i.Status == WatchlistStatus.Watching);
     private int WatchedCount => Watchlist.Items.Count(i => i.Status == WatchlistStatus.Watched);
+    private int CollectionCount => Watchlist.Collections.Count;
+
+    private List<KeyValuePair<string, int>> TopGenres = new();
+    private List<KeyValuePair<string, int>> TopDirectors = new();
+    private List<KeyValuePair<string, int>> MoviesPerMonth = new();
+    
+    private double AvgRating = 0;
+    private int MostCommonRating = 0;
+    private List<KeyValuePair<int, int>> RatingDistribution = new();
 
     protected override void OnInitialized()
     {
-        Watchlist.OnStateChanged += StateHasChanged;
+        Watchlist.OnStateChanged += HandleStateChanged;
+        CalculateStats();
+    }
+
+    private void HandleStateChanged()
+    {
+        CalculateStats();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void CalculateStats()
+    {
+        var watched = Watchlist.WatchedItems.ToList();
+        
+        // --- 2. Top Watched Genres ---
+        TopGenres = watched
+            .Where(m => !string.IsNullOrWhiteSpace(m.Genres))
+            .SelectMany(m => m.Genres.Split(','))
+            .Select(g => g.Trim())
+            .GroupBy(g => g)
+            .OrderByDescending(g => g.Count())
+            .Take(5)
+            .Select(g => new KeyValuePair<string, int>(g.Key, g.Count()))
+            .ToList();
+
+        // --- 5. Most Watched Directors ---
+        TopDirectors = watched
+            .Where(m => !string.IsNullOrWhiteSpace(m.Director))
+            .SelectMany(m => m.Director.Split(','))
+            .Select(d => d.Trim())
+            .GroupBy(d => d)
+            .OrderByDescending(g => g.Count())
+            .Take(5)
+            .Select(g => new KeyValuePair<string, int>(g.Key, g.Count()))
+            .ToList();
+
+        // --- 3. Watched Movies Per Month (Last 12 Months) ---
+        var last12Months = Enumerable.Range(0, 12)
+            .Select(i => DateTime.Now.AddMonths(-11 + i))
+            .ToList();
+            
+        MoviesPerMonth = last12Months.Select(d => 
+        {
+            int count = watched.Count(m => m.DateAdded.Year == d.Year && m.DateAdded.Month == d.Month);
+            return new KeyValuePair<string, int>(d.ToString("MMM"), count);
+        }).ToList();
+
+        // --- 4. Rating Distribution ---
+        var ratedMovies = watched.Where(m => m.Rating20.HasValue).ToList();
+        if (ratedMovies.Any())
+        {
+            AvgRating = ratedMovies.Average(m => m.Rating20.Value);
+            
+            // Assuming ratings are up to 100, we bucket by 10s (10, 20, 30 ... 100)
+            var distList = new List<KeyValuePair<int, int>>();
+            for (int i = 10; i <= 100; i += 10)
+            {
+                int count = ratedMovies.Count(m => m.Rating20 > i - 10 && m.Rating20 <= i);
+                distList.Add(new KeyValuePair<int, int>(i, count));
+            }
+            RatingDistribution = distList;
+
+            // Most common specific rating (or most common bucket)
+            // Let's use the actual most common exact rating they gave
+            var exactCounts = ratedMovies.GroupBy(m => m.Rating20.Value).OrderByDescending(g => g.Count());
+            MostCommonRating = exactCounts.First().Key;
+        }
+        else
+        {
+            AvgRating = 0;
+            MostCommonRating = 0;
+            RatingDistribution = new();
+        }
     }
 
     public void Dispose()
     {
-        Watchlist.OnStateChanged -= StateHasChanged;
+        Watchlist.OnStateChanged -= HandleStateChanged;
     }
 }
