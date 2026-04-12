@@ -62,8 +62,11 @@
                     }
                     <span class="entry-title">
                         <span class="fw-bold me-1">@item.Title</span>
-                        @(!string.IsNullOrEmpty(item.Year) ? $"({item.Year})" : "")
+                        @(item.ParsedYear > 0 ? $"({item.ParsedYear})" : (!string.IsNullOrEmpty(item.Year) && item.Year.Length >= 4 ? $"({item.Year[..4]})" : (!string.IsNullOrEmpty(item.Year) ? $"({item.Year})" : "")))
                     </span>
+                    <div class="ms-1 d-flex align-items-center flex-shrink-0" @onclick:stopPropagation="true">
+                        <OpenOnMenu Item="item" ButtonClass="table-open-on" />
+                    </div>
                     <span class="entry-dots"></span>
                     @{
                         // If ShowUserRatingOnly, only show rating if it is a real user rating (not TMDB avg)
@@ -217,14 +220,17 @@
         align-items: center; 
         padding: 4px 6px; 
         cursor: pointer; 
-        transition: background 0.1s, transform 0.1s;
+        position: relative;
+        left: 0;
+        transition: background 0.1s, left 0.1s;
         border-radius: 6px;
         margin-bottom: 1px;
         min-width: 0; 
     }
-    .watched-entry:hover { 
+    .watched-entry:hover,
+    .watched-entry:has(details[open]) { 
         background: rgba(0,0,0,0.03);
-        transform: translateX(4px);
+        left: 4px;
     }
     .entry-title { 
         font-size: 0.88rem; 
@@ -233,6 +239,17 @@
         overflow: hidden; 
         text-overflow: ellipsis; 
         flex-shrink: 1;
+    }
+    .table-open-on {
+        width: 22px !important;
+        height: 22px !important;
+        font-size: 0.8rem !important;
+        opacity: 0.3;
+        transition: opacity 0.15s, background 0.15s;
+    }
+    .watched-entry:hover .table-open-on,
+    .open-on-menu[open] .table-open-on {
+        opacity: 1;
     }
     .entry-dots { 
         flex: 1; 
@@ -349,6 +366,6 @@
             text-align: center;
         }
         .watched-summary { white-space: normal; }
-        .watched-entry:hover { transform: none; background: rgba(0,0,0,0.04); }
+        .watched-entry:hover { left: 0; background: rgba(0,0,0,0.04); }
     }
 </style>
