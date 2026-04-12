@@ -171,18 +171,25 @@
             .ToList();
     }
 
+    private bool IsMissing(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return true;
+        var lowered = value.Trim().ToLowerInvariant();
+        return lowered == "unknown" || lowered == "n/a" || lowered == "none" || lowered == "-" || lowered == "tba";
+    }
+
     private List<string> GetIssues(WatchlistItem item)
     {
         var issues = new List<string>();
 
-        if (string.IsNullOrWhiteSpace(item.Genres)) issues.Add("Missing Genre");
-        if (string.IsNullOrWhiteSpace(item.Overview)) issues.Add("No Overview");
-        if (string.IsNullOrWhiteSpace(item.PosterPath)) issues.Add("Missing Poster");
+        if (IsMissing(item.Genres)) issues.Add("Missing Genre");
+        if (IsMissing(item.Overview)) issues.Add("No Overview");
+        if (IsMissing(item.PosterPath)) issues.Add("Missing Poster");
         if (item.TmdbId == null || item.TmdbId == 0) issues.Add("No TMDB ID");
         if ((item.Runtime ?? 0) == 0) issues.Add("Missing Runtime");
         
         bool isMovie = string.Equals(item.TitleType, "Movie", StringComparison.OrdinalIgnoreCase);
-        if (isMovie && string.IsNullOrWhiteSpace(item.Director)) issues.Add("Missing Director");
+        if (isMovie && IsMissing(item.Director)) issues.Add("Missing Director");
 
         return issues;
     }
