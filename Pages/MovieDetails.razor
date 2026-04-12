@@ -150,15 +150,8 @@
                                         <a href="@wikiSnippet.ContentUrls?.Desktop?.Page" target="_blank" class="btn btn-sm btn-outline-secondary rounded-pill">Open Source</a>
                                     </div>
                                     <div class="wiki-content">
-                                        <div class="wiki-text" style="color: #64748b; font-size: 0.94rem; line-height: 1.8; max-width: 750px;">
-                                            @if (!string.IsNullOrWhiteSpace(wikiSnippet?.Extract))
-                                            {
-                                                @foreach (var paragraph in wikiSnippet.Extract.Split(new[] { "\n", "\r\n" }, StringSplitOptions.RemoveEmptyEntries))
-                                                {
-                                                    if (paragraph.Trim().Length < 3) continue;
-                                                    <p class="mb-4">@paragraph.Trim()</p>
-                                                }
-                                            }
+                                        <div class="wiki-text wiki-html-content">
+                                            @((MarkupString)GetProcessedWikiExtract())
                                         </div>
                                     </div>
                                 </section>
@@ -774,6 +767,50 @@
         .person-compact-card span { font-size: 0.7rem; }
         .group-label { margin-bottom: 8px; font-size: 0.6rem; }
     }
+    .wiki-html-content {
+        color: #64748b;
+        font-size: 0.94rem;
+        line-height: 1.8;
+        max-width: 850px;
+    }
+    .wiki-html-content p {
+        margin-bottom: 1.5rem;
+    }
+    .wiki-html-content a {
+        color: #2563eb;
+        text-decoration: none;
+        font-weight: 500;
+        border-bottom: 1px solid rgba(37, 99, 235, 0.2);
+        transition: all 0.2s;
+    }
+    .wiki-html-content a:hover {
+        color: #1d4ed8;
+        border-bottom-color: #1d4ed8;
+        background: rgba(37, 99, 235, 0.05);
+    }
+    .wiki-html-content h2 {
+        font-size: 1.25rem;
+        font-weight: 900;
+        color: #1e293b;
+        margin-top: 2rem;
+        margin-bottom: 1rem;
+        border-bottom: 1px solid #e2e8f0;
+        padding-bottom: 0.5rem;
+    }
+    .wiki-html-content h3 {
+        font-size: 1.1rem;
+        font-weight: 800;
+        color: #334155;
+        margin-top: 1.5rem;
+        margin-bottom: 0.75rem;
+    }
+    .wiki-html-content ul, .wiki-html-content ol {
+        margin-bottom: 1.5rem;
+        padding-left: 1.5rem;
+    }
+    .wiki-html-content li {
+        margin-bottom: 0.5rem;
+    }
 </style>
 
 @code {
@@ -918,5 +955,24 @@
         {
             await WatchlistSvc.ShowDetailsAsync(libItem);
         }
+    }
+
+    private string GetProcessedWikiExtract()
+    {
+        if (string.IsNullOrWhiteSpace(wikiSnippet?.Extract)) return "";
+        
+        var html = wikiSnippet.Extract;
+
+        // Convert internal Wikipedia relative links to absolute external links
+        html = html.Replace("href=\"/wiki/", "target=\"_blank\" rel=\"noopener\" href=\"https://en.wikipedia.org/wiki/");
+        
+        // Fix relative image and upload URLs
+        html = html.Replace("src=\"//upload.wikimedia.org/", "src=\"https://upload.wikimedia.org/");
+        html = html.Replace("srcset=\"//upload.wikimedia.org/", "srcset=\"https://upload.wikimedia.org/");
+        
+        // Optional: Hide common Wikipedia clutter like the TOC or edit links if they appear
+        html = html.Replace("class=\"mw-editsection\"", "style=\"display:none\"");
+        
+        return html;
     }
 }

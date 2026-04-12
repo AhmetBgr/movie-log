@@ -1572,28 +1572,37 @@ public class WatchlistService
             foreach (var query in searchAttempts)
             {
                 var escapedQuery = Uri.EscapeDataString(query);
-                var url = $"https://en.wikipedia.org/w/api.php?action=query&prop=extracts&exintro=0&explaintext=1&titles={escapedQuery}&format=json&origin=*&formatversion=2";
+                // First: Find the correct title and check for disambiguation
+                var url = $"https://en.wikipedia.org/w/api.php?action=query&prop=extracts&exintro=1&explaintext=1&titles={escapedQuery}&format=json&origin=*&formatversion=2";
                 var result = await _http.GetFromJsonAsync<WikipediaApiResponse>(url);
                 
                 var page = result?.Query?.Pages?.FirstOrDefault();
                 if (page != null && !page.Missing && !string.IsNullOrWhiteSpace(page.Extract))
                 {
-                    // Robust disambiguation check
                     var isDisambiguation = page.Extract.Contains("most commonly refers to:", StringComparison.OrdinalIgnoreCase) || 
                                           page.Extract.Contains("may refer to:", StringComparison.OrdinalIgnoreCase) ||
                                           (page.Title?.Contains("(disambiguation)", StringComparison.OrdinalIgnoreCase) ?? false);
                     
                     if (!isDisambiguation)
                     {
-                        return new WikipediaSnippet { 
-                            Title = page.Title ?? query, 
-                            Extract = page.Extract,
-                            ContentUrls = new WikipediaUrls { 
-                                Desktop = new WikipediaDesktopUrls { 
-                                    Page = $"https://en.wikipedia.org/wiki/{Uri.EscapeDataString(page.Title ?? query)}" 
-                                } 
-                            }
-                        };
+                        // Second: Get actual HTML content with links using action=parse
+                        var actualTitle = page.Title ?? query;
+                        var parseUrl = $"https://en.wikipedia.org/w/api.php?action=parse&page={Uri.EscapeDataString(actualTitle)}&prop=text&format=json&origin=*";
+                        var parseResult = await _http.GetFromJsonAsync<WikipediaParseResponse>(parseUrl);
+                        var html = parseResult?.Parse?.Text?.Value;
+
+                        if (!string.IsNullOrWhiteSpace(html))
+                        {
+                            return new WikipediaSnippet { 
+                                Title = actualTitle, 
+                                Extract = html,
+                                ContentUrls = new WikipediaUrls { 
+                                    Desktop = new WikipediaDesktopUrls { 
+                                        Page = $"https://en.wikipedia.org/wiki/{Uri.EscapeDataString(actualTitle)}" 
+                                    } 
+                                }
+                            };
+                        }
                     }
                 }
             }
@@ -1841,4 +1850,24 @@ public class TmdbExternalIds
 {
     [JsonPropertyName("imdb_id")]
     public string? ImdbId { get; set; }
+}
+
+public class WikipediaParseResponse
+{
+    [JsonPropertyName("parse")]
+    public WikipediaParse? Parse { get; set; }
+}
+
+public class WikipediaParse
+{
+    [JsonPropertyName("title")]
+    public string? Title { get; set; }
+    [JsonPropertyName("text")]
+    public WikipediaText? Text { get; set; }
+}
+
+public class WikipediaText
+{
+    [JsonPropertyName("*")]
+    public string? Value { get; set; }
 }
