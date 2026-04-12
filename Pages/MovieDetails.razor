@@ -299,7 +299,7 @@
                                         @foreach (var ep in episodes)
                                         {
                                             <div class="col">
-                                                <div class="episode-card h-100 p-3 rounded-4 bg-light-soft border-0 shadow-sm-hover transition-all">
+                                                <div class="episode-card h-100 p-3 rounded-4 bg-light-soft border-0 transition-all">
                                                     <div class="d-flex gap-3 h-100">
                                                         <div class="episode-thumb-wrap flex-shrink-0">
                                                             <div class="episode-thumb rounded-3 overflow-hidden shadow-sm">
@@ -330,7 +330,7 @@
                                                             <div class="episode-footer-meta d-flex gap-3 mt-auto">
                                                                 @if (!string.IsNullOrEmpty(ep.AirDate))
                                                                 {
-                                                                    <span class="ep-meta-item"><i class="bi bi-calendar2-event me-1"></i> @ep.AirDate</span>
+                                                                    <span class="ep-meta-item"><i class="bi bi-calendar2-event me-1"></i> @FormatAirDate(ep.AirDate)</span>
                                                                 }
                                                                 @if (ep.Runtime.HasValue)
                                                                 {
@@ -935,12 +935,6 @@
         overflow: hidden; /* Prevent horizontal spill */
     }
     .bg-light-soft { background: #f8fafc; border: 1px solid #f1f5f9; }
-    .shadow-sm-hover:hover { 
-        box-shadow: 0 8px 15px rgba(0,0,0,0.04); 
-        transform: translateY(-1px); 
-        border-color: var(--movie-accent); 
-        background: #fff; 
-    }
     .transition-all { transition: all 0.2s ease; }
 
     .season-tabs-wrap {
@@ -1179,6 +1173,16 @@
         var h = minutes / 60;
         var m = minutes % 60;
         return h > 0 ? $"{h}h {m}m" : $"{m}m";
+    }
+
+    private string FormatAirDate(string? dateStr)
+    {
+        if (string.IsNullOrEmpty(dateStr)) return "";
+        if (DateTime.TryParse(dateStr, out var dt))
+        {
+            return dt.ToString("ddd, MMM d, yyyy");
+        }
+        return dateStr;
     }
 
     private static string GetDisplayValue(string? value)
