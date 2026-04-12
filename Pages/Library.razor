@@ -239,6 +239,7 @@
                 <div @onclick:stopPropagation="true" class="d-flex">
                     <AdvancedFilterPanel Title="Filters"
                                          AvailableGenres="@AvailableGenres"
+                                         AvailableTypes="@AvailableTypes"
                                          ShowUserRatingFilter="@(ActiveTab == "watched")"
                                          ShowTmdbRatingFilter="@(ActiveTab == "watchlist")"
                                          OnClearFilters="ClearFilters"
@@ -460,6 +461,12 @@
         .Select(g => g.Trim()).Where(g => !string.IsNullOrEmpty(g))
         .Distinct().OrderBy(g => g).ToList();
 
+    private List<string> AvailableTypes => WatchlistSvc.Items
+        .Where(m => m.Status == CurrentTabStatus)
+        .Select(m => m.TitleType)
+        .Where(t => !string.IsNullOrEmpty(t))
+        .Distinct().OrderBy(t => t).ToList();
+
     private string SortInfoText => $"{CurrentSortColumn} {(CurrentSortDescending ? "(Desc)" : "(Asc)")}";
 
     private int activeFilterCount
@@ -471,7 +478,8 @@
                 + (!string.IsNullOrEmpty(WatchlistSvc.AdvancedFilter.TitleSearch) ? 1 : 0)
                 + (WatchlistSvc.AdvancedFilter.MinYear.HasValue ? 1 : 0)
                 + (WatchlistSvc.AdvancedFilter.MaxYear.HasValue ? 1 : 0)
-                + (WatchlistSvc.AdvancedFilter.IncludedGenres.Count + WatchlistSvc.AdvancedFilter.ExcludedGenres.Count > 0 ? 1 : 0);
+                + (WatchlistSvc.AdvancedFilter.IncludedGenres.Count + WatchlistSvc.AdvancedFilter.ExcludedGenres.Count > 0 ? 1 : 0)
+                + (WatchlistSvc.AdvancedFilter.IncludedTypes.Count + WatchlistSvc.AdvancedFilter.ExcludedTypes.Count > 0 ? 1 : 0);
             return count;
         }
     }

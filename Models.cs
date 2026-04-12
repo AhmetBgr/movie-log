@@ -639,6 +639,8 @@ public class AdvancedFilterState
     public string? TitleSearch { get; set; }
     public HashSet<string> IncludedGenres { get; set; } = new();
     public HashSet<string> ExcludedGenres { get; set; } = new();
+    public HashSet<string> IncludedTypes { get; set; } = new();
+    public HashSet<string> ExcludedTypes { get; set; } = new();
     public GenreLogic GenreLogic { get; set; } = GenreLogic.Any;
     public int? SelectedPersonId { get; set; }
     public string? SelectedPersonName { get; set; }

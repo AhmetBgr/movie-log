@@ -262,7 +262,9 @@ public class WatchlistService
             return false;
         if (hasEnd && item.ParsedYear > eYear)
             return false;
-        if (checkSearch && !item.Title.Contains(f.SearchQuery, StringComparison.OrdinalIgnoreCase))
+        if (checkSearch && 
+            !item.Title.Contains(f.SearchQuery, StringComparison.OrdinalIgnoreCase) && 
+            !(item.Director?.Contains(f.SearchQuery, StringComparison.OrdinalIgnoreCase) ?? false))
             return false;
 
         // Custom Status specific logic
@@ -305,7 +307,21 @@ public class WatchlistService
                     return false;
             }
 
-            if (!string.IsNullOrEmpty(f.AdvancedFilter.TitleSearch) && !item.Title.Contains(f.AdvancedFilter.TitleSearch, StringComparison.OrdinalIgnoreCase))
+            if (f.AdvancedFilter.IncludedTypes.Any())
+            {
+                if (!f.AdvancedFilter.IncludedTypes.Contains(item.TitleType))
+                    return false;
+            }
+
+            if (f.AdvancedFilter.ExcludedTypes.Any())
+            {
+                if (f.AdvancedFilter.ExcludedTypes.Contains(item.TitleType))
+                    return false;
+            }
+
+            if (!string.IsNullOrEmpty(f.AdvancedFilter.TitleSearch) && 
+                !item.Title.Contains(f.AdvancedFilter.TitleSearch, StringComparison.OrdinalIgnoreCase) && 
+                !(item.Director?.Contains(f.AdvancedFilter.TitleSearch, StringComparison.OrdinalIgnoreCase) ?? false))
                 return false;
 
             if (f.AdvancedFilter.MinYear.HasValue && item.ParsedYear < f.AdvancedFilter.MinYear.Value) return false;
@@ -318,7 +334,7 @@ public class WatchlistService
             if (f.AdvancedFilter.MaxTmdbRating.HasValue && (item.VoteAverage ?? 10) > f.AdvancedFilter.MaxTmdbRating.Value) return false;
 
             if (f.AdvancedFilter.UnratedOnly && item.Rating20.HasValue) return false;
-            if (f.AdvancedFilter.ShortFilmsOnly && (item.Runtime ?? 999) >= 85) return false;
+            if (f.AdvancedFilter.ShortFilmsOnly && ((item.Runtime ?? 0) > 40 || (item.Runtime ?? 0) <= 0)) return false;
         }
 
         return true;

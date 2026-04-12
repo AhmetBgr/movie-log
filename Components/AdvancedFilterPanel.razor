@@ -9,8 +9,8 @@
         <div class="filter-section mb-3">
             <div class="position-relative mt-2">
                 <input type="text" class="form-control filter-input shadow-none" 
-                       placeholder="Filter by title..."
-                       @bind="WatchlistSvc.AdvancedFilter.TitleSearch" @bind:event="oninput" @onkeyup="OnStateChanged" />
+                       placeholder="Search title or director..."
+                       @bind="_localFilter.TitleSearch" @bind:event="oninput" />
                 <i class="bi bi-search position-absolute end-0 top-50 translate-middle-y me-3 opacity-25"></i>
             </div>
         </div>
@@ -27,10 +27,10 @@
                     <div class="d-flex align-items-center justify-content-between mb-3">
                         <span class="text-secondary" style="font-size:0.65rem;">Matching Logic:</span>
                         <div class="btn-group btn-group-sm" role="group">
-                            <input type="radio" class="btn-check" name="genlogic" id="glany" checked="@(WatchlistSvc.AdvancedFilter.GenreLogic == GenreLogic.Any)" @onclick="() => SetGenreLogic(GenreLogic.Any)">
+                            <input type="radio" class="btn-check" name="genlogic" id="glany" checked="@(_localFilter.GenreLogic == GenreLogic.Any)" @onclick="() => SetGenreLogic(GenreLogic.Any)">
                             <label class="btn btn-outline-secondary px-3" for="glany" style="font-size:0.6rem; font-weight: 700;">ANY</label>
                             
-                            <input type="radio" class="btn-check" name="genlogic" id="glall" checked="@(WatchlistSvc.AdvancedFilter.GenreLogic == GenreLogic.All)" @onclick="() => SetGenreLogic(GenreLogic.All)">
+                            <input type="radio" class="btn-check" name="genlogic" id="glall" checked="@(_localFilter.GenreLogic == GenreLogic.All)" @onclick="() => SetGenreLogic(GenreLogic.All)">
                             <label class="btn btn-outline-secondary px-2" for="glall" style="font-size:0.55rem; font-weight: 700;">ALL</label>
                         </div>
                     </div>
@@ -50,6 +50,39 @@
             }
         </div>
 
+        <!-- Release Types Matrix -->
+        <div class="filter-section mb-4">
+            <div class="filter-label d-flex justify-content-between align-items-center" @onclick="ToggleTypes">
+                <span>Release Types</span>
+                <i class="bi @(_showTypes ? "bi-chevron-up" : "bi-chevron-down")"></i>
+            </div>
+            @if (_showTypes)
+            {
+                <div class="mt-2 text-center mb-2" style="font-size: 0.65rem; color: #94a3b8;">
+                    Click once to <b>Include</b>, twice to <b>Exclude</b>
+                </div>
+                <div class="genre-grid">
+                    @foreach (var t in AvailableTypes)
+                    {
+                        var state = GetTypeState(t);
+                        <button class="genre-btn @(state == 1 ? "genre-inc" : state == 2 ? "genre-exc" : "")"
+                                @onclick="() => CycleType(t)">
+                            @if (state == 1) { <i class="bi bi-plus-circle-fill me-1"></i> }
+                            @if (state == 2) { <i class="bi bi-dash-circle-fill me-1"></i> }
+                            @t
+                        </button>
+                    }
+                </div>
+                <div class="d-flex flex-wrap gap-2 mt-2 pt-2 border-top">
+                    <button class="genre-btn w-100 @(_localFilter.ShortFilmsOnly ? "genre-inc" : "")"
+                            @onclick="() => { _localFilter.ShortFilmsOnly = !_localFilter.ShortFilmsOnly; }">
+                        <i class="bi @(_localFilter.ShortFilmsOnly ? "bi-check-circle-fill" : "bi-circle") me-1"></i>
+                        Short Films (&le;40m)
+                    </button>
+                </div>
+            }
+        </div>
+
         <!-- Ranges & Ratings -->
         <div class="filter-section mb-4">
              <div class="filter-label d-flex justify-content-between align-items-center" @onclick="ToggleRanges">
@@ -62,9 +95,9 @@
                     <label class="range-sub-label">Release Year</label>
                     <div class="d-flex gap-2 mb-3">
                         <input type="number" class="form-control form-control-sm filter-input shadow-none" placeholder="Min" 
-                               value="@WatchlistSvc.AdvancedFilter.MinYear" @onchange="@(e => { int.TryParse(e.Value?.ToString(), out var v); WatchlistSvc.AdvancedFilter.MinYear = v > 0 ? v : null; OnStateChanged(); })" />
+                               @bind="_localFilter.MinYear" />
                         <input type="number" class="form-control form-control-sm filter-input shadow-none" placeholder="Max" 
-                               value="@WatchlistSvc.AdvancedFilter.MaxYear" @onchange="@(e => { int.TryParse(e.Value?.ToString(), out var v); WatchlistSvc.AdvancedFilter.MaxYear = v > 0 ? v : null; OnStateChanged(); })" />
+                               @bind="_localFilter.MaxYear" />
                     </div>
 
                     @if (ShowUserRatingFilter)
@@ -72,9 +105,9 @@
                         <label class="range-sub-label">User Rating (0-100)</label>
                         <div class="d-flex gap-2 mb-3">
                             <input type="number" class="form-control form-control-sm filter-input shadow-none" placeholder="Min" 
-                                   value="@WatchlistSvc.AdvancedFilter.MinUserRating" @onchange="@(e => { int.TryParse(e.Value?.ToString(), out var v); WatchlistSvc.AdvancedFilter.MinUserRating = v >= 0 ? v : null; OnStateChanged(); })" />
+                                   @bind="_localFilter.MinUserRating" />
                             <input type="number" class="form-control form-control-sm filter-input shadow-none" placeholder="Max" 
-                                   value="@WatchlistSvc.AdvancedFilter.MaxUserRating" @onchange="@(e => { int.TryParse(e.Value?.ToString(), out var v); WatchlistSvc.AdvancedFilter.MaxUserRating = v >= 0 ? v : null; OnStateChanged(); })" />
+                                   @bind="_localFilter.MaxUserRating" />
                         </div>
                     }
 
@@ -83,46 +116,40 @@
                         <label class="range-sub-label">TMDB Rating (0-10)</label>
                         <div class="d-flex gap-2">
                             <input type="number" class="form-control form-control-sm filter-input shadow-none" placeholder="Min" step="0.5"
-                                   value="@WatchlistSvc.AdvancedFilter.MinTmdbRating" @onchange="@(e => { double.TryParse(e.Value?.ToString(), out var v); WatchlistSvc.AdvancedFilter.MinTmdbRating = v >= 0 ? v : null; OnStateChanged(); })" />
+                                   @bind="_localFilter.MinTmdbRating" />
                             <input type="number" class="form-control form-control-sm filter-input shadow-none" placeholder="Max" step="0.5"
-                                   value="@WatchlistSvc.AdvancedFilter.MaxTmdbRating" @onchange="@(e => { double.TryParse(e.Value?.ToString(), out var v); WatchlistSvc.AdvancedFilter.MaxTmdbRating = v >= 0 ? v : null; OnStateChanged(); })" />
+                                   @bind="_localFilter.MaxTmdbRating" />
                         </div>
                     }
+
+                    <div class="mt-3 pt-3 border-top">
+                        <button class="btn btn-sm w-100 @(_localFilter.UnratedOnly ? "genre-inc" : "btn-outline-secondary") rounded-pill px-3"
+                                style="font-size: 0.75rem; font-weight: 700;"
+                                @onclick="() => { _localFilter.UnratedOnly = !_localFilter.UnratedOnly; }">
+                            <i class="bi @(_localFilter.UnratedOnly ? "bi-check-circle-fill" : "bi-circle") me-1"></i>
+                            Not Rated Only
+                        </button>
+                    </div>
                 </div>
             }
         </div>
 
-        <!-- Quick Toggles -->
-        <div class="filter-section mb-4">
-             <div class="filter-label d-flex justify-content-between align-items-center" @onclick="ToggleQuick">
-                <span>Quick Tags</span>
-                <i class="bi @(_showQuick ? "bi-chevron-up" : "bi-chevron-down")"></i>
-            </div>
-            @if (_showQuick)
-            {
-                <div class="d-flex flex-wrap gap-2 mt-3">
-                    <button class="btn btn-sm @(WatchlistSvc.AdvancedFilter.UnratedOnly ? "btn-primary" : "btn-outline-secondary") rounded-pill px-3"
-                            @onclick="() => { WatchlistSvc.AdvancedFilter.UnratedOnly = !WatchlistSvc.AdvancedFilter.UnratedOnly; OnStateChanged(); }">
-                        Not Rated
-                    </button>
-                    <button class="btn btn-sm @(WatchlistSvc.AdvancedFilter.ShortFilmsOnly ? "btn-primary" : "btn-outline-secondary") rounded-pill px-3"
-                            @onclick="() => { WatchlistSvc.AdvancedFilter.ShortFilmsOnly = !WatchlistSvc.AdvancedFilter.ShortFilmsOnly; OnStateChanged(); }">
-                        Shorts &lt;85m
-                    </button>
-                </div>
-            }
-        </div>
     </div>
 
     <!-- Actions Area -->
     <div class="filter-footer">
-        <div class="d-flex gap-2">
-            <button class="btn btn-primary btn-sm flex-grow-1 py-2 fw-bold shadow-sm" @onclick="PickRandom" title="Pick a random movie from currently filtered results">
-                <i class="bi bi-dice-5 me-1"></i> Feeling Lucky
+        <div class="d-grid gap-2">
+            <button class="btn btn-primary py-2 fw-bold shadow-sm" @onclick="ApplyFilters">
+                <i class="bi bi-check2-circle me-1"></i> Apply Filters
             </button>
-            <button class="btn btn-outline-danger btn-sm px-3" @onclick="ResetFilters" title="Reset all current filters">
-                <i class="bi bi-trash"></i>
-            </button>
+            <div class="d-flex gap-2">
+                 <button class="btn btn-outline-secondary btn-sm flex-grow-1" @onclick="PickRandom" title="Pick a random movie from currently filtered results">
+                    <i class="bi bi-dice-5 me-1"></i> Random
+                </button>
+                <button class="btn btn-outline-danger btn-sm px-3" @onclick="ResetFilters" title="Reset all current filters">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -130,6 +157,7 @@
 @code {
     [Parameter] public string Title { get; set; } = "Filters";
     [Parameter] public List<string> AvailableGenres { get; set; } = new();
+    [Parameter] public List<string> AvailableTypes { get; set; } = new();
     [Parameter] public bool ShowUserRatingFilter { get; set; }
     [Parameter] public bool ShowTmdbRatingFilter { get; set; }
     [Parameter] public EventCallback OnClearFilters { get; set; }
@@ -140,14 +168,38 @@
 
     private bool _showTitleSearch = false;
     private bool _showGenre = true;
+    private bool _showTypes = false;
     private bool _showRanges = false;
     private bool _showQuick = false;
     private bool IsMobile = false;
 
-    protected override async Task OnInitializedAsync()
+    private AdvancedFilterState _localFilter = new();
+
+    protected override void OnInitialized()
     {
-        // Auto-activate since the toggle is gone
-        WatchlistSvc.AdvancedFilter.IsActive = true;
+        _localFilter = CloneState(WatchlistSvc.AdvancedFilter);
+    }
+
+    private AdvancedFilterState CloneState(AdvancedFilterState s)
+    {
+        return new AdvancedFilterState
+        {
+            IsActive = s.IsActive,
+            TitleSearch = s.TitleSearch,
+            IncludedGenres = new HashSet<string>(s.IncludedGenres),
+            ExcludedGenres = new HashSet<string>(s.ExcludedGenres),
+            IncludedTypes = new HashSet<string>(s.IncludedTypes),
+            ExcludedTypes = new HashSet<string>(s.ExcludedTypes),
+            GenreLogic = s.GenreLogic,
+            MinYear = s.MinYear,
+            MaxYear = s.MaxYear,
+            MinTmdbRating = s.MinTmdbRating,
+            MaxTmdbRating = s.MaxTmdbRating,
+            MinUserRating = s.MinUserRating,
+            MaxUserRating = s.MaxUserRating,
+            UnratedOnly = s.UnratedOnly,
+            ShortFilmsOnly = s.ShortFilmsOnly
+        };
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -163,6 +215,9 @@
 
                 var sGenre = await JS.InvokeAsync<string>("sessionStorage.getItem", $"afp_{Title}_genre");
                 if (sGenre != null) _showGenre = sGenre == "1";
+
+                var sTypes = await JS.InvokeAsync<string>("sessionStorage.getItem", $"afp_{Title}_types");
+                if (sTypes != null) _showTypes = sTypes == "1";
 
                 var sRanges = await JS.InvokeAsync<string>("sessionStorage.getItem", $"afp_{Title}_ranges");
                 if (sRanges != null) _showRanges = sRanges == "1";
@@ -180,45 +235,61 @@
     
     private async Task ToggleTitle() { _showTitleSearch = !_showTitleSearch; await JS.InvokeVoidAsync("sessionStorage.setItem", $"afp_{Title}_title", _showTitleSearch ? "1" : "0"); }
     private async Task ToggleGenre() { _showGenre = !_showGenre; await JS.InvokeVoidAsync("sessionStorage.setItem", $"afp_{Title}_genre", _showGenre ? "1" : "0"); }
+    private async Task ToggleTypes() { _showTypes = !_showTypes; await JS.InvokeVoidAsync("sessionStorage.setItem", $"afp_{Title}_types", _showTypes ? "1" : "0"); }
     private async Task ToggleRanges() { _showRanges = !_showRanges; await JS.InvokeVoidAsync("sessionStorage.setItem", $"afp_{Title}_ranges", _showRanges ? "1" : "0"); }
     private async Task ToggleQuick() { _showQuick = !_showQuick; await JS.InvokeVoidAsync("sessionStorage.setItem", $"afp_{Title}_quick", _showQuick ? "1" : "0"); }
 
     private int GetGenreState(string g)
     {
-        if (WatchlistSvc.AdvancedFilter.IncludedGenres.Contains(g)) return 1;
-        if (WatchlistSvc.AdvancedFilter.ExcludedGenres.Contains(g)) return 2;
+        if (_localFilter.IncludedGenres.Contains(g)) return 1;
+        if (_localFilter.ExcludedGenres.Contains(g)) return 2;
         return 0;
     }
 
     private void CycleGenre(string g)
     {
         var state = GetGenreState(g);
-        if (state == 0) { WatchlistSvc.AdvancedFilter.IncludedGenres.Add(g); }
-        else if (state == 1) { WatchlistSvc.AdvancedFilter.IncludedGenres.Remove(g); WatchlistSvc.AdvancedFilter.ExcludedGenres.Add(g); }
-        else { WatchlistSvc.AdvancedFilter.ExcludedGenres.Remove(g); }
-        OnStateChanged();
+        if (state == 0) { _localFilter.IncludedGenres.Add(g); }
+        else if (state == 1) { _localFilter.IncludedGenres.Remove(g); _localFilter.ExcludedGenres.Add(g); }
+        else { _localFilter.ExcludedGenres.Remove(g); }
+    }
+
+    private int GetTypeState(string t)
+    {
+        if (_localFilter.IncludedTypes.Contains(t)) return 1;
+        if (_localFilter.ExcludedTypes.Contains(t)) return 2;
+        return 0;
+    }
+
+    private void CycleType(string t)
+    {
+        var state = GetTypeState(t);
+        if (state == 0) { _localFilter.IncludedTypes.Add(t); }
+        else if (state == 1) { _localFilter.IncludedTypes.Remove(t); _localFilter.ExcludedTypes.Add(t); }
+        else { _localFilter.ExcludedTypes.Remove(t); }
     }
 
     private void SetGenreLogic(GenreLogic l)
     {
-        WatchlistSvc.AdvancedFilter.GenreLogic = l;
-        OnStateChanged();
+        _localFilter.GenreLogic = l;
+    }
+
+    private void ApplyFilters()
+    {
+        WatchlistSvc.AdvancedFilter = CloneState(_localFilter);
+        WatchlistSvc.NotifyStateChanged();
+        if (IsMobile) _ = CloseSidebar();
     }
 
     private void ResetFilters()
     {
-        WatchlistSvc.AdvancedFilter = new AdvancedFilterState { IsActive = true };
-        OnStateChanged();
+        _localFilter = new AdvancedFilterState { IsActive = true };
+        ApplyFilters();
     }
 
     private async Task PickRandom()
     {
         await WatchlistSvc.ShowRandomFromFilteredAsync(CurrentStatus);
-    }
-
-    private void OnStateChanged()
-    {
-        WatchlistSvc.NotifyStateChanged();
     }
 }
 
@@ -270,7 +341,7 @@
     }
 
     .filter-footer {
-        padding: 10px 14px;
+        padding: 12px 14px;
         background: #fdfdfd;
         border-top: 1px solid rgba(0,0,0,0.05);
     }
