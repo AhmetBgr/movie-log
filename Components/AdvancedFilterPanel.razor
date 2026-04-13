@@ -28,11 +28,11 @@
                             <i class="bi bi-x-circle text-danger ms-1 cursor-pointer" @onclick="ClearAppliedTypes"></i>
                         </div>
                     }
-                    @if (WatchlistSvc.AdvancedFilter.ShortFilmsOnly)
+                    @if (WatchlistSvc.AdvancedFilter.MinRuntime.HasValue || WatchlistSvc.AdvancedFilter.MaxRuntime.HasValue)
                     {
                         <div class="summary-row">
-                            <span><b>Shorts:</b> &le;40m</span>
-                            <i class="bi bi-x-circle text-danger ms-1 cursor-pointer" @onclick="ClearAppliedShorts"></i>
+                            <span><b>Runtime:</b> @(WatchlistSvc.AdvancedFilter.MinRuntime ?? 0)m - @(WatchlistSvc.AdvancedFilter.MaxRuntime ?? 999)m</span>
+                            <i class="bi bi-x-circle text-danger ms-1 cursor-pointer" @onclick="ClearAppliedRuntime"></i>
                         </div>
                     }
                     @if (WatchlistSvc.AdvancedFilter.MinYear.HasValue || WatchlistSvc.AdvancedFilter.MaxYear.HasValue)
@@ -110,16 +110,9 @@
                         </button>
                     }
                 </div>
-                <div class="d-flex flex-wrap gap-2 mt-2 pt-2 border-top">
-                    <button class="genre-btn w-100 @(_localFilter.ShortFilmsOnly ? "genre-inc" : "")"
-                            @onclick="() => { _localFilter.ShortFilmsOnly = !_localFilter.ShortFilmsOnly; }">
-                        <i class="bi @(_localFilter.ShortFilmsOnly ? "bi-check-circle-fill" : "bi-circle") me-1"></i>
-                        Short Films (&le;40m)
-                    </button>
-                </div>
             }
         </div>
-
+        
         <div class="filter-section">
              <div class="filter-label @(_showRanges ? "expanded" : "")" @onclick="ToggleRanges">
                 <span>Release & Rating</span>
@@ -133,6 +126,14 @@
                                @bind="_localFilter.MinYear" />
                         <input type="number" class="form-control form-control-sm filter-input shadow-none" placeholder="Max" 
                                @bind="_localFilter.MaxYear" />
+                    </div>
+
+                    <label class="range-sub-label">Runtime (min)</label>
+                    <div class="d-flex gap-2 mb-3">
+                        <input type="number" class="form-control form-control-sm filter-input shadow-none" placeholder="Min" 
+                               @bind="_localFilter.MinRuntime" />
+                        <input type="number" class="form-control form-control-sm filter-input shadow-none" placeholder="Max" 
+                               @bind="_localFilter.MaxRuntime" />
                     </div>
 
                     @if (ShowUserRatingFilter)
@@ -183,9 +184,6 @@
                  <button class="btn btn-outline-secondary btn-sm flex-grow-1" @onclick="PickRandom" title="Pick a random movie from currently filtered results">
                     <i class="bi bi-dice-5 me-1"></i> Random
                 </button>
-                <button class="btn btn-outline-danger btn-sm px-3" @onclick="ResetFilters" title="Reset all current filters">
-                    <i class="bi bi-trash"></i>
-                </button>
             </div>
         </div>
     </div>
@@ -232,10 +230,11 @@
             MaxYear = s.MaxYear,
             MinTmdbRating = s.MinTmdbRating,
             MaxTmdbRating = s.MaxTmdbRating,
+            MinRuntime = s.MinRuntime,
+            MaxRuntime = s.MaxRuntime,
             MinUserRating = s.MinUserRating,
             MaxUserRating = s.MaxUserRating,
-            UnratedOnly = s.UnratedOnly,
-            ShortFilmsOnly = s.ShortFilmsOnly
+            UnratedOnly = s.UnratedOnly
         };
     }
 
@@ -249,10 +248,11 @@
         if (a.MaxYear != b.MaxYear) return false;
         if (a.MinUserRating != b.MinUserRating) return false;
         if (a.MaxUserRating != b.MaxUserRating) return false;
+        if (a.MinRuntime != b.MinRuntime) return false;
+        if (a.MaxRuntime != b.MaxRuntime) return false;
         if (a.MinTmdbRating != b.MinTmdbRating) return false;
         if (a.MaxTmdbRating != b.MaxTmdbRating) return false;
         if (a.UnratedOnly != b.UnratedOnly) return false;
-        if (a.ShortFilmsOnly != b.ShortFilmsOnly) return false;
         
         if (!a.IncludedGenres.SetEquals(b.IncludedGenres)) return false;
         if (!a.ExcludedGenres.SetEquals(b.ExcludedGenres)) return false;
@@ -352,7 +352,8 @@
         WatchlistSvc.AdvancedFilter.ExcludedGenres.Any() ||
         WatchlistSvc.AdvancedFilter.IncludedTypes.Any() || 
         WatchlistSvc.AdvancedFilter.ExcludedTypes.Any() ||
-        WatchlistSvc.AdvancedFilter.ShortFilmsOnly ||
+        WatchlistSvc.AdvancedFilter.MinRuntime.HasValue ||
+        WatchlistSvc.AdvancedFilter.MaxRuntime.HasValue ||
         WatchlistSvc.AdvancedFilter.MinYear.HasValue ||
         WatchlistSvc.AdvancedFilter.MaxYear.HasValue;
 
@@ -388,7 +389,7 @@
         _localFilter.ExcludedTypes.Clear(); 
         ApplyFilters(); 
     }
-    private void ClearAppliedShorts() { _localFilter.ShortFilmsOnly = false; ApplyFilters(); }
+    private void ClearAppliedRuntime() { _localFilter.MinRuntime = null; _localFilter.MaxRuntime = null; ApplyFilters(); }
     private void ClearAppliedYears() { _localFilter.MinYear = null; _localFilter.MaxYear = null; ApplyFilters(); }
 
     private async Task PickRandom()
@@ -520,15 +521,15 @@
     .genre-grid {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
-        gap: 6px;
+        gap: 4px;
     }
 
     .genre-btn {
         background: #f1f5f9;
         border: 1px solid transparent;
-        border-radius: 8px;
-        padding: 6px 10px;
-        font-size: 0.72rem;
+        border-radius: 6px;
+        padding: 4px 6px;
+        font-size: 0.68rem;
         text-align: left;
         transition: all 0.2s;
         white-space: nowrap;

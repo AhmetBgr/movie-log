@@ -22,7 +22,7 @@ public class LocalStorageService
 
         try
         {
-            var migrationFlag = await _js.InvokeAsync<string>("storageFunctions.getLegacyItem", "idb_migrated");
+            var migrationFlag = await _js.InvokeAsync<string>("storageFunctions.getItem", "idb_migrated");
             if (migrationFlag == "true") 
             {
                 _migrationDone = true;
@@ -69,6 +69,8 @@ public class LocalStorageService
             {
                 await _js.InvokeVoidAsync("storageFunctions.setItem", kvp.Key, kvp.Value);
             }
+            // Ensure flag is present so migration won't inadvertently fire and overwrite imported data
+            await _js.InvokeVoidAsync("storageFunctions.setItem", "idb_migrated", "true");
         }
     }
 
