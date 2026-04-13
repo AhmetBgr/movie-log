@@ -33,6 +33,19 @@ public class WatchlistItem
     public string TitleType { get; set; } = null!;
     public string Year { get; set; } = null!;
     public string Genres { get; set; } = null!;
+    private List<string>? _genresList;
+    [JsonIgnore]
+    public List<string> GenresList => _genresList ??= (Genres ?? "").Split(',').Select(g => g.Trim()).Where(g => !string.IsNullOrEmpty(g)).ToList();
+
+    public void RefreshGenresList() 
+    { 
+        _genresList = null; 
+        GenreMask = 0; 
+    }
+
+    [JsonIgnore]
+    public long GenreMask { get; set; }
+
     public string? Director { get; set; }
     public string? OriginalTitle { get; set; }
     public int ParsedYear { get; set; }
@@ -639,6 +652,10 @@ public class AdvancedFilterState
     public string? TitleSearch { get; set; }
     public HashSet<string> IncludedGenres { get; set; } = new();
     public HashSet<string> ExcludedGenres { get; set; } = new();
+
+    [JsonIgnore] public long IncludedGenresMask { get; set; }
+    [JsonIgnore] public long ExcludedGenresMask { get; set; }
+
     public HashSet<string> IncludedTypes { get; set; } = new();
     public HashSet<string> ExcludedTypes { get; set; } = new();
     public GenreLogic GenreLogic { get; set; } = GenreLogic.Any;

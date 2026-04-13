@@ -26,30 +26,88 @@
 
 <body>
     <script>
-        window.localStorageFunctions = {
-            setItem: function (key, value) {
-                localStorage.setItem(key, value);
+        window.storageFunctions = {
+            dbName: "MovieLogDB",
+            storeName: "items",
+            _db: null,
+            _getDb: function () {
+                if (this._db) return Promise.resolve(this._db);
+                return new Promise((resolve, reject) => {
+                    const request = indexedDB.open(this.dbName, 2);
+                    request.onupgradeneeded = (e) => {
+                        const db = e.target.result;
+                        if (!db.objectStoreNames.contains(this.storeName)) {
+                            db.createObjectStore(this.storeName);
+                        }
+                    };
+                    request.onsuccess = (e) => {
+                        this._db = e.target.result;
+                        resolve(this._db);
+                    };
+                    request.onerror = (e) => reject(e.target.error);
+                });
             },
-            getItem: function (key) {
-                return localStorage.getItem(key);
+            getLegacyItem: function (key) { return localStorage.getItem(key); },
+            getLegacyKeys: function() { return Object.keys(localStorage); },
+            setItem: async function (key, value) {
+                const db = await this._getDb();
+                return new Promise((resolve, reject) => {
+                    const transaction = db.transaction([this.storeName], "readwrite");
+                    const store = transaction.objectStore(this.storeName);
+                    const request = store.put(value, key);
+                    request.onsuccess = () => resolve();
+                    request.onerror = (e) => reject(e.target.error);
+                });
             },
-            removeItem: function (key) {
-                localStorage.removeItem(key);
+            getItem: async function (key) {
+                const db = await this._getDb();
+                return new Promise((resolve, reject) => {
+                    const transaction = db.transaction([this.storeName], "readonly");
+                    const store = transaction.objectStore(this.storeName);
+                    const request = store.get(key);
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = (e) => reject(e.target.error);
+                });
             },
-            getAllItems: function () {
-                var items = {};
-                for (var i = 0; i < localStorage.length; i++) {
-                    var key = localStorage.key(i);
-                    items[key] = localStorage.getItem(key);
-                }
-                return JSON.stringify(items);
+            removeItem: async function (key) {
+                const db = await this._getDb();
+                return new Promise((resolve, reject) => {
+                    const transaction = db.transaction([this.storeName], "readwrite");
+                    const store = transaction.objectStore(this.storeName);
+                    const request = store.delete(key);
+                    request.onsuccess = () => resolve();
+                    request.onerror = (e) => reject(e.target.error);
+                });
             },
-            setAllItems: function (json) {
-                var items = JSON.parse(json);
-                localStorage.clear();
-                for (var key in items) {
-                    localStorage.setItem(key, items[key]);
-                }
+            clearAll: async function () {
+                const db = await this._getDb();
+                return new Promise((resolve, reject) => {
+                    const transaction = db.transaction([this.storeName], "readwrite");
+                    const store = transaction.objectStore(this.storeName);
+                    const request = store.clear();
+                    request.onsuccess = () => resolve();
+                    request.onerror = (e) => reject(e.target.error);
+                });
+            },
+            getAllItems: async function () {
+                const db = await this._getDb();
+                return new Promise((resolve, reject) => {
+                    const transaction = db.transaction([this.storeName], "readonly");
+                    const store = transaction.objectStore(this.storeName);
+                    const request = store.getAll();
+                    const keysRequest = store.getAllKeys();
+                    
+                    let result = {};
+                    keysRequest.onsuccess = () => {
+                        request.onsuccess = () => {
+                            const keys = keysRequest.result;
+                            const values = request.result;
+                            for(let i=0; i<keys.length; i++) result[keys[i]] = values[i];
+                            resolve(JSON.stringify(result));
+                        };
+                    };
+                    request.onerror = (e) => reject(e.target.error);
+                });
             }
         };
         window.uiHelpers = {

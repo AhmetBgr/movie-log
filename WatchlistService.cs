@@ -99,8 +99,38 @@ public class WatchlistService
         { "collections", new TabFilterState() }
     };
 
-    public string ActiveTab { get; set; } = "watchlist";
+    private string _activeTab = "watchlist";
+    public string ActiveTab 
+    { 
+        get => _activeTab; 
+        set 
+        { 
+            if (_activeTab != value)
+            {
+                _activeTab = value;
+                NotifyStateChanged();
+            }
+        } 
+    }
     public TabFilterState CurrentFilters => _tabFilters.TryGetValue(ActiveTab.ToLower(), out var f) ? f : _tabFilters["watchlist"];
+
+    private static readonly Dictionary<string, long> _genreBitMap = new(StringComparer.OrdinalIgnoreCase);
+    private static long EnsureGenreBit(string genre)
+    {
+        if (string.IsNullOrWhiteSpace(genre)) return 0;
+        if (_genreBitMap.TryGetValue(genre, out var bit)) return bit;
+        if (_genreBitMap.Count >= 63) return 0;
+        var newBit = 1L << _genreBitMap.Count;
+        _genreBitMap[genre] = newBit;
+        return newBit;
+    }
+
+    private static long GetMaskForGenres(IEnumerable<string> genres)
+    {
+        long mask = 0;
+        foreach (var g in genres) mask |= EnsureGenreBit(g);
+        return mask;
+    }
 
     // Basic property redirects for compatibility with existing components
     public string SelectedType { get => CurrentFilters.SelectedType; set { CurrentFilters.SelectedType = value; NotifyStateChanged(); } }
@@ -182,9 +212,30 @@ public class WatchlistService
     }
 
     public event Action? OnStateChanged;
-    public void NotifyStateChanged(bool fullRefresh = true) 
+    public void NotifyStateChanged(bool fullRefresh = false) 
     {
-        if (fullRefresh) RefreshCalculatedLists();
+        if (fullRefresh) 
+        {
+            foreach (var item in Items) 
+            {
+                if (item.GenreMask == 0) item.GenreMask = GetMaskForGenres(item.GenresList);
+            }
+            RefreshCalculatedLists(true);
+        }
+        else
+        {
+            var f = CurrentFilters;
+            if (f.AdvancedFilter.IsActive)
+            {
+                f.AdvancedFilter.IncludedGenresMask = GetMaskForGenres(f.AdvancedFilter.IncludedGenres);
+                f.AdvancedFilter.ExcludedGenresMask = GetMaskForGenres(f.AdvancedFilter.ExcludedGenres);
+            }
+
+            if (ActiveTab == "watchlist") _watchlistDirty = true;
+            else if (ActiveTab == "watched") _watchedDirty = true;
+            else if (ActiveTab == "watching") _watchingDirty = true;
+            RefreshCalculatedLists();
+        }
         OnStateChanged?.Invoke();
     }
     
@@ -193,56 +244,64 @@ public class WatchlistService
         _watchingCached = Items.Where(i => i.Status == WatchlistStatus.Watching).ToList();
     }
 
-    private void RefreshCalculatedLists()
+    private bool _watchlistDirty = true;
+    private bool _watchedDirty = true;
+    private bool _watchingDirty = true;
+
+    private void RefreshCalculatedLists(bool forceAll = false)
     {
+        if (forceAll) { _watchlistDirty = _watchedDirty = _watchingDirty = true; }
+
+        var sw = System.Diagnostics.Stopwatch.StartNew();
         var wl = _tabFilters["watchlist"];
         var wd = _tabFilters["watched"];
         var wg = _tabFilters["watching"];
 
-        var pendingFiltered = new List<WatchlistItem>();
-        var watchedFiltered = new List<WatchlistItem>();
-        var watching = new List<WatchlistItem>();
-
-        foreach (var item in Items)
+        if (_watchingDirty)
         {
-            if (item.Status == WatchlistStatus.Watching)
+            var watching = Items.Where(i => i.Status == WatchlistStatus.Watching && PassesFilters(i, wg)).ToList();
+            _watchingCached = (wg.SortColumn switch
             {
-                if (PassesFilters(item, wg)) watching.Add(item);
-            }
-            else if (item.Status == WatchlistStatus.Pending)
-            {
-                if (PassesFilters(item, wl)) pendingFiltered.Add(item);
-            }
-            else if (item.Status == WatchlistStatus.Watched)
-            {
-                if (PassesFilters(item, wd)) watchedFiltered.Add(item);
-            }
+                "Year" => wg.SortDescending ? watching.OrderByDescending(m => m.ParsedYear) : watching.OrderBy(m => m.ParsedYear),
+                "Type" => wg.SortDescending ? watching.OrderByDescending(m => m.TitleType) : watching.OrderBy(m => m.TitleType),
+                "DateAdded" => wg.SortDescending ? watching.OrderByDescending(m => m.DateAdded) : watching.OrderBy(m => m.DateAdded),
+                _ => wg.SortDescending ? watching.OrderByDescending(m => m.Title) : watching.OrderBy(m => m.Title)
+            }).ToList();
+            _watchingDirty = false;
+            Console.WriteLine($"[Perf] Refresh: Watching (Calculated {watching.Count} items in {sw.ElapsedMilliseconds}ms)");
+            sw.Restart();
         }
 
-        _watchingCached = (wg.SortColumn switch
+        if (_watchlistDirty)
         {
-            "Year" => wg.SortDescending ? watching.OrderByDescending(m => m.ParsedYear) : watching.OrderBy(m => m.ParsedYear),
-            "Type" => wg.SortDescending ? watching.OrderByDescending(m => m.TitleType) : watching.OrderBy(m => m.TitleType),
-            "DateAdded" => wg.SortDescending ? watching.OrderByDescending(m => m.DateAdded) : watching.OrderBy(m => m.DateAdded),
-            _ => wg.SortDescending ? watching.OrderByDescending(m => m.Title) : watching.OrderBy(m => m.Title)
-        }).ToList();
+            var pendingFiltered = Items.Where(i => i.Status == WatchlistStatus.Pending && PassesFilters(i, wl)).ToList();
+            _filteredCached = (wl.SortColumn switch
+            {
+                "Year" => wl.SortDescending ? pendingFiltered.OrderByDescending(m => m.ParsedYear) : pendingFiltered.OrderBy(m => m.ParsedYear),
+                "Type" => wl.SortDescending ? pendingFiltered.OrderByDescending(m => m.TitleType) : pendingFiltered.OrderBy(m => m.TitleType),
+                "DateAdded" => wl.SortDescending ? pendingFiltered.OrderByDescending(m => m.DateAdded) : pendingFiltered.OrderBy(m => m.DateAdded),
+                _ => wl.SortDescending ? pendingFiltered.OrderByDescending(m => m.Title) : pendingFiltered.OrderBy(m => m.Title)
+            }).ToList();
+            _watchlistDirty = false;
+            Console.WriteLine($"[Perf] Refresh: Watchlist (Calculated {pendingFiltered.Count} items in {sw.ElapsedMilliseconds}ms)");
+            sw.Restart();
+        }
 
-        _filteredCached = (wl.SortColumn switch
+        if (_watchedDirty)
         {
-            "Year" => wl.SortDescending ? pendingFiltered.OrderByDescending(m => m.ParsedYear) : pendingFiltered.OrderBy(m => m.ParsedYear),
-            "Type" => wl.SortDescending ? pendingFiltered.OrderByDescending(m => m.TitleType) : pendingFiltered.OrderBy(m => m.TitleType),
-            "DateAdded" => wl.SortDescending ? pendingFiltered.OrderByDescending(m => m.DateAdded) : pendingFiltered.OrderBy(m => m.DateAdded),
-            _ => wl.SortDescending ? pendingFiltered.OrderByDescending(m => m.Title) : pendingFiltered.OrderBy(m => m.Title)
-        }).ToList();
-
-        _filteredWatchedCached = (wd.SortColumn switch
-        {
-            "Rating" => wd.SortDescending ? watchedFiltered.OrderByDescending(m => m.Rating20 ?? 0) : watchedFiltered.OrderBy(m => m.Rating20 ?? 0),
-            "Year" => wd.SortDescending ? watchedFiltered.OrderByDescending(m => m.ParsedYear) : watchedFiltered.OrderBy(m => m.ParsedYear),
-            "Type" => wd.SortDescending ? watchedFiltered.OrderByDescending(m => m.TitleType) : watchedFiltered.OrderBy(m => m.TitleType),
-            "DateAdded" => wd.SortDescending ? watchedFiltered.OrderByDescending(m => m.DateAdded) : watchedFiltered.OrderBy(m => m.DateAdded),
-            _ => wd.SortDescending ? watchedFiltered.OrderByDescending(m => m.Title) : watchedFiltered.OrderBy(m => m.Title)
-        }).ToList();
+            var watchedFiltered = Items.Where(i => i.Status == WatchlistStatus.Watched && PassesFilters(i, wd)).ToList();
+            _filteredWatchedCached = (wd.SortColumn switch
+            {
+                "Rating" => wd.SortDescending ? watchedFiltered.OrderByDescending(m => m.Rating20 ?? 0) : watchedFiltered.OrderBy(m => m.Rating20 ?? 0),
+                "Year" => wd.SortDescending ? watchedFiltered.OrderByDescending(m => m.ParsedYear) : watchedFiltered.OrderBy(m => m.ParsedYear),
+                "Type" => wd.SortDescending ? watchedFiltered.OrderByDescending(m => m.TitleType) : watchedFiltered.OrderBy(m => m.TitleType),
+                "DateAdded" => wd.SortDescending ? watchedFiltered.OrderByDescending(m => m.DateAdded) : watchedFiltered.OrderBy(m => m.DateAdded),
+                _ => wd.SortDescending ? watchedFiltered.OrderByDescending(m => m.Title) : watchedFiltered.OrderBy(m => m.Title)
+            }).ToList();
+            _watchedDirty = false;
+            Console.WriteLine($"[Perf] Refresh: Watched (Calculated {watchedFiltered.Count} items in {sw.ElapsedMilliseconds}ms)");
+            sw.Restart();
+        }
     }
 
     private bool PassesFilters(WatchlistItem item, TabFilterState f)
@@ -256,8 +315,14 @@ public class WatchlistService
 
         if (checkType && !item.TitleType.Equals(f.SelectedType, StringComparison.OrdinalIgnoreCase))
             return false;
-        if (checkGenre && (item.Genres == null || !item.Genres.Contains(f.SelectedGenre, StringComparison.OrdinalIgnoreCase)))
-            return false;
+        
+        if (checkGenre)
+        {
+            var targetBit = EnsureGenreBit(f.SelectedGenre);
+            if ((item.GenreMask & targetBit) == 0)
+                return false;
+        }
+
         if (hasStart && item.ParsedYear < sYear)
             return false;
         if (hasEnd && item.ParsedYear > eYear)
@@ -285,25 +350,26 @@ public class WatchlistService
         // Advanced Filtering
         if (f.AdvancedFilter.IsActive)
         {
-            if (f.AdvancedFilter.IncludedGenres.Any())
+            if (f.AdvancedFilter.IncludedGenresMask != 0)
             {
-                var itemGenreList = (item.Genres ?? "").Split(',').Select(g => g.Trim()).ToList();
                 if (f.AdvancedFilter.GenreLogic == GenreLogic.All)
                 {
-                    if (!f.AdvancedFilter.IncludedGenres.All(ig => itemGenreList.Contains(ig, StringComparer.OrdinalIgnoreCase)))
+                    // AND: (itemMask & filterMask) == filterMask
+                    if ((item.GenreMask & f.AdvancedFilter.IncludedGenresMask) != f.AdvancedFilter.IncludedGenresMask)
                         return false;
                 }
                 else
                 {
-                    if (!f.AdvancedFilter.IncludedGenres.Any(ig => itemGenreList.Contains(ig, StringComparer.OrdinalIgnoreCase)))
+                    // ANY: (itemMask & filterMask) != 0
+                    if ((item.GenreMask & f.AdvancedFilter.IncludedGenresMask) == 0)
                         return false;
                 }
             }
 
-            if (f.AdvancedFilter.ExcludedGenres.Any())
+            if (f.AdvancedFilter.ExcludedGenresMask != 0)
             {
-                var itemGenreList = (item.Genres ?? "").Split(',').Select(g => g.Trim()).ToList();
-                if (f.AdvancedFilter.ExcludedGenres.Any(eg => itemGenreList.Contains(eg, StringComparer.OrdinalIgnoreCase)))
+                // EXCLUDE: (itemMask & excludeMask) != 0 means it should be dropped
+                if ((item.GenreMask & f.AdvancedFilter.ExcludedGenresMask) != 0)
                     return false;
             }
 
@@ -432,6 +498,8 @@ public class WatchlistService
                     // UserRating migration
                     if (item.Rating20 == null && item.UserRating != null)
                         item.Rating20 = item.UserRating * 2;
+
+                    item.GenreMask = GetMaskForGenres(item.GenresList);
                     return item;
                 }).ToList();
                 LogStep("Reconstruct Items from slim + details");

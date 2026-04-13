@@ -24,7 +24,7 @@
     <!-- ── Library Tab Bar (Discovery Style) ────────────────────────── -->
     <div class="library-tabs-container">
         <div class="discovery-tabs" role="tablist">
-            @foreach (var tab in _tabs)
+            @foreach (var tab in _tabsList)
             {
                 @if (tab.Id == "collections" && ActiveTab == "collections" && SelectedCollectionId != null)
                 {
@@ -238,8 +238,8 @@
             <div class="filter-panel-wrapper" @onclick="@(() => SetFilterVisibility(false))">
                 <div @onclick:stopPropagation="true" class="d-flex">
                     <AdvancedFilterPanel Title="Filters"
-                                         AvailableGenres="@AvailableGenres"
-                                         AvailableTypes="@AvailableTypes"
+                                         AvailableGenres="@_availableGenres"
+                                         AvailableTypes="@_availableTypes"
                                          ShowUserRatingFilter="@(ActiveTab == "watched")"
                                          ShowTmdbRatingFilter="@(ActiveTab == "watchlist")"
                                          OnClearFilters="ClearFilters"
@@ -379,13 +379,33 @@
         public int Count { get; set; }
     }
 
-    private List<TabInfo> _tabs => new()
+    private List<TabInfo> _tabsList = new();
+
+    private void RefreshLocalCaches(bool forceHeavy = false)
     {
-        new TabInfo { Id = "watchlist", Label = "Watchlist", Icon = "bi-list-nested", Count = WatchlistSvc.FilteredItems.Count() },
-        new TabInfo { Id = "watched", Label = "Watched", Icon = "bi-check2-all", Count = WatchlistSvc.WatchedItems.Count() },
-        new TabInfo { Id = "watching", Label = "Watching", Icon = "bi-play-circle-fill", Count = WatchlistSvc.WatchingItems.Count() },
-        new TabInfo { Id = "collections", Label = "Collections", Icon = "bi-folder-fill", Count = WatchlistSvc.Collections.Count }
-    };
+        _tabsList = new()
+        {
+            new TabInfo { Id = "watchlist", Label = "Watchlist", Icon = "bi-list-nested", Count = WatchlistSvc.FilteredItems.Count() },
+            new TabInfo { Id = "watched", Label = "Watched", Icon = "bi-check2-all", Count = WatchlistSvc.WatchedItems.Count() },
+            new TabInfo { Id = "watching", Label = "Watching", Icon = "bi-play-circle-fill", Count = WatchlistSvc.WatchingItems.Count() },
+            new TabInfo { Id = "collections", Label = "Collections", Icon = "bi-folder-fill", Count = WatchlistSvc.Collections.Count }
+        };
+
+        if (forceHeavy || showFilters)
+        {
+            var status = CurrentTabStatus;
+            var relevantItems = WatchlistSvc.Items.Where(m => m.Status == status).ToList();
+
+            _availableGenres = relevantItems
+                .SelectMany(m => m.GenresList)
+                .Distinct().OrderBy(g => g).ToList();
+
+            _availableTypes = relevantItems
+                .Select(m => m.TitleType)
+                .Where(t => !string.IsNullOrEmpty(t))
+                .Distinct().OrderBy(t => t).ToList();
+        }
+    }
 
     private Guid? SelectedCollectionId { get; set; }
     private CustomCollection? SelectedCollection => WatchlistSvc.Collections.FirstOrDefault(c => c.Id == SelectedCollectionId);
@@ -455,17 +475,8 @@
         _ => WatchlistSvc.SortDescending
     };
 
-    private List<string> AvailableGenres => WatchlistSvc.Items
-        .Where(m => m.Status == CurrentTabStatus)
-        .SelectMany(m => (m.Genres ?? "").Split(','))
-        .Select(g => g.Trim()).Where(g => !string.IsNullOrEmpty(g))
-        .Distinct().OrderBy(g => g).ToList();
-
-    private List<string> AvailableTypes => WatchlistSvc.Items
-        .Where(m => m.Status == CurrentTabStatus)
-        .Select(m => m.TitleType)
-        .Where(t => !string.IsNullOrEmpty(t))
-        .Distinct().OrderBy(t => t).ToList();
+    private List<string> _availableGenres = new();
+    private List<string> _availableTypes = new();
 
     private string SortInfoText => $"{CurrentSortColumn} {(CurrentSortDescending ? "(Desc)" : "(Asc)")}";
 
@@ -524,8 +535,9 @@
             }
             else
             {
-                await RestoreViewPreference();
-                await RestoreFilterPreference();
+                await RestoreViewPreference(false);
+                await RestoreFilterPreference(false);
+                RefreshLocalCaches(false);
             }
         }
     }
@@ -565,7 +577,7 @@
         }
     }
 
-    private async Task RestoreViewPreference()
+    private async Task RestoreViewPreference(bool updateUI = true)
     {
         try
         {
@@ -574,13 +586,13 @@
             if (!string.IsNullOrEmpty(savedView)) 
             { 
                 isCardView = savedView == "card"; 
-                StateHasChanged(); 
+                if (updateUI) StateHasChanged(); 
             }
         }
         catch { }
     }
 
-    private async Task RestoreFilterPreference()
+    private async Task RestoreFilterPreference(bool updateUI = true)
     {
         try
         {
@@ -589,12 +601,12 @@
             if (!string.IsNullOrEmpty(savedFilter)) 
             { 
                 showFilters = savedFilter == "true"; 
-                StateHasChanged(); 
+                if (updateUI) StateHasChanged(); 
             }
             else
             {
                 showFilters = false;
-                StateHasChanged();
+                if (updateUI) StateHasChanged();
             }
         }
         catch { }
@@ -617,6 +629,7 @@
     private void SetFilterVisibility(bool visible)
     {
         showFilters = visible;
+        if (visible) RefreshLocalCaches(true); 
         _ = JS.InvokeVoidAsync("sessionStorage.setItem", $"{ActiveTab}_filter", visible.ToString().ToLower());
     }
 
@@ -696,6 +709,7 @@
     public void Dispose() { WatchlistSvc.OnStateChanged -= HandleStateChanged; _holdRef?.Dispose(); }
     private void HandleStateChanged() 
     { 
+        RefreshLocalCaches(false); 
         if (_lastSearchQuery != WatchlistSvc.SearchQuery || 
             _lastSelectedType != WatchlistSvc.SelectedType ||
             _lastActiveFilterCount != activeFilterCount)
