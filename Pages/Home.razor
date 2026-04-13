@@ -31,6 +31,19 @@
             margin-right: 8px;
             color: #6366f1;
         }
+        .chart-container {
+            overflow-x: auto;
+            overflow-y: hidden;
+            flex-wrap: nowrap;
+            padding-bottom: 4px;
+        }
+        .chart-container::-webkit-scrollbar {
+            height: 4px;
+        }
+        .chart-container::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 4px;
+        }
     </style>
     
     <div class="mb-4 pb-3 border-bottom">
@@ -95,11 +108,11 @@
                 </div>
                 <div class="flex-grow-1 d-flex flex-column justify-content-end">
                     @{ var maxMonth = MoviesPerMonth.Any() ? MoviesPerMonth.Max(x => x.Value) : 0; }
-                    <div class="d-flex align-items-end justify-content-between pt-3" style="height: 200px;">
+                    <div class="chart-container d-flex align-items-end justify-content-between pt-3" style="height: 200px; gap: 4px;">
                         @foreach(var m in MoviesPerMonth)
                         {
                             var h = maxMonth > 0 ? (m.Value * 140 / maxMonth) : 0;
-                            <div class="d-flex flex-column align-items-center justify-content-end h-100" style="flex: 1;">
+                            <div class="d-flex flex-column align-items-center justify-content-end h-100" style="flex: 1; min-width: 24px;">
                                 <div class="text-muted mb-1 fw-bold" style="font-size: 0.75rem; height: 1.2rem;">@(m.Value > 0 ? m.Value.ToString() : "")</div>
                                 <div class="rounded-top" style="width: 60%; max-width: 24px; height: @(h)px; background-color: #22c55e; min-height: @(m.Value > 0 ? "4px" : "0px"); transition: height 0.5s ease; @(m.Value == 0 ? "display:none;" : "")"></div>
                                 <div class="mt-2 text-secondary fw-semibold" style="font-size: 0.65rem; height: 40px; display: flex; align-items: center; justify-content: center; writing-mode: vertical-rl; transform: rotate(180deg);">@m.Key</div>
@@ -134,7 +147,7 @@
 
                 <div class="flex-grow-1 d-flex flex-column justify-content-end">
                     @{ var maxRating = RatingDistribution.Any() ? RatingDistribution.Max(x => x.Value) : 0; }
-                    <div class="d-flex align-items-end justify-content-between pt-2" style="height: 140px;">
+                    <div class="chart-container d-flex align-items-end justify-content-between pt-2" style="height: 140px; gap: 4px;">
                         @foreach(var r in RatingDistribution)
                         {
                             var h = maxRating > 0 ? (r.Value * 90 / maxRating) : 0;
@@ -144,7 +157,7 @@
                             var hue = (upper / 100.0) * 120;
                             var color = $"hsl({hue}, 70%, 40%)";
                             
-                            <div class="d-flex flex-column align-items-center justify-content-end h-100" style="flex: 1;" title="@r.Key: @r.Value movies">
+                            <div class="d-flex flex-column align-items-center justify-content-end h-100" style="flex: 1; min-width: 28px;" title="@r.Key: @r.Value movies">
                                 <div class="text-muted mb-1 fw-bold" style="font-size: 0.65rem; height: 1.1rem; white-space: nowrap;">@(r.Value > 0 ? r.Value.ToString() : "")</div>
                                 <div class="rounded-top" style="width: 70%; max-width: 28px; height: @(h)px; min-height: @(r.Value > 0 ? "4px" : "0px"); background-color: @color; transition: height 0.5s ease; @(r.Value == 0 ? "display:none;" : "")"></div>
                                 <div class="mt-2 text-secondary text-center fw-bold" style="font-size: 0.6rem; height: 1.2rem; line-height: 1.1;">@r.Key.Replace("-", "-\n")</div>
@@ -158,19 +171,23 @@
         <!-- 2. Top Watched Genres -->
         <div class="col">
             <div class="stat-card">
-                <div class="stat-card-title">
-                    <i class="bi bi-tags-fill" style="color: #ef4444;"></i> Top Watched Genres
+                <div class="stat-card-title d-flex justify-content-between align-items-center">
+                    <div><i class="bi bi-tags-fill" style="color: #ef4444;"></i> @(_showLeastWatchedGenres ? "Least" : "Top") Watched Genres</div>
+                    <div class="form-check form-switch m-0" title="Toggle Least/Top">
+                        <input class="form-check-input cursor-pointer shadow-none m-0" type="checkbox" @bind="_showLeastWatchedGenres">
+                    </div>
                 </div>
-                @if (!TopGenres.Any())
+                @{ var currentWatchGenres = _showLeastWatchedGenres ? BottomGenres : TopGenres; }
+                @if (!currentWatchGenres.Any())
                 {
                     <div class="text-muted fst-italic py-3">No genre data available.</div>
                 }
                 else
                 {
-                    var maxGenre = TopGenres.First().Value;
-                    @foreach(var g in TopGenres)
+                    var maxGenreIdx = currentWatchGenres.Any() ? currentWatchGenres.Max(x => x.Value) : 1;
+                    @foreach(var g in currentWatchGenres)
                     {
-                        var pct = maxGenre > 0 ? (g.Value * 100 / maxGenre) : 0;
+                        var pct = maxGenreIdx > 0 ? (g.Value * 100 / maxGenreIdx) : 0;
                         <div class="mb-3">
                             <div class="d-flex justify-content-between mb-1">
                                 <span class="fw-semibold text-dark">@g.Key</span>
@@ -223,11 +240,11 @@
                 </div>
                 <div class="flex-grow-1 d-flex flex-column justify-content-end">
                     @{ var maxDecade = DecadeDistribution.Any() ? DecadeDistribution.Max(x => x.Value) : 0; }
-                    <div class="d-flex align-items-end justify-content-between pt-2" style="height: 140px;">
+                    <div class="chart-container d-flex align-items-end justify-content-between pt-2" style="height: 140px; gap: 4px;">
                         @foreach(var d in DecadeDistribution)
                         {
                             var h = maxDecade > 0 ? (d.Value * 100 / maxDecade) : 0;
-                            <div class="d-flex flex-column align-items-center justify-content-end h-100" style="flex: 1;" title="@d.Key: @d.Value movies">
+                            <div class="d-flex flex-column align-items-center justify-content-end h-100" style="flex: 1; min-width: 38px;" title="@d.Key: @d.Value movies">
                                 <div class="text-muted mb-1 fw-bold" style="font-size: 0.7rem; height: 1.1rem;">@(d.Value > 0 ? d.Value.ToString() : "")</div>
                                 <div class="rounded-top" style="width: 70%; max-width: 28px; height: @(h)px; background-color: #8b5cf6; min-height: @(d.Value > 0 ? "4px" : "0px"); transition: height 0.5s ease; @(d.Value == 0 ? "display:none;" : "")"></div>
                                 <div class="mt-2 text-secondary text-center fw-bold" style="font-size: 0.75rem; height: 1.2rem;">@d.Key</div>
@@ -241,16 +258,20 @@
         <!-- 7. Top Rated Genres -->
         <div class="col">
             <div class="stat-card">
-                <div class="stat-card-title">
-                    <i class="bi bi-shield-star" style="color: #ec4899;"></i> Highest Rated Genres
+                <div class="stat-card-title d-flex justify-content-between align-items-center">
+                    <div><i class="bi bi-shield-star" style="color: #ec4899;"></i> @(_showLowestRatedGenres ? "Lowest" : "Highest") Rated Genres</div>
+                    <div class="form-check form-switch m-0" title="Toggle Lowest/Highest">
+                        <input class="form-check-input cursor-pointer shadow-none m-0" type="checkbox" @bind="_showLowestRatedGenres">
+                    </div>
                 </div>
-                @if (!GenreQuality.Any())
+                @{ var currentRatedGenres = _showLowestRatedGenres ? GenreLowestQuality : GenreQuality; }
+                @if (!currentRatedGenres.Any())
                 {
                     <div class="text-muted fst-italic py-3">No rated genre data.</div>
                 }
                 else
                 {
-                    @foreach(var g in GenreQuality)
+                    @foreach(var g in currentRatedGenres)
                     {
                         var hue = (g.Value / 100.0) * 120;
                         <div class="mb-3">
@@ -267,6 +288,45 @@
             </div>
         </div>
 
+        <!-- 7b. Highest Rated Directors -->
+        <div class="col">
+            <div class="stat-card">
+                <div class="stat-card-title d-flex justify-content-between align-items-center">
+                    <div class="text-truncate flex-grow-1"><i class="bi bi-person-star" style="color: #f59e0b;"></i> @(_showLowestRatedDirectors ? "Lowest" : "Highest") Rated Directors</div>
+                    <div class="d-flex align-items-center gap-2 ps-2">
+                        <div class="input-group input-group-sm flex-nowrap" style="width: 80px;" title="Minimum Movies">
+                            <span class="input-group-text border-0 bg-light text-muted px-1" style="font-size: 0.65rem;">Min</span>
+                            <input type="number" class="form-control border-0 bg-light fw-bold text-center px-1" @bind="DirectorMinMovies" min="1" max="99" style="font-size: 0.75rem;">
+                        </div>
+                        <div class="form-check form-switch m-0" title="Toggle Lowest/Highest">
+                            <input class="form-check-input cursor-pointer shadow-none m-0" type="checkbox" @bind="_showLowestRatedDirectors">
+                        </div>
+                    </div>
+                </div>
+                @{ var currentDirRatings = _showLowestRatedDirectors ? BottomRatedDirectors : TopRatedDirectors; }
+                @if (!currentDirRatings.Any())
+                {
+                    <div class="text-muted fst-italic py-3">No rated director data (try lowering min movies).</div>
+                }
+                else
+                {
+                    @foreach(var d in currentDirRatings)
+                    {
+                        var hue = (d.Value / 100.0) * 120;
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="fw-semibold text-dark text-truncate" style="max-width: 75%;" title="@d.Key">@d.Key</span>
+                                <span class="fw-bold" style="color: hsl(@hue, 70%, 40%);">@d.Value.ToString("0.0")</span>
+                            </div>
+                            <div class="progress" style="height: 8px;">
+                                <div class="progress-bar" style="width: @d.Value%; background-color: #f59e0b;"></div>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+
         <!-- 8. Runtime Distribution -->
         <div class="col">
             <div class="stat-card d-flex flex-column">
@@ -275,11 +335,11 @@
                 </div>
                 <div class="flex-grow-1 d-flex flex-column justify-content-end">
                     @{ var maxRuntime = RuntimeDistribution.Any() ? RuntimeDistribution.Max(x => x.Value) : 0; }
-                    <div class="d-flex align-items-end justify-content-between pt-2" style="height: 140px;">
+                    <div class="chart-container d-flex align-items-end justify-content-between pt-2" style="height: 140px; gap: 4px;">
                         @foreach(var r in RuntimeDistribution)
                         {
                             var h = maxRuntime > 0 ? (r.Value * 100 / maxRuntime) : 0;
-                            <div class="d-flex flex-column align-items-center justify-content-end h-100" style="flex: 1;" title="@r.Key: @r.Value movies">
+                            <div class="d-flex flex-column align-items-center justify-content-end h-100" style="flex: 1; min-width: 48px;" title="@r.Key: @r.Value movies">
                                 <div class="text-muted mb-1 fw-bold" style="font-size: 0.7rem; height: 1.1rem;">@(r.Value > 0 ? r.Value.ToString() : "")</div>
                                 <div class="rounded-top" style="width: 70%; max-width: 28px; height: @(h)px; background-color: #3b82f6; min-height: @(r.Value > 0 ? "4px" : "0px"); transition: height 0.5s ease; @(r.Value == 0 ? "display:none;" : "")"></div>
                                 <div class="mt-2 text-secondary text-center fw-bold" style="font-size: 0.7rem; height: 1.2rem; line-height: 1.1;">@r.Key.Replace(" ", "\n")</div>
@@ -298,12 +358,12 @@
                 </div>
                 <div class="flex-grow-1 d-flex flex-column justify-content-end">
                     @{ var maxTrend = DecadeRatingTrend.Any() ? DecadeRatingTrend.Max(x => x.Value) : 0; }
-                    <div class="d-flex align-items-end justify-content-between pt-2" style="height: 140px;">
+                    <div class="chart-container d-flex align-items-end justify-content-between pt-2" style="height: 140px; gap: 4px;">
                         @foreach(var d in DecadeRatingTrend)
                         {
                             var h = maxTrend > 0 ? (d.Value * 100 / 100) : 0; // Scale to 100
                             var hue = (d.Value / 100.0) * 120;
-                            <div class="d-flex flex-column align-items-center justify-content-end h-100" style="flex: 1;" title="@d.Key: @d.Value.ToString("0.0") avg">
+                            <div class="d-flex flex-column align-items-center justify-content-end h-100" style="flex: 1; min-width: 32px;" title="@d.Key: @d.Value.ToString("0.0") avg">
                                 <div class="fw-bold mb-1" style="font-size: 0.7rem; height: 1.1rem; color: hsl(@hue, 70%, 40%);">@d.Value.ToString("0.0")</div>
                                 <div class="rounded-top" style="width: 70%; max-width: 28px; height: @(d.Value)px; background-color: #14b8a6; transition: height 0.5s ease;"></div>
                                 <div class="mt-2 text-secondary text-center fw-bold" style="font-size: 0.75rem; height: 1.2rem;">@d.Key</div>
@@ -361,8 +421,29 @@
     private int YearlyTotal = 0;
     private List<string> AvailableYears = new();
 
+    private bool _showLeastWatchedGenres = false;
+    private bool _showLowestRatedGenres = false;
+    private bool _showLowestRatedDirectors = false;
+    private int _directorMinMovies = 3;
+    private int DirectorMinMovies
+    {
+        get => _directorMinMovies;
+        set
+        {
+            if (_directorMinMovies != value && value > 0)
+            {
+                _directorMinMovies = value;
+                CalculateRatedDirectors();
+            }
+        }
+    }
+
     private List<KeyValuePair<string, int>> TopGenres = new();
+    private List<KeyValuePair<string, int>> BottomGenres = new();
     private List<KeyValuePair<string, int>> TopDirectors = new();
+    private List<KeyValuePair<string, double>> TopRatedDirectors = new();
+    private List<KeyValuePair<string, double>> BottomRatedDirectors = new();
+    
     private List<KeyValuePair<string, int>> MoviesPerMonth = new();
     
     private double AvgRating = 0;
@@ -370,6 +451,7 @@
     private List<KeyValuePair<string, int>> RatingDistribution = new();
     private List<KeyValuePair<string, int>> DecadeDistribution = new();
     private List<KeyValuePair<string, double>> GenreQuality = new();
+    private List<KeyValuePair<string, double>> GenreLowestQuality = new();
     private List<KeyValuePair<string, int>> RuntimeDistribution = new();
     private List<KeyValuePair<string, double>> DecadeRatingTrend = new();
     private Dictionary<DateTime, int> ActivityHeatmap = new();
@@ -422,11 +504,26 @@
             .Select(g => new KeyValuePair<string, int>(g.Key, g.Count()))
             .ToList();
 
-        GenreQuality = watched
+        BottomGenres = genreGroups
+            .OrderBy(g => g.Count())
+            .Take(5)
+            .Select(g => new KeyValuePair<string, int>(g.Key, g.Count()))
+            .ToList();
+
+        var ratedGenreGroups = watched
             .Where(m => !string.IsNullOrWhiteSpace(m.Genres) && m.Rating20.HasValue)
             .SelectMany(m => m.Genres.Split(',').Select(g => new { G = g.Trim(), R = m.Rating20!.Value }))
             .GroupBy(x => x.G)
+            .ToList();
+
+        GenreQuality = ratedGenreGroups
             .OrderByDescending(g => g.Average(x => x.R))
+            .Take(5)
+            .Select(g => new KeyValuePair<string, double>(g.Key, g.Average(x => x.R)))
+            .ToList();
+
+        GenreLowestQuality = ratedGenreGroups
+            .OrderBy(g => g.Average(x => x.R))
             .Take(5)
             .Select(g => new KeyValuePair<string, double>(g.Key, g.Average(x => x.R)))
             .ToList();
@@ -441,6 +538,9 @@
             .Take(5)
             .Select(g => new KeyValuePair<string, int>(g.Key, g.Count()))
             .ToList();
+
+        // --- 5b. Highest Rated Directors ---
+        CalculateRatedDirectors();
 
         // --- 3. Watched Movies Per Month (Selected Year) ---
         var monthsInYear = Enumerable.Range(1, 12).ToList();
@@ -511,6 +611,29 @@
             .Where(m => m.DateAdded.Date >= startDate)
             .GroupBy(m => m.DateAdded.Date)
             .ToDictionary(g => g.Key, g => g.Count());
+    }
+
+    private void CalculateRatedDirectors()
+    {
+        var watched = Watchlist.WatchedItems.ToList();
+        var directorGroups = watched
+            .Where(m => !string.IsNullOrWhiteSpace(m.Director) && m.Rating20.HasValue)
+            .SelectMany(m => m.Director.Split(',').Select(d => new { D = d.Trim(), R = m.Rating20!.Value }))
+            .GroupBy(x => x.D)
+            .Where(g => g.Count() >= _directorMinMovies)
+            .ToList();
+
+        TopRatedDirectors = directorGroups
+            .OrderByDescending(g => g.Average(x => x.R))
+            .Take(5)
+            .Select(g => new KeyValuePair<string, double>(g.Key, g.Average(x => x.R)))
+            .ToList();
+            
+        BottomRatedDirectors = directorGroups
+            .OrderBy(g => g.Average(x => x.R))
+            .Take(5)
+            .Select(g => new KeyValuePair<string, double>(g.Key, g.Average(x => x.R)))
+            .ToList();
     }
 
     public void Dispose()
