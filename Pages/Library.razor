@@ -235,8 +235,8 @@
 
         @if (showFilters && ActiveTab != "watching")
         {
-            <div class="filter-panel-wrapper" @onclick="@(() => SetFilterVisibility(false))">
-                <div @onclick:stopPropagation="true" class="d-flex">
+            <div class="filter-panel-wrapper h-100" @onclick="@(() => SetFilterVisibility(false))">
+                <div @onclick:stopPropagation="true" class="d-flex h-100">
                     <AdvancedFilterPanel Title="Filters"
                                          AvailableGenres="@_availableGenres"
                                          AvailableTypes="@_availableTypes"

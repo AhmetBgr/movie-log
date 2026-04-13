@@ -4,7 +4,7 @@
 
 <div class="advanced-filter-sidebar @(IsMobile ? "mobile" : "desktop")" @ontouchstart="OnTouchStart" @ontouchend="OnTouchEnd">
 
-    <div class="filter-scroll-content" style="flex: 0 1 auto;">
+    <div class="filter-scroll-content">
         <!-- Applied Filters Summary -->
         @if (HasAppliedFilters)
         {
@@ -174,7 +174,7 @@
     <!-- Actions Area -->
     <div class="filter-footer">
         <div class="d-grid gap-2">
-            <button class="btn @(IsDirty ? "btn-success" : "btn-outline-secondary") py-2 fw-bold shadow-sm" 
+            <button class="btn @(IsDirty ? "btn-apply-dirty" : "btn-outline-secondary") py-2 fw-bold shadow-sm" 
                     disabled="@(!IsDirty)"
                     @onclick="ApplyFilters">
                 <i class="bi bi-check2-circle me-1"></i> Apply
@@ -401,22 +401,21 @@
     .advanced-filter-sidebar {
         display: flex;
         flex-direction: column;
-        background: #dedeffff;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+        background: #ffffff;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.1);
         z-index: 100;
         overflow: hidden;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid #e2e8f0;
     }
 
     .advanced-filter-sidebar.desktop {
         width: 270px;
         flex-shrink: 0;
-        height: auto;
-        max-height: calc(100dvh - 160px);
-        margin: 10px;
-        border-radius: 12px;
-        border: 1px solid rgba(0,0,0,0.05);
-        align-self: flex-start;
+        height: calc(100% - 20px);
+        margin: 10px 16px 10px 10px;
+        border-radius: 16px;
+        align-self: stretch;
         font-size: 0.85rem;
     }
 
@@ -425,42 +424,50 @@
         bottom: 0;
         left: 0;
         right: 0;
-        height: 75vh;
+        height: 80vh;
         border-radius: 24px 24px 0 0;
-        box-shadow: 0 -10px 40px rgba(0,0,0,0.2);
+        box-shadow: 0 -10px 40px rgba(0,0,0,0.25);
         border-right: none;
+        border-left: none;
     }
-
-    .filter-header {
-        padding: 12px 14px 8px;
-        background: #ebf8ffff;
-        border-bottom: 1px solid rgba(0,0,0,0.03);
-    }
-    .filter-header h5 { font-size: 1rem; }
 
     .filter-section {
-        border-bottom: 1px solid #e7ecf6ff;
+        border-bottom: 1px solid #f1f5f9;
+        transition: background 0.2s;
     }
 
     .filter-label {
-        font-size: 0.9rem;
+        font-size: 0.85rem;
         font-weight: 600;
-        color: #1a1a1a;
+        color: #334155;
         cursor: pointer;
         padding: 14px 16px;
         display: flex;
         align-items: center;
-        transition: background 0.2s;
+        transition: all 0.2s;
         background: transparent;
+    }
+    .filter-label::after {
+        content: '\F64D';
+        font-family: 'bootstrap-icons';
+        margin-left: auto;
+        font-size: 0.75rem;
+        opacity: 0.4;
+        transition: transform 0.2s;
     }
 
     .filter-label:hover {
-        background: #f8f8fb;
+        background: #f8fafc;
+        color: #6366f1;
     }
 
     .filter-label.expanded {
-        background: #dbe8f6ff;
-        color: var(--bs-primary);
+        background: #f1f5f9;
+        color: #4f46e5;
+    }
+    .filter-label.expanded::after {
+        transform: rotate(180deg);
+        opacity: 0.8;
     }
 
     .filter-scroll-content {
@@ -479,73 +486,84 @@
 
     .filter-footer {
         padding: 16px;
-        background: #ffdcdcff;
-        border-top: 1px solid #83ffbbff;
+        background: #f8fafc;
+        border-top: 1px solid #e2e8f0;
+        flex-shrink: 0;
     }
 
     .range-sub-label {
         display: block;
-        font-size: 0.62rem;
-        font-weight: 700;
+        font-size: 0.65rem;
+        font-weight: 600;
         text-transform: uppercase;
-        color: #aaa;
-        margin-bottom: 4px;
+        color: #94a3b8;
+        margin-bottom: 6px;
+        letter-spacing: 0.05em;
     }
 
     .filter-input {
-        background: #f8f9fa;
-        border: 1px solid #eee;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
         border-radius: 8px;
         padding: 8px 10px;
-        font-size: 0.8rem;
+        font-size: 0.82rem;
+        color: #1e293b;
         transition: all 0.2s;
     }
     .filter-input:focus {
         background: #fff;
-        border-color: var(--bs-primary);
-        box-shadow: 0 0 0 3px rgba(var(--bs-primary-rgb), 0.1);
+        border-color: #6366f1;
+        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
         outline: none;
     }
 
     .genre-grid {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
-        gap: 5px;
+        gap: 6px;
     }
 
     .genre-btn {
-        background: #f8f9fa;
-        border: 1px solid #eee;
-        border-radius: 4px;
-        padding: 4px 6px;
-        font-size: 0.64rem;
+        background: #f1f5f9;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        padding: 6px 10px;
+        font-size: 0.72rem;
         text-align: left;
         transition: all 0.2s;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        color: #555;
+        color: #475569;
         font-weight: 500;
     }
-    .genre-btn:hover { background: #eee; border-color: #ddd; }
-    .genre-inc { background: #e7f5ec; border-color: #badcc3; color: #198754; font-weight: 700; }
-    .genre-exc { background: #fdf2f2; border-color: #fbd5d5; color: #dc3545; font-weight: 700; }
-
-    @@media (max-width: 576px) {
-        .filter-header { padding: 20px 20px 12px; }
-        .filter-scroll-content { padding: 16px 20px; }
+    .genre-btn:hover { background: #e2e8f0; color: #1e293b; }
+    
+    .genre-inc { 
+        background: #dcfce7; 
+        color: #166534; 
+        font-weight: 600;
+        border-color: #bbf7d0;
+    }
+    .genre-exc { 
+        background: #fee2e2; 
+        color: #991b1b; 
+        font-weight: 600;
+        border-color: #fecaca;
     }
 
     .applied-filters-box {
-        background: #f8f8ff;
-        border-bottom: 2px solid #edefff;
+        background: #f1f5f9;
+        border-bottom: 1px solid #e2e8f0;
         padding: 16px;
     }
 
     .summary-header {
-        font-size: 1.1rem;
+        font-size: 0.75rem;
         font-weight: 700;
-        color: #2d3436;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #64748b;
         margin-bottom: 12px;
     }
 
@@ -556,13 +574,35 @@
     }
 
     .summary-row {
-        font-size: 0.82rem;
-        color: #4a4a4a;
+        font-size: 0.78rem;
+        color: #334155;
+        background: #ffffff;
+        padding: 8px 10px;
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
         display: flex;
         justify-content: space-between;
-        align-items: flex-start;
+        align-items: center;
         line-height: 1.4;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
     }
+    .summary-row b { color: #1e293b; margin-right: 4px; }
 
     .cursor-pointer { cursor: pointer; }
+
+    .btn-apply-dirty {
+        background: #6366f1;
+        color: white;
+        border: none;
+    }
+    .btn-apply-dirty:hover {
+        background: #4f46e5;
+        color: white;
+    }
+
+    @@media (max-width: 576px) {
+        .filter-section > div:not(.filter-label) {
+            padding: 0 20px 24px;
+        }
+    }
 </style>
