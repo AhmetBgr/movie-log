@@ -1352,7 +1352,9 @@ public class WatchlistService
                 Title = item.Title, 
                 OriginalTitle = item.OriginalTitle,
                 ReleaseDate = item.Year,
-                Overview = item.Overview ?? ""
+                Overview = item.Overview ?? "",
+                PosterPath = item.PosterPath,
+                GenreList = item.GenresList.Select(g => new TmdbGenre { Name = g }).ToList()
             };
 
             IsModalOpen = false;
