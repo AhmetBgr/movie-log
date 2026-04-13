@@ -35,6 +35,21 @@
             },
             removeItem: function (key) {
                 localStorage.removeItem(key);
+            },
+            getAllItems: function () {
+                var items = {};
+                for (var i = 0; i < localStorage.length; i++) {
+                    var key = localStorage.key(i);
+                    items[key] = localStorage.getItem(key);
+                }
+                return JSON.stringify(items);
+            },
+            setAllItems: function (json) {
+                var items = JSON.parse(json);
+                localStorage.clear();
+                for (var key in items) {
+                    localStorage.setItem(key, items[key]);
+                }
             }
         };
         window.uiHelpers = {
@@ -49,6 +64,17 @@
             },
             confirm: function (msg) {
                 return window.confirm(msg);
+            },
+            downloadFile: function (filename, content) {
+                var blob = new Blob([content], { type: 'application/json' });
+                var url = URL.createObjectURL(blob);
+                var a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
             }
         };
         window.openOnMenu = {

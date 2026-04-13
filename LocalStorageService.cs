@@ -12,6 +12,16 @@ public class LocalStorageService
         _js = js;
     }
 
+    public async Task<string> ExportAllAsync()
+    {
+        return await _js.InvokeAsync<string>("localStorageFunctions.getAllItems");
+    }
+
+    public async Task ImportAllAsync(string json)
+    {
+        await _js.InvokeVoidAsync("localStorageFunctions.setAllItems", json);
+    }
+
     // ── Plain (uncompressed) helpers ─────────────────────────────────────────
 
     public async Task SaveAsync<T>(string key, T data)

@@ -9,6 +9,7 @@
 @inject MyPrivateWatchlist.Services.OpenOnLinkService OpenOnLinks
 @inject NavigationManager NavManager
 @inject IJSRuntime JS
+@inject LocalStorageService LocalStore
 @implements IDisposable
 
 <PageTitle>Configure & Data</PageTitle>
@@ -259,20 +260,66 @@
             </div>
         </div>
 
-        <!-- Export Section (Placeholder) -->
+        <!-- Export Section -->
         <div class="col-md-6">
-            <div class="card h-100 shadow-sm border-0 rounded-3 opacity-75">
+            <div class="card h-100 shadow-sm border-0 rounded-3">
                 <div class="card-body p-4 d-flex flex-column">
                     <div class="d-flex align-items-center mb-3">
-                        <div class="bg-secondary bg-opacity-10 text-secondary p-2 rounded-3 me-3">
+                        <div class="bg-primary bg-opacity-10 text-primary p-2 rounded-3 me-3">
                             <i class="bi bi-download fs-4"></i>
                         </div>
-                        <h5 class="card-title mb-0 fw-bold text-muted">Export Watchlist</h5>
+                        <h5 class="card-title mb-0 fw-bold">Export Watchlist</h5>
                     </div>
-                    <p class="text-secondary small mb-4">Download your current watchlist as a CSV or JSON file.</p>
-                    <button class="btn btn-outline-secondary mt-auto py-2 rounded-pill fw-bold border-2" disabled>
-                        Coming Soon
-                    </button>
+                    <p class="text-secondary small mb-4">Download your current watchlist as a JSON file for backup or use in other tools.</p>
+                    <div class="mt-auto d-grid gap-2">
+                        <button class="btn btn-outline-primary py-2 rounded-pill fw-bold border-2" @onclick="ExportWatchlistJsonAsync">
+                            <i class="bi bi-filetype-json me-2"></i> Export as JSON
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Full App Backup (Local Storage) -->
+        <div class="col-12 mt-4">
+            <div class="card shadow-sm border-0 rounded-3" style="background: linear-gradient(135deg, #f0f7ff 0%, #ffffff 100%);">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-4">
+                        <div class="bg-indigo bg-opacity-10 text-indigo p-2 rounded-3 me-3" style="color: #6610f2;">
+                            <i class="bi bi-database-fill-gear fs-4"></i>
+                        </div>
+                        <h5 class="card-title mb-0 fw-bold text-dark">App Backup & Local Storage</h5>
+                    </div>
+                    <p class="text-secondary small mb-4">
+                        Export everything stored in your browser's local storage for this app, including your entire library, sync settings, and API keys. 
+                        <strong>Importing a backup will overwrite all current data on this device.</strong>
+                    </p>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <button class="btn btn-indigo w-100 py-3 rounded-3 fw-bold shadow-sm d-flex align-items-center justify-content-center gap-2" 
+                                    style="background-color: #6610f2; color: white;"
+                                    @onclick="ExportLocalStorageAsync">
+                                <i class="bi bi-cloud-arrow-down-fill fs-5"></i>
+                                Export Full Backup (.json)
+                            </button>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="position-relative">
+                                <InputFile OnChange="HandleLocalStorageImport" class="position-absolute opacity-0 w-100 h-100 top-0 start-0" style="cursor: pointer; z-index: 2;" />
+                                <button class="btn btn-outline-indigo w-100 py-3 rounded-3 fw-bold border-2 d-flex align-items-center justify-content-center gap-2"
+                                        style="border-color: #6610f2; color: #6610f2;">
+                                    <i class="bi bi-cloud-arrow-up-fill fs-5"></i>
+                                    Restore from Backup
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    @if (!string.IsNullOrEmpty(backupStatusMessage))
+                    {
+                        <div class="alert @(backupStatusIsError ? "alert-danger" : "alert-success") border-0 py-2 px-3 mt-3 mb-0 small">
+                            @backupStatusMessage
+                        </div>
+                    }
                 </div>
             </div>
         </div>
@@ -472,6 +519,8 @@
     private int importProgress = 0;
     private int importTotal = 0;
     private List<OpenOnLink> _openOnLinks = new();
+    private string backupStatusMessage = "";
+    private bool backupStatusIsError = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -660,6 +709,73 @@
             await WatchlistSvc.ClearAllDataAsync();
             statusMessage = "Library cleared successfully.";
             StateHasChanged();
+        }
+    }
+
+    private async Task ExportWatchlistJsonAsync()
+    {
+        try
+        {
+            var json = System.Text.Json.JsonSerializer.Serialize(WatchlistSvc.Items, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+            var filename = $"movie-log-watchlist-{DateTime.Now:yyyy-MM-dd}.json";
+            await JS.InvokeVoidAsync("uiHelpers.downloadFile", filename, json);
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Error exporting watchlist: {ex.Message}";
+        }
+    }
+
+    private async Task ExportLocalStorageAsync()
+    {
+        try
+        {
+            backupStatusMessage = "";
+            backupStatusIsError = false;
+            var json = await LocalStore.ExportAllAsync();
+            var filename = $"movie-log-full-backup-{DateTime.Now:yyyy-MM-dd}.json";
+            await JS.InvokeVoidAsync("uiHelpers.downloadFile", filename, json);
+            backupStatusMessage = "Local storage backup exported.";
+        }
+        catch (Exception ex)
+        {
+            backupStatusIsError = true;
+            backupStatusMessage = $"Export failed: {ex.Message}";
+        }
+    }
+
+    private async Task HandleLocalStorageImport(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            backupStatusMessage = "";
+            backupStatusIsError = false;
+
+            var confirmed = await JS.InvokeAsync<bool>("confirm", "This will OVERWRITE all your current settings and library with the backup data. Your browser will reload after import. Continue?");
+            if (!confirmed) return;
+
+            using var stream = e.File.OpenReadStream(20_971_520); // 20MB limit
+            using var reader = new StreamReader(stream);
+            var json = await reader.ReadToEndAsync();
+
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                backupStatusIsError = true;
+                backupStatusMessage = "The selected file is empty.";
+                return;
+            }
+
+            await LocalStore.ImportAllAsync(json);
+            backupStatusMessage = "Backup restored successfully. Reloading...";
+            StateHasChanged();
+
+            await Task.Delay(1500);
+            await JS.InvokeVoidAsync("location.reload");
+        }
+        catch (Exception ex)
+        {
+            backupStatusIsError = true;
+            backupStatusMessage = $"Import failed: {ex.Message}";
         }
     }
 
