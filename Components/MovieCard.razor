@@ -455,16 +455,20 @@
     }
     .overview-text {
         font-size: 0.68rem;
-        color: #555;
+        color: #1a1a1aff;
         line-height: 1.45;
+        cursor: text;
+        user-select: text;
     }
 
     @@media (max-width: 768px) {
         .selection-panel.active { width: 36px; }
-        .poster-bg    { min-height: 100px; }
+        .poster-wrap  { width: 72px !important; min-width: 72px !important; height: 108px !important; }
+        .poster-bg    { height: 108px !important; min-height: 108px !important; }
         .data-col     { padding: 8px !important; }
-        .movie-title  { font-size: 0.6rem !important; }
-        .meta-text    { font-size: 0.5rem !important; }
+        .movie-title  { font-size: 1.06rem !important; }
+        .meta-text    { font-size: 0.72rem !important; }
+        .meta-year    { font-size: 0.84rem !important; }
         .rating-badge { min-width: 25px; height: 25px; font-size: 0.7rem; }
         .overview-section { padding: 7px 10px 9px; }
         .overview-text    { font-size: 0.75rem; }
