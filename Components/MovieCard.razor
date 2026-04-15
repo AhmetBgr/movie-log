@@ -3,10 +3,9 @@
 
 @if (Item != null)
 {
-    <div class="card border-0 movie-card @(IsSelected ? "movie-card-selected" : "")"
+    <div class="card movie-card @(IsSelected ? "movie-card-selected" : "")"
          data-holdselect-id="@Item.ImdbId"
-         style="cursor: pointer;"
-         @onclick="ShowDetails">
+         style="cursor: default;">
 
         <!-- Outer row: side panel + main content -->
         <div class="d-flex">
@@ -60,7 +59,8 @@
                 <!-- Top Group: Poster and Data Column -->
                 <div class="d-flex">
                     <!-- Left Side: Poster -->
-                    <div class="position-relative p-0 m-0 poster-wrap" style="width: 80px; flex-shrink: 0;">
+                    <div class="position-relative p-0 m-0 poster-wrap" style="flex-shrink: 0; cursor: pointer;"
+                         @onclick="ShowDetails">
                         <div class="h-100 w-100 d-flex align-items-center justify-content-center p-0 m-0 poster-bg">
                             @if (!string.IsNullOrEmpty(Item.FullPosterUrl) && !Item.FullPosterUrl.Contains("data:image/png;base64"))
                             {
@@ -79,7 +79,7 @@
                     </div>
 
                     <!-- Right Side: Data Column (Vertical Stack) -->
-                    <div class="flex-grow-1 p-2 data-col">
+                    <div class="flex-grow-1 p-2 data-col d-flex flex-column justify-content-center">
                         <!-- Rating Badge -->
                         <!-- 
                         @if (Item.Rating20.HasValue)
@@ -95,15 +95,11 @@
                         <!-- Row 1: Title -->
                         <div class="mb-0">
                             <div class="d-flex align-items-start gap-2">
-                                <h6 class="card-title fw-bold mb-0 movie-title">@Item.Title</h6>
+                                <h6 class="card-title fw-bold mb-0 movie-title"
+                                    style="cursor: pointer;"
+                                    @onclick="ShowDetails">@Item.Title</h6>
                                 <OpenOnMenu Title="@Item.Title" Year="@Item.Year" ImdbId="@RealImdbId" FetchImdbIdAsync="FetchImdbIdOnDemand" />
                             </div>
-                            @if (Item.DateAdded != default && Item.DateAdded != DateTime.MinValue)
-                            {
-                                <div class="meta-text mt-1">
-                                    <i class="bi bi-calendar-plus me-1 opacity-50"></i>Added @Item.DateAdded.ToString("MMM dd, yyyy")
-                                </div>
-                            }
                         </div>
 
                         <!-- Row 2: Release Year & Type -->
@@ -111,8 +107,8 @@
                             <div class="d-flex align-items-center gap-2">
                                 @if (!string.IsNullOrEmpty(Item.Year))
                                 {
-                                    <span class="meta-text">
-                                        <i class="bi bi-calendar3 me-1 opacity-50"></i>@Item.Year
+                                    <span class="meta-text meta-year">
+                                        <i class="bi bi-calendar3 me-1 opacity-50"></i>@(Item.Year?.Length >= 4 ? Item.Year.Substring(0, 4) : Item.Year)
                                     </span>
                                 }
                                 @if (!string.IsNullOrEmpty(Item.TitleType))
@@ -147,25 +143,16 @@
                             </div>
                         }
 
-                        <!-- Inline rating editor -->
+                        <!-- Inline rating display (read-only) -->
                         @if (ShowRating)
                         {
-                            <div class="d-flex align-items-center gap-2 mt-2" @onclick:stopPropagation="true">
+                            <div class="d-flex align-items-center mt-1">
                                 <div class="rating-box-sm @(Item.Rating20 == null ? "rating-empty" : "")"
                                      style="@(Item.Rating20 != null ? $"background:{GetRatingColor(Item.Rating20.Value)};" : "")">
-                                    <input type="number" class="rating-input-sm @(Item.Rating20 == null ? "" : "text-white")"
-                                           min="0" max="100" placeholder="–"
-                                           value="@Item.Rating20"
-                                           @onchange="(e) => UpdateRating20(Item, string.IsNullOrEmpty(e.Value?.ToString()) ? null : int.Parse(e.Value.ToString()!))" />
+                                    <span class="rating-static @(Item.Rating20 == null ? "" : "text-white")">
+                                        @(Item.Rating20?.ToString() ?? "–")
+                                    </span>
                                 </div>
-                                <span class="text-secondary" style="font-size:0.68rem;">/ 100</span>
-                                @if (IsEditMode && Item.Rating20 != null)
-                                {
-                                    <button class="btn btn-link btn-sm p-0 text-secondary opacity-40" style="text-decoration:none;"
-                                            @onclick="() => UpdateRating20(Item, null)">
-                                        <i class="bi bi-x-circle"></i>
-                                    </button>
-                                }
                             </div>
                         }
 
@@ -313,46 +300,43 @@
     /* Mobile pill container — shrinks pill if the title cell gets narrow (rules in app.css) */
     .tracking-pill-wrap { container-type: inline-size; }
 
-    /* Rating box (card view — smaller) */
+    /* Rating box (card view — read-only, smaller) */
     .rating-box-sm {
-        width: 38px; height: 38px; border-radius: 8px;
+        width: 30px; height: 30px; border-radius: 6px;
         display: flex; align-items: center; justify-content: center;
         border: 2px dashed #dee2e6; background: #f8f9fa;
-        transition: border-color 0.2s, background 0.2s, transform 0.15s;
     }
-    .rating-box-sm:focus-within { transform: scale(1.08); border-style: solid; border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
     .rating-box-sm:not(.rating-empty) { border: none; }
-    .rating-input-sm {
-        width: 38px; height: 38px; text-align: center; font-weight: 900;
-        font-size: 0.9rem; background: transparent; border: none; outline: none;
-        cursor: pointer; color: #555;
+    .rating-static {
+        text-align: center; font-weight: 900;
+        font-size: 0.75rem; color: #555;
+        pointer-events: none; user-select: none;
     }
-    .rating-input-sm.text-white { color: #fff !important; caret-color: #fff; }
-    input[type=number].rating-input-sm::-webkit-inner-spin-button,
-    input[type=number].rating-input-sm::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-    input[type=number].rating-input-sm { -moz-appearance: textfield; }
+    .rating-static.text-white { color: #fff !important; }
 
 
     .movie-card {
-        background: #fff;
-        border-radius: 10px !important;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.07), 0 2px 8px rgba(0,0,0,0.05);
-        transition: box-shadow 0.08s ease;
+        background: transparent;
+        border-radius: 0 !important;
+        border: none;
+        box-shadow: none;
+        transition: background-color 0.1s ease;
         overflow: hidden;
     }
     .movie-card:hover {
-        box-shadow: 0 4px 16px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.06) !important;
+        box-shadow: none !important;
+        background-color: rgba(0,0,0,0.02);
     }
     .movie-card-selected {
         outline: 2px solid rgba(13, 110, 253, 0.5);
-        background-color: rgba(13, 110, 253, 0.03) !important;
+        background-color: rgba(13, 110, 253, 0.05) !important;
     }
 
     .selection-panel {
         width: 0;
         flex-shrink: 0;
         border-right: 0px solid rgba(0,0,0,0.06);
-        background: #f8f9fa;
+        background: transparent;
         display: flex;
         flex-direction: column;
         gap: 6px;
@@ -363,11 +347,11 @@
     }
     .selection-panel.active {
         width: 44px;
-        border-right-width: 1px;
+        border-right-width: 0px;
         padding: 8px 4px;
     }
     .selection-panel:hover {
-        background: #f0f1f2;
+        background: transparent;
     }
 
     .card-checkbox {
@@ -395,12 +379,17 @@
         flex-shrink: 0 !important;
         min-width: 80px !important;
         width: 80px !important;
-        border-radius: 0;
+        height: 120px !important;
+        border-radius: 4px;
         overflow: hidden;
     }
     .poster-bg {
-        background: #f0f0f0;
-        min-height: 115px;
+        background: transparent;
+        height: 120px;
+        min-height: 120px;
+    }
+    .poster-img {
+        border-radius: 4px;
     }
     .rating-badge {
         display: inline-flex;
@@ -418,18 +407,25 @@
     }
 
     .data-col {
-        border-left: 1px solid rgba(0,0,0,0.05);
+        border-left: none;
     }
     .movie-title {
         font-size: 0.7rem;
         color: #111;
         line-height: 1.35;
         letter-spacing: -0.01em;
+        transition: color 0.15s ease;
+    }
+    .movie-title:hover {
+        color: #f97316 !important;
     }
     .meta-text {
         font-size: 0.62rem;
         color: #888;
         display: block;
+    }
+    .meta-year {
+        font-size: 0.89rem;
     }
 
     .type-badge {
@@ -456,9 +452,9 @@
 
     .overview-section {
         padding: 6px 14px 8px;
-        border-top: 1px solid rgba(0,0,0,0.05);
-        background: #fafafa;
-        border-radius: 0 0 10px 10px;
+        border-top: none;
+        background: transparent;
+        border-radius: 0;
     }
     .overview-text {
         font-size: 0.68rem;

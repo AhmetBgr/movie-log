@@ -306,11 +306,11 @@
                             var itemsList = CurrentItems.ToList();
                             var pagedItems = itemsList.Take(_currentPageSize).ToList();
                         }
-                        <div class="row row-cols-1 g-2">
+                        <div class="row row-cols-1 g-0">
                             @foreach (var item in pagedItems)
                             {
                                 var rank = (SelectedCollection != null && CurrentSortColumn == "Order") ? (SelectedCollection.Items.FirstOrDefault(ci => ci.ImdbId == item.ImdbId)?.Order + 1 ?? 0) : 0;
-                                <div class="col" @key="item.ImdbId">
+                                <div class="col card-row" @key="item.ImdbId">
                                     <MovieCard Item="item"
                                                IsEditMode="@isEditing"
                                                IsSelected="@_selectedIds.Contains(item.ImdbId)"
@@ -726,6 +726,13 @@
 }
 
 <style>
+    .card-row {
+        border-bottom: 1px solid #d1d5db;
+    }
+    .card-row:last-child {
+        border-bottom: none;
+    }
+
     /* Discovery Style Tabs */
     .discovery-tabs {
         display: flex;
