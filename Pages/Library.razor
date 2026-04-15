@@ -306,6 +306,7 @@
                             var itemsList = CurrentItems.ToList();
                             var pagedItems = itemsList.Take(_currentPageSize).ToList();
                         }
+                        <div class="card-list-frame">
                         <div class="row row-cols-1 g-0">
                             @foreach (var item in pagedItems)
                             {
@@ -325,6 +326,7 @@
                                                OnRankChanged="@((r) => WatchlistSvc.SetCollectionItemRankAsync(SelectedCollectionId.Value, item.ImdbId, r))" />
                                 </div>
                             }
+                        </div>
                         </div>
                         
                         @if (itemsList.Count > _currentPageSize)
@@ -726,11 +728,25 @@
 }
 
 <style>
+    /* Card list frame — transparent panel wrapping all cards */
+    .card-list-frame {
+        border: 1.5px solid rgba(0, 0, 0, 0.20);
+        border-radius: 12px;
+        background: transparent;
+        overflow: hidden;
+        padding: 0 12px;
+    }
+
     .card-row {
-        border-bottom: 1px solid #d1d5db;
+        padding: 10px 0;
+        border-bottom: 1.5px solid rgba(0, 0, 0, 0.20);
     }
     .card-row:last-child {
         border-bottom: none;
+        padding-bottom: 10px;
+    }
+    .card-row:first-child {
+        padding-top: 10px;
     }
 
     /* Discovery Style Tabs */
