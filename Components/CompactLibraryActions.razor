@@ -307,20 +307,7 @@
 
         if (Item == null && Movie != null)
         {
-            // Auto-add to library if movie matches
-            Item = new WatchlistItem
-            {
-                ImdbId = ImdbId,
-                Title = Movie.Title,
-                Status = newStatus,
-                TmdbId = Movie.Id,
-                PosterPath = Movie.PosterPath,
-                Year = Movie.ReleaseDate ?? "",
-                Runtime = Movie.Runtime,
-                VoteAverage = Movie.VoteAverage,
-                Genres = string.Join(", ", Movie.GenreList?.Select(g => g.Name) ?? Enumerable.Empty<string>())
-            };
-            WatchlistSvc.Items.Add(Item);
+            Item = await WatchlistSvc.AddFromTmdbAsync(Movie, newStatus, ImdbId);
         }
         else if (Item != null)
         {

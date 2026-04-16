@@ -1222,6 +1222,37 @@ public class WatchlistService
         }
     }
 
+    public async Task<WatchlistItem?> AddFromTmdbAsync(TmdbMovie movie, WatchlistStatus status, string? imdbId = null)
+    {
+        if (movie == null) return null;
+
+        var resolvedImdbId = imdbId ?? movie.ImdbId;
+        var details = await EnsureLibraryReadyMovieAsync(movie, resolvedImdbId);
+        resolvedImdbId = resolvedImdbId ?? details?.ImdbId;
+
+        if (string.IsNullOrWhiteSpace(resolvedImdbId))
+        {
+            return null;
+        }
+
+        var existing = Items.FirstOrDefault(i => i.ImdbId == resolvedImdbId);
+        if (existing != null)
+        {
+            ApplyMovieDataToItem(existing, details ?? movie, status);
+            await UpdateListAsync(Items);
+            return existing;
+        }
+
+        var newItem = new WatchlistItem
+        {
+            ImdbId = resolvedImdbId
+        };
+
+        ApplyMovieDataToItem(newItem, details ?? movie, status);
+        await AddItemAsync(newItem);
+        return newItem;
+    }
+
     public async Task AddItemAsync(WatchlistItem item)
     {
         Console.WriteLine($"AddItemAsync called: {item.Title} (IMDB: {item.ImdbId})");
@@ -1287,6 +1318,108 @@ public class WatchlistService
     }
 
     public bool IsInWatchlist(string? imdbId) => !string.IsNullOrEmpty(imdbId) && Items.Any(i => i.ImdbId == imdbId);
+
+    private async Task<TmdbMovie?> EnsureLibraryReadyMovieAsync(TmdbMovie movie, string? imdbId)
+    {
+        var needsHydration =
+            string.IsNullOrWhiteSpace(movie.ImdbId) ||
+            movie.Runtime == null ||
+            string.IsNullOrWhiteSpace(movie.Overview) ||
+            movie.Credits?.Crew == null ||
+            movie.GenreList == null ||
+            movie.GenreList.Count == 0;
+
+        if (!needsHydration)
+        {
+            return movie;
+        }
+
+        if (movie.Id > 0)
+        {
+            var mediaType = NormalizeMediaType(movie.MediaType, movie);
+            var byId = await GetTmdbDetailsByIdAsync(movie.Id, mediaType);
+            if (byId != null)
+            {
+                byId.ImdbId ??= imdbId;
+                return byId;
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(imdbId))
+        {
+            return await GetTmdbDetailsAsync(imdbId);
+        }
+
+        return movie;
+    }
+
+    private void ApplyMovieDataToItem(WatchlistItem item, TmdbMovie movie, WatchlistStatus status)
+    {
+        var normalizedImdbId = movie.ImdbId ?? item.ImdbId;
+        if (!string.IsNullOrWhiteSpace(normalizedImdbId))
+        {
+            item.ImdbId = normalizedImdbId;
+        }
+
+        item.Title = movie.Title;
+        item.OriginalTitle = !string.IsNullOrWhiteSpace(movie.OriginalTitle) &&
+            !string.Equals(movie.OriginalTitle, movie.Title, StringComparison.OrdinalIgnoreCase)
+            ? movie.OriginalTitle
+            : null;
+        item.TitleType = GetTitleType(movie);
+        item.Year = movie.ReleaseDate ?? item.Year ?? "";
+        item.ParsedYear = ParseYear(item.Year);
+        item.Genres = string.Join(", ", movie.GenreList?.Select(g => g.Name).Where(n => !string.IsNullOrWhiteSpace(n)) ?? Enumerable.Empty<string>());
+        item.RefreshGenresList();
+        item.Director = movie.Credits?.Crew?.FirstOrDefault(c => c.Job == "Director")?.Name ?? item.Director;
+        item.Status = status;
+        item.PosterPath = movie.PosterPath ?? item.PosterPath;
+        item.TmdbId = movie.Id > 0 ? movie.Id : item.TmdbId;
+        item.Runtime = movie.Runtime ?? item.Runtime;
+        item.VoteAverage = movie.VoteAverage > 0 ? movie.VoteAverage : item.VoteAverage;
+        item.Overview = !string.IsNullOrWhiteSpace(movie.Overview) ? movie.Overview : item.Overview;
+        item.Collection = movie.Collection ?? item.Collection;
+
+        if (status == WatchlistStatus.Watching && item.TitleType.Contains("TV", StringComparison.OrdinalIgnoreCase))
+        {
+            item.CurrentSeason ??= 1;
+            item.CurrentEpisode ??= 1;
+        }
+        else if (status != WatchlistStatus.Watching)
+        {
+            item.CurrentSeason = item.TitleType.Contains("TV", StringComparison.OrdinalIgnoreCase) ? item.CurrentSeason : null;
+            item.CurrentEpisode = item.TitleType.Contains("TV", StringComparison.OrdinalIgnoreCase) ? item.CurrentEpisode : null;
+        }
+
+        if (!string.IsNullOrWhiteSpace(item.ImdbId))
+        {
+            _detailsStore[item.ImdbId] = new WatchlistItemDetails
+            {
+                ImdbId = item.ImdbId,
+                OriginalTitle = item.OriginalTitle,
+                Overview = item.Overview,
+                VoteAverage = item.VoteAverage
+            };
+        }
+    }
+
+    private static int ParseYear(string? releaseDate)
+    {
+        if (string.IsNullOrWhiteSpace(releaseDate)) return 0;
+        return int.TryParse(releaseDate.Split('-')[0], out var year) ? year : 0;
+    }
+
+    private static string NormalizeMediaType(string? mediaType, TmdbMovie movie)
+    {
+        if (string.Equals(mediaType, "tv", StringComparison.OrdinalIgnoreCase)) return "tv";
+        if (string.Equals(mediaType, "movie", StringComparison.OrdinalIgnoreCase)) return "movie";
+        return movie.Seasons?.Any() == true ? "tv" : "movie";
+    }
+
+    private static string GetTitleType(TmdbMovie movie)
+    {
+        return NormalizeMediaType(movie.MediaType, movie) == "tv" ? "TV Series" : "Movie";
+    }
 
     public bool IsInWatchlistFuzzy(string title, string? year)
     {
