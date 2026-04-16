@@ -1,0 +1,392 @@
+@page "/data-hub"
+@using System.Globalization
+@using System.Text.RegularExpressions
+@using CsvHelper
+@using CsvHelper.Configuration
+@using MyPrivateWatchlist.Models
+@inject MyPrivateWatchlist.Services.WatchlistService WatchlistSvc
+@inject NavigationManager NavManager
+@inject IJSRuntime JS
+@inject LocalStorageService LocalStore
+
+<PageTitle>Data Hub</PageTitle>
+
+<div class="container py-4" style="padding-left:4.5px;padding-right:4.5px;">
+    <h2 class="mb-2 fw-bold text-dark d-flex align-items-center"><i class="bi bi-hdd-stack-fill me-3 text-primary"></i>Data Hub</h2>
+    <p class="text-secondary mb-4">Import CSV files, export separate lists as CSV, and back up the whole save file as JSON.</p>
+    <div class="d-flex justify-content-end mb-4">
+        <button class="btn btn-outline-secondary rounded-pill px-4" @onclick='() => NavManager.NavigateTo("configure")'><i class="bi bi-arrow-left me-2"></i>Back to Configure</button>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-5">
+            <div class="card shadow-sm border-0 rounded-4 h-100">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-3"><i class="bi bi-file-earmark-arrow-up me-2 text-primary"></i>Import operations</h5>
+
+                    <label class="form-label small fw-bold text-secondary text-uppercase">Import Source</label>
+                    <select class="form-select border-0 bg-light shadow-none mb-2" @bind="selectedImportSource">
+                        <option value="Auto">Auto Detect</option>
+                        <option value="Imdb">IMDb</option>
+                        <option value="Letterboxd">Letterboxd</option>
+                        <option value="Trakt">Trakt</option>
+                        <option value="Generic">Generic CSV</option>
+                    </select>
+                    <div class="form-text small mb-3">Use Auto for mixed files, or force a source preset for better column matching.</div>
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="dataHubImportAsWatched" @bind="importAsWatched">
+                        <label class="form-check-label small fw-bold text-secondary" for="dataHubImportAsWatched">Import as Watched History</label>
+                    </div>
+                    <InputFile OnChange="HandleFileSelected" class="form-control bg-light border-0 py-2 mb-3" />
+                    @if (!string.IsNullOrWhiteSpace(importStatusMessage))
+                    {
+                        <div class="alert @(importStatusMessage.StartsWith("Error", StringComparison.OrdinalIgnoreCase) ? "alert-danger" : "alert-success") border-0 small py-2 mb-0">@importStatusMessage</div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-7">
+            <div class="card shadow-sm border-0 rounded-4 h-100">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-3"><i class="bi bi-filetype-csv me-2 text-success"></i>CSV export operations</h5>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4"><button class="btn btn-outline-primary w-100 rounded-3 py-3 fw-semibold" @onclick='() => ExportListCsvAsync("watchlist")'>Watchlist</button></div>
+                        <div class="col-md-4"><button class="btn btn-outline-primary w-100 rounded-3 py-3 fw-semibold" @onclick='() => ExportListCsvAsync("watched")'>Watched</button></div>
+                        <div class="col-md-4"><button class="btn btn-outline-primary w-100 rounded-3 py-3 fw-semibold" @onclick='() => ExportListCsvAsync("watching")'>Watching</button></div>
+                    </div>
+                    <div class="border rounded-4 bg-light-subtle p-3">
+                        <div class="fw-bold text-dark mb-1">Individual collections</div>
+                        <div class="small text-secondary mb-3">Each collection exports in its ranked order.</div>
+                        @if (WatchlistSvc.Collections.Any())
+                        {
+                            <div class="d-grid gap-2">
+                                @foreach (var collection in WatchlistSvc.Collections.OrderBy(c => c.Name))
+                                {
+                                    <button class="btn btn-outline-dark text-start rounded-3 py-2 px-3" @onclick='() => ExportCollectionCsvAsync(collection.Id)'><i class="bi bi-folder2-open me-2"></i>@collection.Name</button>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="small text-secondary">No custom collections available yet.</div>
+                        }
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(exportStatusMessage))
+                    {
+                        <div class="alert @(exportStatusIsError ? "alert-danger" : "alert-success") border-0 small py-2 mt-3 mb-0">@exportStatusMessage</div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12">
+            <div class="card shadow-sm border-0 rounded-4" style="background:linear-gradient(135deg,#f0f7ff 0%,#ffffff 100%);">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-3"><i class="bi bi-database-fill-gear me-2" style="color:#6610f2;"></i>Full save file</h5>
+                    <p class="text-secondary small mb-4">Export everything as JSON, or restore from a full backup. <strong>Import overwrites current local data.</strong></p>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <button class="btn w-100 py-3 rounded-3 fw-bold" style="background-color:#6610f2;color:white;" @onclick="ExportLocalStorageAsync">Export whole save file (.json)</button>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="position-relative">
+                                <InputFile OnChange="HandleLocalStorageImport" class="position-absolute opacity-0 w-100 h-100 top-0 start-0" style="cursor:pointer;z-index:2;" />
+                                <button class="btn w-100 py-3 rounded-3 fw-bold border-2" style="border-color:#6610f2;color:#6610f2;background:white;">Import whole save file</button>
+                            </div>
+                        </div>
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(backupStatusMessage))
+                    {
+                        <div class="alert @(backupStatusIsError ? "alert-danger" : "alert-success") border-0 py-2 px-3 mt-3 mb-0 small">@backupStatusMessage</div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string selectedImportSource = "Auto";
+    private bool importAsWatched;
+    private string importStatusMessage = "";
+    private string exportStatusMessage = "";
+    private bool exportStatusIsError;
+    private string backupStatusMessage = "";
+    private bool backupStatusIsError;
+    private int importTotal;
+    private int importProgress;
+
+    private async Task ExportListCsvAsync(string listKey)
+    {
+        try
+        {
+            exportStatusIsError = false;
+            var items = listKey switch
+            {
+                "watchlist" => WatchlistSvc.Items.Where(i => i.Status == WatchlistStatus.Pending).ToList(),
+                "watched" => WatchlistSvc.Items.Where(i => i.Status == WatchlistStatus.Watched).ToList(),
+                "watching" => WatchlistSvc.Items.Where(i => i.Status == WatchlistStatus.Watching).ToList(),
+                _ => new List<WatchlistItem>()
+            };
+            if (!items.Any()) { exportStatusMessage = $"No items found in {listKey}."; return; }
+            await DownloadCsvAsync($"movie-log-{listKey}-{DateTime.Now:yyyy-MM-dd}.csv", items);
+            exportStatusMessage = $"{items.Count} item(s) exported from {listKey}.";
+        }
+        catch (Exception ex) { exportStatusIsError = true; exportStatusMessage = $"Export failed: {ex.Message}"; }
+    }
+
+    private async Task ExportCollectionCsvAsync(Guid collectionId)
+    {
+        try
+        {
+            exportStatusIsError = false;
+            var collection = WatchlistSvc.Collections.FirstOrDefault(c => c.Id == collectionId);
+            if (collection is null) { exportStatusIsError = true; exportStatusMessage = "Collection not found."; return; }
+            var map = WatchlistSvc.Items.Where(i => !string.IsNullOrWhiteSpace(i.ImdbId)).ToDictionary(i => i.ImdbId, StringComparer.OrdinalIgnoreCase);
+            var items = collection.Items.OrderBy(i => i.Order).Select(i => map.TryGetValue(i.ImdbId, out var item) ? item : null).Where(i => i is not null).Cast<WatchlistItem>().ToList();
+            if (!items.Any()) { exportStatusMessage = $"Collection \"{collection.Name}\" has no exportable items."; return; }
+            await DownloadCsvAsync($"movie-log-collection-{SanitizeFileSegment(collection.Name)}-{DateTime.Now:yyyy-MM-dd}.csv", items);
+            exportStatusMessage = $"{items.Count} item(s) exported from {collection.Name}.";
+        }
+        catch (Exception ex) { exportStatusIsError = true; exportStatusMessage = $"Export failed: {ex.Message}"; }
+    }
+
+    private async Task DownloadCsvAsync(string filename, IReadOnlyList<WatchlistItem> items)
+    {
+        using var writer = new StringWriter(CultureInfo.InvariantCulture);
+        using var csv = new CsvWriter(writer, CultureInfo.InvariantCulture);
+        foreach (var header in new[] { "Position", "Const", "Created", "Modified", "Description", "Title", "Original Title", "URL", "Title Type", "IMDb Rating", "Runtime (mins)", "Year", "Genres", "Num Votes", "Release Date", "Directors", "Your Rating", "Date Rated" }) csv.WriteField(header);
+        await csv.NextRecordAsync();
+        for (var index = 0; index < items.Count; index++)
+        {
+            var item = items[index];
+            var created = item.DateAdded == default ? "" : item.DateAdded.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            csv.WriteField(index + 1);
+            csv.WriteField(item.ImdbId);
+            csv.WriteField(created);
+            csv.WriteField(created);
+            csv.WriteField(item.Overview ?? "");
+            csv.WriteField(item.Title);
+            csv.WriteField(item.OriginalTitle ?? item.Title);
+            csv.WriteField(string.IsNullOrWhiteSpace(item.ImdbId) ? "" : $"https://www.imdb.com/title/{item.ImdbId}/");
+            csv.WriteField(item.TitleType);
+            csv.WriteField(item.VoteAverage?.ToString("0.0", CultureInfo.InvariantCulture) ?? "");
+            csv.WriteField(item.Runtime?.ToString(CultureInfo.InvariantCulture) ?? "");
+            csv.WriteField(item.ParsedYear > 0 ? item.ParsedYear.ToString(CultureInfo.InvariantCulture) : item.Year ?? "");
+            csv.WriteField(item.Genres);
+            csv.WriteField("");
+            csv.WriteField("");
+            csv.WriteField(item.Director ?? "");
+            csv.WriteField(item.UserRating?.ToString(CultureInfo.InvariantCulture) ?? "");
+            csv.WriteField(item.Status == WatchlistStatus.Watched && item.DateAdded != default ? item.DateAdded.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) : "");
+            await csv.NextRecordAsync();
+        }
+        await JS.InvokeVoidAsync("uiHelpers.downloadFile", filename, writer.ToString(), "text/csv;charset=utf-8");
+    }
+
+    private static string SanitizeFileSegment(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return "collection";
+        var invalid = Regex.Escape(new string(Path.GetInvalidFileNameChars()));
+        var sanitized = Regex.Replace(value.Trim(), $"[{invalid}]", "-");
+        sanitized = Regex.Replace(sanitized, @"\s+", "-").Trim('-');
+        return string.IsNullOrWhiteSpace(sanitized) ? "collection" : sanitized.ToLowerInvariant();
+    }
+
+    private async Task ExportLocalStorageAsync()
+    {
+        try
+        {
+            backupStatusMessage = "";
+            backupStatusIsError = false;
+            var json = await LocalStore.ExportAllAsync();
+            await JS.InvokeVoidAsync("uiHelpers.downloadFile", $"movie-log-full-backup-{DateTime.Now:yyyy-MM-dd}.json", json, "application/json");
+            backupStatusMessage = "Whole save file exported.";
+        }
+        catch (Exception ex) { backupStatusIsError = true; backupStatusMessage = $"Export failed: {ex.Message}"; }
+    }
+
+    private async Task HandleLocalStorageImport(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            backupStatusMessage = "";
+            backupStatusIsError = false;
+            if (!await JS.InvokeAsync<bool>("confirm", "This will OVERWRITE all your current settings and library with the backup data. Your browser will reload after import. Continue?")) return;
+            using var stream = e.File.OpenReadStream(20_971_520);
+            using var reader = new StreamReader(stream);
+            var json = await reader.ReadToEndAsync();
+            if (string.IsNullOrWhiteSpace(json)) { backupStatusIsError = true; backupStatusMessage = "The selected file is empty."; return; }
+            await LocalStore.ImportAllAsync(json);
+            backupStatusMessage = "Backup restored successfully. Reloading...";
+            StateHasChanged();
+            await Task.Delay(1500);
+            await JS.InvokeVoidAsync("location.reload");
+        }
+        catch (Exception ex) { backupStatusIsError = true; backupStatusMessage = $"Import failed: {ex.Message}"; }
+    }
+
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            importStatusMessage = "Reading file...";
+            StateHasChanged();
+            using var stream = e.File.OpenReadStream(10_485_760);
+            using var reader = new StreamReader(stream);
+            var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+            {
+                PrepareHeaderForMatch = args => args.Header.ToLower().Replace(" ", "").Replace("_", "").Replace("\"", ""),
+                HeaderValidated = null,
+                MissingFieldFound = null,
+                TrimOptions = TrimOptions.Trim
+            };
+            using var csv = new CsvReader(reader, config);
+            await csv.ReadAsync();
+            csv.ReadHeader();
+            var headers = csv.HeaderRecord?.ToList() ?? new List<string>();
+            var mergedItems = new List<WatchlistItem>(WatchlistSvc.Items);
+            var existingIds = new HashSet<string>(mergedItems.Where(i => !string.IsNullOrWhiteSpace(i.ImdbId)).Select(i => i.ImdbId), StringComparer.OrdinalIgnoreCase);
+            static string NormalizeHeader(string value) => value.ToLower().Replace(" ", "").Replace("_", "").Replace("\"", "");
+            var normalizedHeaderToActual = headers.Select(h => new { Actual = h, Normalized = NormalizeHeader(h) }).GroupBy(h => h.Normalized).ToDictionary(g => g.Key, g => g.First().Actual, StringComparer.OrdinalIgnoreCase);
+            static string? ReadByAliases(CsvReader csvReader, Dictionary<string, string> headerMap, string[] aliases)
+            {
+                foreach (var alias in aliases) if (headerMap.TryGetValue(alias, out var actualHeader)) return csvReader.GetField(actualHeader);
+                return null;
+            }
+            var aliasSet = GetAliasSet(selectedImportSource);
+            importTotal = 0; importProgress = 0; var importErrorCount = 0; var newItemsCount = 0; var duplicateCount = 0;
+            while (await csv.ReadAsync())
+            {
+                importTotal++; importProgress++;
+                if (importProgress % 5 == 0) { importStatusMessage = $"Hydrating {importProgress} / {importTotal}..."; StateHasChanged(); }
+                var id = ReadByAliases(csv, normalizedHeaderToActual, aliasSet.IdAliases);
+                var tmdbIdRaw = ReadByAliases(csv, normalizedHeaderToActual, aliasSet.TmdbAliases);
+                var title = ReadByAliases(csv, normalizedHeaderToActual, aliasSet.TitleAliases);
+                var year = ReadByAliases(csv, normalizedHeaderToActual, aliasSet.YearAliases);
+                var rating = ReadByAliases(csv, normalizedHeaderToActual, aliasSet.RatingAliases);
+                var type = ReadByAliases(csv, normalizedHeaderToActual, aliasSet.TypeAliases);
+                var directors = ReadByAliases(csv, normalizedHeaderToActual, aliasSet.DirectorAliases);
+                var genres = ReadByAliases(csv, normalizedHeaderToActual, aliasSet.GenreAliases);
+                string? posterPath = null;
+                string? urlHint = null;
+                if (string.IsNullOrWhiteSpace(type))
+                {
+                    if (!string.IsNullOrWhiteSpace(id) && id.Contains("://")) urlHint = id;
+                    if (urlHint is null) foreach (var header in headers) { var cell = csv.GetField(header); if (!string.IsNullOrWhiteSpace(cell) && cell.Contains("://")) { urlHint = cell; break; } }
+                }
+                if (string.IsNullOrEmpty(title)) { importErrorCount++; continue; }
+                string? finalImdbId = NormalizeImdbId(id);
+                int? parsedYear = null;
+                if (!string.IsNullOrEmpty(year))
+                {
+                    var yearDigits = new string(year.TakeWhile(char.IsDigit).ToArray());
+                    if (int.TryParse(yearDigits, out var py)) parsedYear = py;
+                }
+                if (string.IsNullOrEmpty(finalImdbId))
+                {
+                    if (!string.IsNullOrWhiteSpace(tmdbIdRaw) && int.TryParse(new string(tmdbIdRaw.Where(char.IsDigit).ToArray()), out var tmdbId))
+                    {
+                        var tmdbMovie = await WatchlistSvc.GetTmdbDetailsByIdAsync(tmdbId, InferMediaType(type, urlHint));
+                        finalImdbId = NormalizeImdbId(tmdbMovie?.ImdbId);
+                    }
+                    if (string.IsNullOrEmpty(finalImdbId)) finalImdbId = await WatchlistSvc.ResolveImdbIdAsync(title, parsedYear);
+                    if (string.IsNullOrEmpty(genres) && !string.IsNullOrEmpty(finalImdbId))
+                    {
+                        var tmdbItem = await WatchlistSvc.GetTmdbDetailsAsync(finalImdbId);
+                        if (tmdbItem != null && tmdbItem.GenreList.Any()) genres = string.Join(", ", tmdbItem.GenreList.Select(g => g.Name));
+                        if (tmdbItem != null && !string.IsNullOrEmpty(tmdbItem.PosterPath)) posterPath = tmdbItem.PosterPath;
+                    }
+                }
+                if (!string.IsNullOrEmpty(finalImdbId))
+                {
+                    if (existingIds.Contains(finalImdbId)) { duplicateCount++; continue; }
+                    int? rating20 = null;
+                    if (!string.IsNullOrEmpty(rating))
+                    {
+                        var ratingDigits = new string(rating.TakeWhile(c => char.IsDigit(c) || c == '.').ToArray());
+                        if (double.TryParse(ratingDigits, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsedRating))
+                        {
+                            rating20 = parsedRating > 10 ? (int)Math.Round(parsedRating) : (int)Math.Round(parsedRating * 10.0);
+                            if (rating20 > 100) rating20 = 100;
+                            if (rating20 < 1) rating20 = 1;
+                        }
+                    }
+                    var dateAddedStr = ReadByAliases(csv, normalizedHeaderToActual, new[] { "daterated", "dateadded", "watchedon", "datewatched", "added", "createdat", "date", "ratingdate", "watched" });
+                    var dateAdded = DateTime.Now;
+                    if (!string.IsNullOrEmpty(dateAddedStr) && DateTime.TryParse(dateAddedStr, out var parsedDate)) dateAdded = parsedDate;
+                    var normalizedImdbId = finalImdbId.Trim();
+                    mergedItems.Add(new WatchlistItem { ImdbId = normalizedImdbId, Title = title.Trim(), TitleType = InferTitleType(type, urlHint), Year = year?.Trim() ?? "", Director = directors?.Trim() ?? "", Genres = genres?.Trim() ?? "", PosterPath = posterPath, ParsedYear = parsedYear ?? 0, Status = importAsWatched ? WatchlistStatus.Watched : WatchlistStatus.Pending, DateAdded = dateAdded, Rating20 = rating20, UserRating = rating20.HasValue ? (int)Math.Max(1, Math.Min(10, Math.Round(rating20.Value / 10.0))) : null });
+                    existingIds.Add(normalizedImdbId);
+                    newItemsCount++;
+                }
+                else importErrorCount++;
+            }
+            if (newItemsCount > 0) { await WatchlistSvc.UpdateListAsync(mergedItems); importStatusMessage = $"Success ({selectedImportSource}): Added {newItemsCount} new items. (Skipped {duplicateCount} duplicates, {importErrorCount} failures)"; }
+            else importStatusMessage = $"No new items found ({selectedImportSource}). ({duplicateCount} already in library, {importErrorCount} failures)";
+        }
+        catch (Exception ex) { Console.WriteLine($"CSV Import Detail Error: {ex}"); importStatusMessage = $"Error: {ex.Message}"; }
+    }
+
+    private static string? NormalizeImdbId(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return null;
+        var value = raw.Trim();
+        if (value.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+        {
+            var marker = value.IndexOf("/title/", StringComparison.OrdinalIgnoreCase);
+            if (marker >= 0)
+            {
+                var rest = value[(marker + "/title/".Length)..];
+                var slash = rest.IndexOf('/');
+                value = slash >= 0 ? rest[..slash] : rest;
+            }
+        }
+        if (!value.StartsWith("tt", StringComparison.OrdinalIgnoreCase)) return null;
+        return value.ToLowerInvariant();
+    }
+
+    private static string InferTitleType(string? type, string? urlHint = null)
+    {
+        if (!string.IsNullOrWhiteSpace(type))
+        {
+            var normalized = type.ToLowerInvariant();
+            if (normalized.Contains("tv") || normalized.Contains("show") || normalized.Contains("series") || normalized.Contains("episode") || normalized.Contains("mini")) return "TV Series";
+            if (normalized.Contains("short")) return "Short";
+            if (normalized.Contains("documentary")) return "Documentary";
+            return "Movie";
+        }
+        if (!string.IsNullOrWhiteSpace(urlHint))
+        {
+            var normalized = urlHint.ToLowerInvariant();
+            if (normalized.Contains("/tv/") || normalized.Contains("/show/") || normalized.Contains("/shows/") || normalized.Contains("/series/") || normalized.Contains("/episode/") || normalized.Contains("/tvseries")) return "TV Series";
+            if (normalized.Contains("/movie/") || normalized.Contains("/movies/") || normalized.Contains("/film/") || normalized.Contains("/films/")) return "Movie";
+        }
+        return "Movie";
+    }
+
+    private static string InferMediaType(string? type, string? urlHint = null) => InferTitleType(type, urlHint) == "TV Series" ? "tv" : "movie";
+
+    private sealed class ImportAliasSet
+    {
+        public string[] IdAliases { get; init; } = Array.Empty<string>();
+        public string[] TmdbAliases { get; init; } = Array.Empty<string>();
+        public string[] TitleAliases { get; init; } = Array.Empty<string>();
+        public string[] YearAliases { get; init; } = Array.Empty<string>();
+        public string[] RatingAliases { get; init; } = Array.Empty<string>();
+        public string[] TypeAliases { get; init; } = Array.Empty<string>();
+        public string[] DirectorAliases { get; init; } = Array.Empty<string>();
+        public string[] GenreAliases { get; init; } = Array.Empty<string>();
+    }
+
+    private static ImportAliasSet GetAliasSet(string source)
+    {
+        var imdb = new ImportAliasSet { IdAliases = new[] { "const", "imdbid", "id", "tconst", "imdb", "ttid", "imdburl" }, TmdbAliases = new[] { "tmdbid", "tmdb", "tmdb_id" }, TitleAliases = new[] { "title", "name", "filmtitle", "subject", "movietitle" }, YearAliases = new[] { "year", "releasedate", "releaseyear", "release", "filmyear" }, RatingAliases = new[] { "yourrating", "rating", "score", "userrating", "star", "filmrating" }, TypeAliases = new[] { "titletype", "type", "mediatype" }, DirectorAliases = new[] { "directors", "director" }, GenreAliases = new[] { "genres", "genre" } };
+        var letterboxd = new ImportAliasSet { IdAliases = new[] { "imdbid", "imdb", "imdburl", "const", "id" }, TmdbAliases = new[] { "tmdbid", "tmdb", "tmdb_id" }, TitleAliases = new[] { "name", "title", "filmtitle" }, YearAliases = new[] { "year", "releasedate" }, RatingAliases = new[] { "rating", "yourrating", "score" }, TypeAliases = new[] { "type", "mediatype", "titletype" }, DirectorAliases = new[] { "director", "directors" }, GenreAliases = new[] { "genres", "genre", "genreids" } };
+        var trakt = new ImportAliasSet { IdAliases = new[] { "imdb", "imdbid", "const", "id", "imdburl" }, TmdbAliases = new[] { "tmdb", "tmdbid", "tmdb_id" }, TitleAliases = new[] { "title", "show", "movie", "name" }, YearAliases = new[] { "year", "released", "releasedate", "firstaired" }, RatingAliases = new[] { "rating", "score", "userrating" }, TypeAliases = new[] { "type", "mediatype", "titletype" }, DirectorAliases = new[] { "director", "directors" }, GenreAliases = new[] { "genres", "genre", "tags" } };
+        var generic = new ImportAliasSet { IdAliases = new[] { "imdbid", "imdb", "id", "const", "critickerid", "tconst", "ttid", "imdburl" }, TmdbAliases = new[] { "tmdb", "tmdbid", "tmdb_id" }, TitleAliases = new[] { "title", "name", "filmtitle", "subject", "originalname", "filmname", "movietitle" }, YearAliases = new[] { "year", "releasedate", "yearpublished", "release", "releaseyear", "filmyear", "firstaired" }, RatingAliases = new[] { "yourrating", "rating", "score", "userrating", "star", "filmrating" }, TypeAliases = new[] { "titletype", "type", "mediatype" }, DirectorAliases = new[] { "directors", "director" }, GenreAliases = new[] { "genres", "genre", "category", "tags" } };
+        return source switch { "Imdb" => imdb, "Letterboxd" => letterboxd, "Trakt" => trakt, "Generic" => generic, _ => generic };
+    }
+}

@@ -219,107 +219,19 @@
             </div>
         </div>
 
-        <!-- Import Section -->
-        <div class="col-md-6">
-            <div class="card h-100 shadow-sm border-0 rounded-3">
-                <div class="card-body p-4">
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="bg-primary bg-opacity-10 text-primary p-2 rounded-3 me-3">
-                            <i class="bi bi-file-earmark-arrow-up fs-4"></i>
-                        </div>
-                        <h5 class="card-title mb-0 fw-bold">Import Data</h5>
+        <div class="col-12">
+            <div class="card shadow-sm border-0 rounded-3" style="background: linear-gradient(135deg, #f8fbff 0%, #ffffff 100%);">
+                <div class="card-body p-4 d-flex align-items-center flex-wrap gap-4">
+                    <div class="bg-primary bg-opacity-10 text-primary p-3 rounded-circle shadow-sm">
+                        <i class="bi bi-hdd-stack-fill fs-3"></i>
                     </div>
-                    <p class="text-secondary small mb-4">Upload your exported IMDb, Letterboxd, Trakt, or generic CSV file to populate your local database.</p>
-                    
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold text-secondary text-uppercase">Import Source</label>
-                        <select class="form-select border-0 bg-light shadow-none" @bind="selectedImportSource">
-                            <option value="Auto">Auto Detect</option>
-                            <option value="Imdb">IMDb</option>
-                            <option value="Letterboxd">Letterboxd</option>
-                            <option value="Trakt">Trakt</option>
-                            <option value="Generic">Generic CSV</option>
-                        </select>
-                        <div class="form-text x-small mt-1 text-muted">Use Auto for mixed files, or force a source preset for better column matching.</div>
+                    <div class="flex-grow-1">
+                        <h5 class="fw-bold mb-1 text-dark">import/export operations</h5>
+                        <p class="text-secondary small mb-0">Open Data Hub to import CSV files, export watchlist slices and collections as CSV, or back up the whole save file as JSON.</p>
                     </div>
-                    
-                    <div class="form-check form-switch mb-3">
-                        <input class="form-check-input" type="checkbox" id="importAsWatched" @bind="importAsWatched">
-                        <label class="form-check-label small fw-bold text-secondary" for="importAsWatched">Import as "Watched" History</label>
-                    </div>
-
-                    <InputFile OnChange="HandleFileSelected" class="form-control bg-light border-0 py-2 mb-3" />
-                    
-                    @if (!string.IsNullOrEmpty(statusMessage))
-                    {
-                        <div class="alert @(statusMessage.StartsWith("Error") ? "alert-danger" : "alert-success") border-0 small py-2 mb-0">
-                            @statusMessage
-                        </div>
-                    }
-                </div>
-            </div>
-        </div>
-
-        <!-- Export Section -->
-        <div class="col-md-6">
-            <div class="card h-100 shadow-sm border-0 rounded-3">
-                <div class="card-body p-4 d-flex flex-column">
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="bg-primary bg-opacity-10 text-primary p-2 rounded-3 me-3">
-                            <i class="bi bi-download fs-4"></i>
-                        </div>
-                        <h5 class="card-title mb-0 fw-bold">Export Watchlist</h5>
-                    </div>
-                    <p class="text-secondary small mb-4">Download your current watchlist as a JSON file for backup or use in other tools.</p>
-                    <div class="mt-auto d-grid gap-2">
-                        <button class="btn btn-outline-primary py-2 rounded-pill fw-bold border-2" @onclick="ExportWatchlistJsonAsync">
-                            <i class="bi bi-filetype-json me-2"></i> Export as JSON
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Full App Backup (Local Storage) -->
-        <div class="col-12 mt-4">
-            <div class="card shadow-sm border-0 rounded-3" style="background: linear-gradient(135deg, #f0f7ff 0%, #ffffff 100%);">
-                <div class="card-body p-4">
-                    <div class="d-flex align-items-center mb-4">
-                        <div class="bg-indigo bg-opacity-10 text-indigo p-2 rounded-3 me-3" style="color: #6610f2;">
-                            <i class="bi bi-database-fill-gear fs-4"></i>
-                        </div>
-                        <h5 class="card-title mb-0 fw-bold text-dark">App Backup & Local Storage</h5>
-                    </div>
-                    <p class="text-secondary small mb-4">
-                        Export everything stored in your browser's local storage for this app, including your entire library, sync settings, and API keys. 
-                        <strong>Importing a backup will overwrite all current data on this device.</strong>
-                    </p>
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <button class="btn btn-indigo w-100 py-3 rounded-3 fw-bold shadow-sm d-flex align-items-center justify-content-center gap-2" 
-                                    style="background-color: #6610f2; color: white;"
-                                    @onclick="ExportLocalStorageAsync">
-                                <i class="bi bi-cloud-arrow-down-fill fs-5"></i>
-                                Export Full Backup (.json)
-                            </button>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="position-relative">
-                                <InputFile OnChange="HandleLocalStorageImport" class="position-absolute opacity-0 w-100 h-100 top-0 start-0" style="cursor: pointer; z-index: 2;" />
-                                <button class="btn btn-outline-indigo w-100 py-3 rounded-3 fw-bold border-2 d-flex align-items-center justify-content-center gap-2"
-                                        style="border-color: #6610f2; color: #6610f2;">
-                                    <i class="bi bi-cloud-arrow-up-fill fs-5"></i>
-                                    Restore from Backup
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    @if (!string.IsNullOrEmpty(backupStatusMessage))
-                    {
-                        <div class="alert @(backupStatusIsError ? "alert-danger" : "alert-success") border-0 py-2 px-3 mt-3 mb-0 small">
-                            @backupStatusMessage
-                        </div>
-                    }
+                    <button class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm" @onclick='() => NavManager.NavigateTo("data-hub")'>
+                        Open Data Hub
+                    </button>
                 </div>
             </div>
         </div>

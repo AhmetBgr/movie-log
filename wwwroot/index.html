@@ -94,19 +94,34 @@
                 return new Promise((resolve, reject) => {
                     const transaction = db.transaction([this.storeName], "readonly");
                     const store = transaction.objectStore(this.storeName);
-                    const request = store.getAll();
+                    const valuesRequest = store.getAll();
                     const keysRequest = store.getAllKeys();
-                    
-                    let result = {};
-                    keysRequest.onsuccess = () => {
-                        request.onsuccess = () => {
-                            const keys = keysRequest.result;
-                            const values = request.result;
-                            for(let i=0; i<keys.length; i++) result[keys[i]] = values[i];
-                            resolve(JSON.stringify(result));
-                        };
+
+                    let keys = null;
+                    let values = null;
+
+                    const tryResolve = () => {
+                        if (!keys || !values) return;
+                        const result = {};
+                        for (let i = 0; i < keys.length; i++) {
+                            result[keys[i]] = values[i];
+                        }
+                        resolve(JSON.stringify(result));
                     };
-                    request.onerror = (e) => reject(e.target.error);
+
+                    keysRequest.onsuccess = () => {
+                        keys = keysRequest.result || [];
+                        tryResolve();
+                    };
+
+                    valuesRequest.onsuccess = () => {
+                        values = valuesRequest.result || [];
+                        tryResolve();
+                    };
+
+                    keysRequest.onerror = (e) => reject(e.target.error);
+                    valuesRequest.onerror = (e) => reject(e.target.error);
+                    transaction.onerror = (e) => reject(e.target.error);
                 });
             }
         };
@@ -123,8 +138,18 @@
             confirm: function (msg) {
                 return window.confirm(msg);
             },
-            downloadFile: function (filename, content) {
-                var blob = new Blob([content], { type: 'application/json' });
+            downloadFile: function (filename, content, mimeType) {
+                var inferredMime = mimeType;
+                if (!inferredMime) {
+                    if (filename && filename.toLowerCase().endsWith('.csv')) {
+                        inferredMime = 'text/csv;charset=utf-8';
+                    } else if (filename && filename.toLowerCase().endsWith('.json')) {
+                        inferredMime = 'application/json';
+                    } else {
+                        inferredMime = 'text/plain;charset=utf-8';
+                    }
+                }
+                var blob = new Blob([content], { type: inferredMime });
                 var url = URL.createObjectURL(blob);
                 var a = document.createElement('a');
                 a.href = url;
