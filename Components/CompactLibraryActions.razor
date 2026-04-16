@@ -299,6 +299,8 @@
 
     private async Task ToggleStatus(WatchlistStatus newStatus)
     {
+        var wasAddedFromMovie = false;
+
         if (Item != null && Item.Status == newStatus)
         {
             await RemoveFromLibrary();
@@ -308,15 +310,20 @@
         if (Item == null && Movie != null)
         {
             Item = await WatchlistSvc.AddFromTmdbAsync(Movie, newStatus, ImdbId);
+            wasAddedFromMovie = Item != null;
         }
         else if (Item != null)
         {
             Item.Status = newStatus;
         }
 
-        if (Item != null)
+        if (Item != null && !wasAddedFromMovie)
         {
             await WatchlistSvc.UpdateStatusAsync(Item, newStatus);
+        }
+
+        if (Item != null)
+        {
             showSavedIndicator = true;
             StateHasChanged();
             await Task.Delay(1500);

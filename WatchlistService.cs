@@ -1227,8 +1227,14 @@ public class WatchlistService
         if (movie == null) return null;
 
         var resolvedImdbId = imdbId ?? movie.ImdbId;
-        var details = await EnsureLibraryReadyMovieAsync(movie, resolvedImdbId);
-        resolvedImdbId = resolvedImdbId ?? details?.ImdbId;
+
+        if (string.IsNullOrWhiteSpace(resolvedImdbId) && movie.Id > 0)
+        {
+            var mediaType = NormalizeMediaType(movie.MediaType, movie);
+            var detailsForId = await GetTmdbDetailsByIdAsync(movie.Id, mediaType);
+            resolvedImdbId = detailsForId?.ImdbId;
+            movie = detailsForId ?? movie;
+        }
 
         if (string.IsNullOrWhiteSpace(resolvedImdbId))
         {
@@ -1238,8 +1244,12 @@ public class WatchlistService
         var existing = Items.FirstOrDefault(i => i.ImdbId == resolvedImdbId);
         if (existing != null)
         {
-            ApplyMovieDataToItem(existing, details ?? movie, status);
+            ApplyMovieDataToItem(existing, movie, status);
             await UpdateListAsync(Items);
+            if (NeedsLibraryHydration(movie))
+            {
+                _ = HydrateLibraryItemInBackgroundAsync(existing, movie, resolvedImdbId);
+            }
             return existing;
         }
 
@@ -1248,8 +1258,12 @@ public class WatchlistService
             ImdbId = resolvedImdbId
         };
 
-        ApplyMovieDataToItem(newItem, details ?? movie, status);
+        ApplyMovieDataToItem(newItem, movie, status);
         await AddItemAsync(newItem);
+        if (NeedsLibraryHydration(movie))
+        {
+            _ = HydrateLibraryItemInBackgroundAsync(newItem, movie, resolvedImdbId);
+        }
         return newItem;
     }
 
@@ -1319,38 +1333,50 @@ public class WatchlistService
 
     public bool IsInWatchlist(string? imdbId) => !string.IsNullOrEmpty(imdbId) && Items.Any(i => i.ImdbId == imdbId);
 
-    private async Task<TmdbMovie?> EnsureLibraryReadyMovieAsync(TmdbMovie movie, string? imdbId)
+    private bool NeedsLibraryHydration(TmdbMovie movie)
     {
-        var needsHydration =
+        return
             string.IsNullOrWhiteSpace(movie.ImdbId) ||
             movie.Runtime == null ||
             string.IsNullOrWhiteSpace(movie.Overview) ||
             movie.Credits?.Crew == null ||
             movie.GenreList == null ||
             movie.GenreList.Count == 0;
+    }
 
-        if (!needsHydration)
+    private async Task HydrateLibraryItemInBackgroundAsync(WatchlistItem item, TmdbMovie seedMovie, string imdbId)
+    {
+        try
         {
-            return movie;
-        }
+            TmdbMovie? hydrated = null;
 
-        if (movie.Id > 0)
-        {
-            var mediaType = NormalizeMediaType(movie.MediaType, movie);
-            var byId = await GetTmdbDetailsByIdAsync(movie.Id, mediaType);
-            if (byId != null)
+            if (seedMovie.Id > 0)
             {
-                byId.ImdbId ??= imdbId;
-                return byId;
+                var mediaType = NormalizeMediaType(seedMovie.MediaType, seedMovie);
+                hydrated = await GetTmdbDetailsByIdAsync(seedMovie.Id, mediaType);
+                if (hydrated != null)
+                {
+                    hydrated.ImdbId ??= imdbId;
+                }
             }
-        }
 
-        if (!string.IsNullOrWhiteSpace(imdbId))
+            if (hydrated == null && !string.IsNullOrWhiteSpace(imdbId))
+            {
+                hydrated = await GetTmdbDetailsAsync(imdbId);
+            }
+
+            if (hydrated == null) return;
+
+            var existing = Items.FirstOrDefault(i => i.ImdbId == item.ImdbId);
+            if (existing == null) return;
+
+            ApplyMovieDataToItem(existing, hydrated, existing.Status);
+            await UpdateListAsync(Items);
+        }
+        catch (Exception ex)
         {
-            return await GetTmdbDetailsAsync(imdbId);
+            Console.WriteLine($"Background hydrate error for '{item.Title}': {ex.Message}");
         }
-
-        return movie;
     }
 
     private void ApplyMovieDataToItem(WatchlistItem item, TmdbMovie movie, WatchlistStatus status)
