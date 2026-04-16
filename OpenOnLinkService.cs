@@ -224,6 +224,7 @@ public class OpenOnLinkService
     {
         return
         [
+            CreateDefaultLink("Details", "https://ahmetbgr.github.io/movie-log/movie/{imdbId}", "https://ahmetbgr.github.io/movie-log/movie/tt39150234", "ahmetbgr.github.io"),
             CreateDefaultLink("1337x Search", "https://1337x.to/search/{query}/1/", "https://1337x.to/search/dune+2022/1/", "1337x.to"),
             CreateDefaultLink("Criticker", "https://www.criticker.com/film/{titleSlug}/", "https://www.criticker.com/film/Dune/", "www.criticker.com", "title"),
             CreateDefaultLink("Google Search", "https://www.google.com/search?q={query}", "https://www.google.com/search?q=Proven+Innocent+2019", "www.google.com"),
