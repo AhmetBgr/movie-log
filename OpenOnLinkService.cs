@@ -66,14 +66,18 @@ public class OpenOnLinkService
 
         var title = item.Title?.Trim() ?? "";
         var year = item.Year?.Trim() ?? "";
-        var query = string.IsNullOrWhiteSpace(year) ? title : $"{title} {year}".Trim();
+        
+        var isYearOnly = year.Length == 4 && int.TryParse(year, out _);
+        var appendedYear = isYearOnly ? year : "";
+
+        var query = string.IsNullOrWhiteSpace(appendedYear) ? title : $"{title} {appendedYear}".Trim();
         var titleSlug = ToSlug(title, link.SlugCaseMode);
-        var titleSlugYear = string.IsNullOrWhiteSpace(year) ? titleSlug : $"{titleSlug}-{ToSlug(year)}".Trim('-');
+        var titleSlugYear = string.IsNullOrWhiteSpace(appendedYear) ? titleSlug : $"{titleSlug}-{ToSlug(appendedYear)}".Trim('-');
 
         return link.Template
             .Replace("{query}", WebUtility.UrlEncode(query), StringComparison.Ordinal)
             .Replace("{title}", WebUtility.UrlEncode(title), StringComparison.Ordinal)
-            .Replace("{year}", WebUtility.UrlEncode(year), StringComparison.Ordinal)
+            .Replace("{year}", WebUtility.UrlEncode(appendedYear), StringComparison.Ordinal)
             .Replace("{titleSlug}", titleSlug, StringComparison.Ordinal)
             .Replace("{titleSlugYear}", titleSlugYear, StringComparison.Ordinal)
             .Replace("{imdbId}", WebUtility.UrlEncode(item.ImdbId ?? ""), StringComparison.Ordinal);
