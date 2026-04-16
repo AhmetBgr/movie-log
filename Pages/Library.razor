@@ -311,7 +311,7 @@
                             @foreach (var item in pagedItems)
                             {
                                 var rank = (SelectedCollection != null && CurrentSortColumn == "Order") ? (SelectedCollection.Items.FirstOrDefault(ci => ci.ImdbId == item.ImdbId)?.Order + 1 ?? 0) : 0;
-                                <div class="col card-row" @key="item.ImdbId">
+                                <div class="col card-row" @key="item">
                                     <MovieCard Item="item"
                                                IsEditMode="@isEditing"
                                                IsSelected="@_selectedIds.Contains(item.ImdbId)"

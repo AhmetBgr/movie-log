@@ -161,13 +161,6 @@ public class WatchlistService
         set { _ratingSystem = value; _ = _storage.SaveAsync("rating_system", value); NotifyStateChanged(); } 
     }
 
-    private DataFetchPreference _fetchPreference = DataFetchPreference.OnDemand;
-    public DataFetchPreference FetchPreference 
-    { 
-        get => _fetchPreference; 
-        set { _fetchPreference = value; _ = _storage.SaveAsync("fetch_preference", value); NotifyStateChanged(); } 
-    }
-
     private bool _enableSearchHistory = false;
     public bool EnableSearchHistory 
     { 
@@ -531,9 +524,6 @@ public class WatchlistService
             StartGenreMapLoadIfNeeded();
             LogStep("StartGenreMapLoadIfNeeded (fire-and-forget)");
 
-            _fetchPreference = await _storage.GetAsync<DataFetchPreference>("fetch_preference");
-            LogStep("GetAsync: fetch_preference");
-
             _enableSearchHistory = await _storage.GetAsync<bool>("enable_search_history");
             LogStep("GetAsync: enable_search_history");
 
@@ -546,9 +536,6 @@ public class WatchlistService
             Collections = await _storage.GetAsync<List<CustomCollection>>("my_custom_collections") ?? new();
             LogStep("GetAsync: my_custom_collections");
 
-            _ = BackgroundHydrationLoop();
-
-            LogStep("BackgroundHydrationLoop (fire-and-forget)");
         }
         catch (Exception ex)
         {
@@ -1377,103 +1364,6 @@ public class WatchlistService
         }
     }
 
-    // Track hydration lifecycle per session so failed fetches can retry after a cooldown.
-    private readonly HashSet<string> _hydratedThisSession = new();
-    private readonly HashSet<string> _hydratingNow = new();
-    private readonly Dictionary<string, DateTimeOffset> _hydrationRetryAfter = new();
-    private static readonly TimeSpan HydrationRetryCooldown = TimeSpan.FromMinutes(5);
-
-    private async Task BackgroundHydrationLoop()
-    {
-        await Task.Delay(5000); // Initial boot delay
-        
-        while (true)
-        {
-            int nextDelay = 5000; // Idle delay
-            try
-            {
-                if (FetchPreference == DataFetchPreference.Background)
-                {
-                    var item = Items
-                        .Where(i => NeedsHydration(i) && CanAttemptHydration(i.ImdbId))
-                        .OrderByDescending(i => string.IsNullOrEmpty(i.Overview))
-                        .FirstOrDefault();
-
-                    if (item != null)
-                    {
-                        nextDelay = 600; // Active work delay
-                        _hydratingNow.Add(item.ImdbId);
-                        try
-                        {
-                            var details = await GetTmdbEssentialsAsync(item.ImdbId);
-                            if (details != null)
-                            {
-                                if (await HydrateMissingMetadataAsync(item, details))
-                                {
-                                    _ = ShowToastAsync($"Synced: {item.Title}", 2500);
-                                    _movieCache.Remove(item.ImdbId);
-                                }
-                            }
-
-                            if (NeedsHydration(item))
-                                _hydrationRetryAfter[item.ImdbId] = DateTimeOffset.UtcNow.Add(HydrationRetryCooldown);
-                            else
-                            {
-                                _hydratedThisSession.Add(item.ImdbId);
-                                _hydrationRetryAfter.Remove(item.ImdbId);
-                            }
-                        }
-                        finally { _hydratingNow.Remove(item.ImdbId); }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Sync Error: {ex.Message}");
-                nextDelay = 10000; // Back off on error
-            }
-
-            await Task.Delay(nextDelay);
-        }
-    }
-
-    // Lightweight fetch for background sync: only calls find + credits (no images/videos)
-    private async Task<TmdbMovie?> GetTmdbEssentialsAsync(string imdbId)
-    {
-        var apiKey = _config["TmdbApiKey"];
-        var url = $"https://api.themoviedb.org/3/find/{imdbId}?api_key={apiKey}&external_source=imdb_id";
-        try
-        {
-            var response = await _http.GetFromJsonAsync<TmdbFindResult>(url);
-            TmdbMovie? movie = null;
-
-            if (response?.MovieResults?.Any() == true)
-            {
-                movie = response.MovieResults.First();
-                var creditsUrl = $"https://api.themoviedb.org/3/movie/{movie.Id}/credits?api_key={apiKey}";
-                var credits = await _http.GetFromJsonAsync<TmdbCredits>(creditsUrl);
-                if (credits != null)
-                    movie.Credits = credits;
-            }
-            else if (response?.TvResults?.Any() == true)
-            {
-                var tv = response.TvResults.First();
-                movie = new TmdbMovie
-                {
-                    Id = tv.Id, Title = tv.Name, OriginalTitle = tv.OriginalName,
-                    Overview = tv.Overview, PosterPath = tv.PosterPath, GenreList = tv.GenreList
-                };
-                var creditsUrl = $"https://api.themoviedb.org/3/tv/{tv.Id}/credits?api_key={apiKey}";
-                var credits = await _http.GetFromJsonAsync<TmdbCredits>(creditsUrl);
-                if (credits != null)
-                    movie.Credits = credits;
-            }
-
-            return movie;
-        }
-        catch { return null; }
-    }
-
     private async Task<bool> HydrateMissingMetadataAsync(WatchlistItem listItem, TmdbMovie details)
     {
         bool changed = false;
@@ -1493,24 +1383,6 @@ public class WatchlistService
         return changed;
     }
 
-    private static bool NeedsHydration(WatchlistItem item)
-        => !string.IsNullOrEmpty(item.ImdbId) && (
-            string.IsNullOrEmpty(item.Overview) ||
-            string.IsNullOrEmpty(item.Genres) ||
-            string.IsNullOrEmpty(item.Director) ||
-            string.IsNullOrEmpty(item.PosterPath));
-
-    private bool CanAttemptHydration(string imdbId)
-    {
-        if (string.IsNullOrEmpty(imdbId)) return false;
-        if (_hydratedThisSession.Contains(imdbId)) return false;
-        if (_hydratingNow.Contains(imdbId)) return false;
-
-        if (_hydrationRetryAfter.TryGetValue(imdbId, out var retryAfter) && retryAfter > DateTimeOffset.UtcNow)
-            return false;
-
-        return true;
-    }
 
     public async Task ShowDetailsAsync(TmdbSearchResultItem searchItem)
     {
