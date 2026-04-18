@@ -1,5 +1,6 @@
 @page "/"
 @inject WatchlistService Watchlist
+@inject NavigationManager NavManager
 
 <PageTitle>Library Statistics</PageTitle>
 
@@ -12,10 +13,9 @@
             }
         }
         .stat-card {
-            background: #fff;
+            background: transparent;
             border-radius: 12px;
-            border: 1px solid #e8eaed;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+            border: 1.5px solid rgba(0, 0, 0, 0.20);
             padding: 20px;
             height: 100%;
         }
@@ -43,6 +43,7 @@
         .chart-container::-webkit-scrollbar-thumb {
             background-color: #cbd5e1;
             border-radius: 4px;
+        }
         .director-link {
             transition: all 0.2s;
         }
@@ -50,12 +51,72 @@
             color: #6366f1 !important;
             text-decoration: underline !important;
         }
+        .bg-alternate {
+            background: rgba(99, 102, 241, 0.05);
+        }
+        .rating-row {
+            transition: background 0.2s;
+        }
+        .rating-row:hover {
+            background: rgba(99, 102, 241, 0.08);
+        }
+        .cursor-pointer {
+            cursor: pointer;
+        }
+        .rating-movie-title {
+            cursor: pointer;
+            transition: color 0.1s ease;
+        }
+        .rating-movie-title:hover {
+            color: #f97316 !important;
+            text-decoration: underline !important;
+        }
+        .extra-small {
+            font-size: 0.75rem;
+        }
     </style>
     
     <div class="mb-4 pb-3 border-bottom">
         <h1 class="mb-1 fw-bolder text-dark">Statistics</h1>
         <p class="text-muted mb-0">Insights and graphs about your library.</p>
     </div>
+
+    @if (RecentRatings.Any())
+    {
+        <div class="col-12 mb-4">
+            <div class="stat-card">
+                <div class="stat-card-title justify-content-between">
+                    <div><i class="bi bi-clock-history"></i> Recent Ratings</div>
+                    <button class="btn btn-link text-decoration-none text-muted fw-bold p-0" 
+                            @onclick='() => NavManager.NavigateTo("library/watched")' 
+                            style="font-size: 0.85rem;">
+                        Show All <i class="bi bi-chevron-right small"></i>
+                    </button>
+                </div>
+                <div class="recent-ratings-list mt-1">
+                    @foreach (var (item, index) in RecentRatings.Select((v, i) => (v, i)))
+                    {
+                        var rating = item.Rating20 ?? 0;
+                        var hue = (rating / 100.0) * 120;
+                        var color = $"hsl({hue}, 70%, 45%)";
+                        var percentile = RatingPercentiles.GetValueOrDefault(rating, 0);
+                        
+                        <div class="rating-row d-flex align-items-center py-1 px-2 mb-1 @(index % 2 != 0 ? "bg-alternate" : "")" style="border-radius: 6px;">
+                            <div class="d-flex align-items-baseline me-2" style="min-width: 60px;">
+                                <span class="fw-bold" style="color: @color; font-size: 1.15rem; min-width: 28px; display: inline-block;">@rating</span>
+                                <span class="ms-1" style="color: @color; opacity: 0.7; font-size: 0.7rem;">@percentile.ToString("0")%</span>
+                            </div>
+                            <div class="text-dark d-flex flex-wrap align-items-baseline overflow-hidden" style="font-size: 0.95rem;">
+                                <span class="fw-bold me-1 rating-movie-title text-truncate" @onclick="() => Watchlist.ShowDetailsAsync(item)">@item.Title</span>
+                                <span class="text-secondary small me-2">(@item.Year)</span>
+                                <span class="text-muted extra-small d-none d-sm-inline">— @item.DateAdded.ToString("dd MMM yyyy")</span>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    }
 
     <div class="row row-cols-1 row-cols-lg-2 g-4 mb-5">
         
@@ -461,6 +522,11 @@
     private List<KeyValuePair<string, int>> RuntimeDistribution = new();
     private List<KeyValuePair<string, double>> DecadeRatingTrend = new();
     private Dictionary<DateTime, int> ActivityHeatmap = new();
+    private List<WatchlistItem> RecentRatings = new();
+    private Dictionary<int, double> RatingPercentiles = new();
+    private bool _showAllRatings = false;
+    private int _ratingsCount = 10;
+    private int TotalWatchedWithRating = 0;
 
     protected override void OnInitialized()
     {
@@ -485,7 +551,7 @@
 
     private void CalculateStats()
     {
-        var watched = Watchlist.WatchedItems.ToList();
+        var watched = Watchlist.Items.Where(i => i.Status == WatchlistStatus.Watched).ToList();
         
         // --- 0. Metadata for Select ---
         AvailableYears = watched
@@ -617,6 +683,27 @@
             .Where(m => m.DateAdded.Date >= startDate)
             .GroupBy(m => m.DateAdded.Date)
             .ToDictionary(g => g.Key, g => g.Count());
+
+        // --- 10. Recent Ratings ---
+        var watchedWithRating = watched.Where(m => m.Rating20.HasValue).ToList();
+        TotalWatchedWithRating = watchedWithRating.Count;
+        RecentRatings = watchedWithRating.OrderByDescending(m => m.DateAdded).Take(_ratingsCount).ToList();
+        
+        var allRatings = watchedWithRating.Select(m => m.Rating20!.Value).OrderBy(r => r).ToList();
+        if (allRatings.Any())
+        {
+            RatingPercentiles = allRatings.Distinct().ToDictionary(
+                r => r,
+                r => (double)allRatings.Count(x => x <= r) / allRatings.Count * 100
+            );
+        }
+    }
+
+    private void ToggleShowMore()
+    {
+        _showAllRatings = !_showAllRatings;
+        _ratingsCount = _showAllRatings ? 50 : 10;
+        CalculateStats();
     }
 
     private void CalculateRatedDirectors()
