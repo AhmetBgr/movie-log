@@ -117,6 +117,10 @@
                                         @Item.TitleType
                                     </span>
                                 }
+                                @if (Badges != null)
+                                {
+                                    @Badges
+                                }
                             </div>
                         </div>
 
@@ -215,6 +219,7 @@
     [Parameter] public EventCallback OnMoveDown { get; set; }
     [Parameter] public EventCallback<int> OnRankChanged { get; set; }
     [Parameter] public RenderFragment? SidePanel { get; set; }
+    [Parameter] public RenderFragment? Badges { get; set; }
     [Parameter] public EventCallback<WatchlistItem> OnClick { get; set; }
 
     private string? RealImdbId => (Item?.ImdbId != null && (Item.ImdbId.StartsWith("movie-") || Item.ImdbId.StartsWith("tv-"))) 

@@ -53,58 +53,39 @@
         }
         else
         {
-            <div class="table-wrap discovery-wrap p-3">
-                <div class="row row-cols-1 g-3">
-                    @foreach (var item in CurrentState.Items)
-                    {
-                        var libItem = FindLibraryItem(item);
-                        <div class="col">
-                            <div class="card border-0 overflow-hidden discovery-card" style="cursor:pointer;" @onclick="() => WatchlistSvc.ShowDetailsAsync(item)">
-                                <div class="d-flex">
-                                    <div class="discovery-poster">
-                                        <img src="@item.FullPosterUrl" alt="@item.DisplayTitle" />
-                                    </div>
-                                    <div class="flex-grow-1 px-3 py-2 position-relative">
-                                        <div class="discovery-title-row d-flex align-items-start gap-2" style="justify-content: flex-start;">
-                                            <div class="fw-bold discovery-title mb-0" style="flex: 0 1 auto; padding-right: 0;">@item.DisplayTitle</div>
-                                            <div class="discovery-open-on" @onclick:stopPropagation="true">
-                                                <OpenOnMenu Title="@item.DisplayTitle"
-                                                            Year="@GetYear(item)"
-                                                            ImdbId="@ResolveDiscoveryImdbId(item)"
-                                                            FetchImdbIdAsync="() => FetchDiscoveryImdbIdOnDemand(item)" />
-                                            </div>
-                                        </div>
-                                        @if (!string.IsNullOrEmpty(item.DisplayOriginalTitle))
+            <div class="table-wrap table-wrap--wide mx-auto p-2" style="max-width: 690px;">
+                <div class="card-list-frame">
+                    <div class="row row-cols-1 g-0">
+                        @foreach (var item in CurrentState.Items)
+                        {
+                            var libItem = FindLibraryItem(item);
+                            var cardItem = libItem ?? new WatchlistItem
+                            {
+                                Title = item.DisplayTitle,
+                                OriginalTitle = item.DisplayOriginalTitle,
+                                TitleType = item.MediaType == "movie" ? "Movie" : "TV Series",
+                                Year = GetYear(item),
+                                PosterPath = item.PosterPath,
+                                ImdbId = $"{(item.MediaType ?? "movie")}-{item.Id}",
+                                TmdbId = item.Id
+                            };
+                            
+                            <div class="col card-row" @key="item.Id">
+                                <MovieCard Item="cardItem"
+                                           ShowRating="@(libItem?.Rating20.HasValue == true || libItem?.UserRating.HasValue == true)"
+                                           OnClick="@( _ => WatchlistSvc.ShowDetailsAsync(item) )">
+                                    <Badges>
+                                        @if (libItem != null)
                                         {
-                                            <div class="discovery-subtitle">@item.DisplayOriginalTitle</div>
-                                        }
-                                        <div class="row-meta">@GetYear(item)</div>
-                                        <div class="discovery-badge-stack mt-2">
-                                            <span class="badge @(item.MediaType == "movie" ? "bg-secondary text-white" : "bg-light text-dark border")" style="font-size:0.65rem;">
-                                                @(item.MediaType == "movie" ? "Movie" : "TV Series")
+                                            <span class="badge discovery-lib-badge @GetLibraryBadgeClass(libItem.Status)">
+                                                @GetLibraryStatusText(libItem.Status)
                                             </span>
-                                            @if (libItem != null)
-                                            {
-                                                <span class="badge discovery-lib-badge @GetLibraryBadgeClass(libItem.Status)">
-                                                    @GetLibraryStatusText(libItem.Status)
-                                                </span>
-                                                @if (libItem.Rating20.HasValue || libItem.UserRating.HasValue)
-                                                {
-                                                    <div class="discovery-rating-wrap">
-                                                        <div class="rating-box-sm discovery-rating-box-sm"
-                                                             style="background:@GetRatingColor(GetRating100Value(libItem));">
-                                                            <span class="rating-value-sm text-white">@GetRating100Value(libItem)</span>
-                                                        </div>
-                                                        <span class="discovery-rating-max">/ 100</span>
-                                                    </div>
-                                                }
-                                            }
-                                        </div>
-                                    </div>
-                                </div>
+                                        }
+                                    </Badges>
+                                </MovieCard>
                             </div>
-                        </div>
-                    }
+                        }
+                    </div>
                 </div>
             </div>
 
@@ -634,6 +615,27 @@
 
     .title-hover { transition: opacity 0.15s; }
     .title-hover:hover { opacity: 0.6; }
+
+    /* Card list frame — transparent panel wrapping all cards */
+    .card-list-frame {
+        border: 1.5px solid rgba(0, 0, 0, 0.20);
+        border-radius: 12px;
+        background: transparent;
+        overflow: hidden;
+        padding: 0 12px;
+    }
+
+    .card-row {
+        padding: 10px 0;
+        border-bottom: 1.5px solid rgba(0, 0, 0, 0.20);
+    }
+    .card-row:last-child {
+        border-bottom: none;
+        padding-bottom: 10px;
+    }
+    .card-row:first-child {
+        padding-top: 10px;
+    }
 
     @@media (max-width: 767px) {
         .discovery-tabs {
