@@ -11,7 +11,6 @@
 
 <div class="page-shell">
 
-    <!-- ── Primary toolbar ──────────────────────────────────── -->
     <div class="toolbar-primary">
         <button class="tb-btn @(isEditing ? "active" : "")" @onclick="ToggleEdit">
             <i class="bi @(isEditing ? "bi-check-lg" : "bi-pencil")"></i>
@@ -41,12 +40,11 @@
         </button>
 
         <div class="tb-divider"></div>
-        
-        <!-- View toggle -->
-        <button class="tb-btn @(!isCardView ? "active" : "")" @onclick="() => SetViewTable()" title="Table view">
+
+        <button class="tb-btn @(!isCardView ? "active" : "")" @onclick="SetViewTable" title="Table view">
             <i class="bi bi-list-ul"></i>
         </button>
-        <button class="tb-btn @(isCardView ? "active" : "")" @onclick="() => SetViewCard()" title="Card view">
+        <button class="tb-btn @(isCardView ? "active" : "")" @onclick="SetViewCard" title="Card view">
             <i class="bi bi-grid-3x2-gap"></i>
         </button>
 
@@ -56,7 +54,6 @@
         </span>
     </div>
 
-    <!-- ── Action bar (edit mode only) ──────────────────────── -->
     @if (isEditing)
     {
         <div class="toolbar-actions @(_selectedKeys.Count > 0 ? "has-selection" : "")">
@@ -87,7 +84,6 @@
         </div>
     }
 
-    <!-- ── Content ───────────────────────────────────────────── -->
     @if (isLoading)
     {
         <div class="page-content" style="overflow-y:auto;display:flex;align-items:center;justify-content:center;">
@@ -99,27 +95,33 @@
     else if (results != null)
     {
         <div class="page-content scroll-y">
-            
-            <!-- ── Person Results Section ────────────────────────── -->
-            @if (PersonResults.Any())
+            @if (IsPersonSearch)
             {
-                <div class="px-3 pt-3 mb-2">
-                    <div class="d-flex align-items-center justify-content-between mb-3">
-                        <h6 class="fw-bold m-0 text-uppercase letter-spacing-05 opacity-75" style="font-size: 0.75rem;">People Found (@PersonResults.Count())</h6>
+                @if (PersonResults.Any())
+                {
+                    <div class="px-3 pt-3 mb-2">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <h6 class="fw-bold m-0 text-uppercase letter-spacing-05 opacity-75" style="font-size: 0.75rem;">People Found (@PersonResults.Count())</h6>
+                        </div>
+                        <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-6 g-3">
+                            @foreach (var person in PersonResults.Take(12))
+                            {
+                                <div class="col">
+                                    <PersonCard Person="person" />
+                                </div>
+                            }
+                        </div>
                     </div>
-                    <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-6 g-3">
-                        @foreach (var person in PersonResults.Take(12))
-                        {
-                            <div class="col">
-                                <PersonCard Person="person" />
-                            </div>
-                        }
+                }
+                else
+                {
+                    <div class="text-center py-5">
+                        <i class="bi bi-person-search fs-1 d-block mb-3 text-secondary opacity-25"></i>
+                        <p class="fs-5 text-secondary">No people found for "@Uri.UnescapeDataString(Query)".</p>
                     </div>
-                </div>
-                <hr class="mx-3 my-4 opacity-5" />
+                }
             }
-
-            @if (results.Any(r => r.MediaType == "movie" || r.MediaType == "tv"))
+            else if (MediaResults.Any())
             {
                 @if (!isCardView)
                 {
@@ -156,7 +158,7 @@
                     </div>
                 }
             }
-            else if (!PersonResults.Any())
+            else
             {
                 <div class="text-center py-5">
                     <i class="bi bi-search fs-1 d-block mb-3 text-secondary opacity-25"></i>
@@ -167,11 +169,10 @@
     }
     else
     {
-        <!-- initial/empty state -->
         <div class="page-content" style="overflow-y:auto;display:flex;align-items:center;justify-content:center;">
             <div class="text-center py-5 text-secondary opacity-50">
                 <i class="bi bi-search fs-1 d-block mb-2"></i>
-                <p>Searching…</p>
+                <p>Searching...</p>
             </div>
         </div>
     }
@@ -180,6 +181,7 @@
 
 @code {
     [Parameter] public string Query { get; set; } = "";
+    [SupplyParameterFromQuery(Name = "type")] public string? SearchType { get; set; }
 
     private bool isEditing = false;
     private bool isLoading = false;
@@ -193,32 +195,63 @@
     private bool _searchSortDescending = true;
     private HashSet<string> _selectedKeys = new();
 
-    private void SetViewTable() { isCardView = false; _ = JS.InvokeVoidAsync("sessionStorage.setItem", "search_view", "table"); }
-    private void SetViewCard() { isCardView = true; _ = JS.InvokeVoidAsync("sessionStorage.setItem", "search_view", "card"); }
+    private bool IsPersonSearch => string.Equals(SearchType, "person", StringComparison.OrdinalIgnoreCase);
 
-    private List<WatchlistItem> GridProxyItems => SortedResults.Select(r => 
+    private void SetViewTable()
+    {
+        isCardView = false;
+        _ = JS.InvokeVoidAsync("sessionStorage.setItem", "search_view", "table");
+    }
+
+    private void SetViewCard()
+    {
+        isCardView = true;
+        _ = JS.InvokeVoidAsync("sessionStorage.setItem", "search_view", "card");
+    }
+
+    private IEnumerable<TmdbSearchResultItem> PersonResults => results == null
+        ? Enumerable.Empty<TmdbSearchResultItem>()
+        : results.Where(r => r.MediaType == "person");
+
+    private IEnumerable<TmdbSearchResultItem> MediaResults => results == null
+        ? Enumerable.Empty<TmdbSearchResultItem>()
+        : results.Where(r => r.MediaType == "movie" || r.MediaType == "tv");
+
+    private IEnumerable<TmdbSearchResultItem> ActualSortedResults
+    {
+        get
+        {
+            var media = MediaResults;
+            if (_searchSortColumn == "Relevance") return media;
+            if (_searchSortColumn == "Title")
+                return _searchSortDescending ? media.OrderByDescending(r => r.DisplayTitle) : media.OrderBy(r => r.DisplayTitle);
+            return _searchSortDescending ? media.OrderByDescending(r => r.DisplayDate) : media.OrderBy(r => r.DisplayDate);
+        }
+    }
+
+    private IEnumerable<TmdbSearchResultItem> SortedResults => ActualSortedResults;
+
+    private List<WatchlistItem> GridProxyItems => SortedResults.Select(r =>
     {
         var key = $"{r.MediaType}-{r.Id}";
         directorsMap.TryGetValue(key, out var dir);
-        // Find correspondent library item (if it exists) to get user's actual rating
         var libItem = FindLibraryItem(r);
-        return new WatchlistItem 
+        return new WatchlistItem
         {
             ImdbId = key,
             Title = r.DisplayTitle,
             Year = GetSearchResultYear(r),
             TitleType = r.MediaType == "movie" ? "Movie" : "TV Series",
-            // Do NOT use VoteAverage as Rating20 here — the grid will use UserRatedIds to filter
             Rating20 = libItem?.Rating20,
             PosterPath = r.PosterPath,
             Director = dir
         };
     }).ToList();
 
-    // Set of ImdbIds (TMDB composite keys) that the user has actually rated
-    private HashSet<string> UserRatedIdsSet => 
+    private HashSet<string> UserRatedIdsSet =>
         SortedResults
-            .Where(r => {
+            .Where(r =>
+            {
                 var lib = FindLibraryItem(r);
                 return lib?.Rating20 != null;
             })
@@ -227,23 +260,45 @@
 
     private bool IsAllSelected
     {
-        get { var keys = SortedResults.Select(r => $"{r.MediaType}-{r.Id}").ToList(); return keys.Count > 0 && keys.All(k => _selectedKeys.Contains(k)); }
+        get
+        {
+            var keys = SortedResults.Select(r => $"{r.MediaType}-{r.Id}").ToList();
+            return keys.Count > 0 && keys.All(k => _selectedKeys.Contains(k));
+        }
     }
 
     private void ToggleSelectAll()
     {
         var keys = ActualSortedResults.Select(r => $"{r.MediaType}-{r.Id}").ToList();
-        if (IsAllSelected) foreach (var k in keys) _selectedKeys.Remove(k);
-        else foreach (var k in keys) _selectedKeys.Add(k);
+        if (IsAllSelected)
+        {
+            foreach (var k in keys) _selectedKeys.Remove(k);
+        }
+        else
+        {
+            foreach (var k in keys) _selectedKeys.Add(k);
+        }
     }
 
-    private void ToggleSelect(string key) { if (!_selectedKeys.Remove(key)) _selectedKeys.Add(key); }
-    private void ToggleEdit() { isEditing = !isEditing; if (!isEditing) _selectedKeys.Clear(); }
+    private void ToggleSelect(string key)
+    {
+        if (!_selectedKeys.Remove(key))
+            _selectedKeys.Add(key);
+    }
+
+    private void ToggleEdit()
+    {
+        isEditing = !isEditing;
+        if (!isEditing) _selectedKeys.Clear();
+    }
 
     private void HandleRowClick(TmdbSearchResultItem? item, string itemKey)
     {
-        if (isEditing) ToggleSelect(itemKey);
-        else 
+        if (isEditing)
+        {
+            ToggleSelect(itemKey);
+        }
+        else
         {
             var match = results?.FirstOrDefault(r => $"{r.MediaType}-{r.Id}" == itemKey);
             if (match != null) _ = WatchlistSvc.ShowDetailsAsync(match);
@@ -260,7 +315,7 @@
                 await JS.InvokeVoidAsync("holdSelect.init", _holdRef);
             }
             catch { }
-            // Restore session preferences
+
             try
             {
                 var savedSort = await JS.InvokeAsync<string?>("sessionStorage.getItem", "search_sort");
@@ -284,55 +339,44 @@
         StateHasChanged();
     }
 
-    private IEnumerable<TmdbSearchResultItem> PersonResults => results == null
-        ? Enumerable.Empty<TmdbSearchResultItem>()
-        : results.Where(r => r.MediaType == "person");
-
-    private IEnumerable<TmdbSearchResultItem> SortedResults => results == null
-        ? Enumerable.Empty<TmdbSearchResultItem>()
-        : (_searchSortColumn switch
-        {
-            "Relevance" => results.Where(r => r.MediaType == "movie" || r.MediaType == "tv"),
-            "Title" => results.Where(r => r.MediaType == "movie" || r.MediaType == "tv")
-                .OrderByDescending(r => _searchSortDescending).ThenBy(r => r.DisplayTitle), // Simplified for brevity in replace
-            _ => results.Where(r => r.MediaType == "movie" || r.MediaType == "tv")
-                .OrderByDescending(r => _searchSortDescending).ThenBy(r => r.DisplayDate)
-        });
-
-    // Let's actually restore the full sorting logic for reliability
-    private IEnumerable<TmdbSearchResultItem> ActualSortedResults
+    private void ToggleSearchSort(string col)
     {
-        get
+        if (_searchSortColumn == col)
         {
-            if (results == null) return Enumerable.Empty<TmdbSearchResultItem>();
-            var media = results.Where(r => r.MediaType == "movie" || r.MediaType == "tv");
-            if (_searchSortColumn == "Relevance") return media;
-            if (_searchSortColumn == "Title")
-                return _searchSortDescending ? media.OrderByDescending(r => r.DisplayTitle) : media.OrderBy(r => r.DisplayTitle);
-            return _searchSortDescending ? media.OrderByDescending(r => r.DisplayDate) : media.OrderBy(r => r.DisplayDate);
+            if (col != "Relevance") _searchSortDescending = !_searchSortDescending;
         }
-    }
+        else
+        {
+            _searchSortColumn = col;
+            _searchSortDescending = col == "Year";
+        }
 
-    private void ToggleSearchSort(string col) 
-    { 
-        if (_searchSortColumn == col) { if (col != "Relevance") _searchSortDescending = !_searchSortDescending; } 
-        else { _searchSortColumn = col; _searchSortDescending = col == "Year"; } 
         _ = JS.InvokeVoidAsync("sessionStorage.setItem", "search_sort", _searchSortColumn);
-        _ = JS.InvokeVoidAsync("sessionStorage.setItem", "search_sort_desc", _searchSortDescending.ToString().ToLower());
+        _ = JS.InvokeVoidAsync("sessionStorage.setItem", "search_sort_desc", _searchSortDescending.ToString().ToLowerInvariant());
     }
 
     private async Task BulkAddToWatchlist()
     {
         foreach (var item in SortedResults.Where(r => _selectedKeys.Contains($"{r.MediaType}-{r.Id}")).ToList())
+        {
             if (FindLibraryItem(item) == null) await HandleStatusClick(item, WatchlistStatus.Pending);
-        _selectedKeys.Clear(); StateHasChanged();
+        }
+
+        _selectedKeys.Clear();
+        StateHasChanged();
     }
+
     private async Task BulkStartWatching()
     {
         foreach (var item in SortedResults.Where(r => _selectedKeys.Contains($"{r.MediaType}-{r.Id}")).ToList())
+        {
             await HandleStatusClick(item, WatchlistStatus.Watching);
-        _selectedKeys.Clear(); StateHasChanged();
+        }
+
+        _selectedKeys.Clear();
+        StateHasChanged();
     }
+
     private async Task BulkRemove()
     {
         foreach (var item in SortedResults.Where(r => _selectedKeys.Contains($"{r.MediaType}-{r.Id}")).ToList())
@@ -340,30 +384,66 @@
             var lib = FindLibraryItem(item);
             if (lib != null) await WatchlistSvc.RemoveFromWatchlistAsync(lib);
         }
-        _selectedKeys.Clear(); StateHasChanged();
+
+        _selectedKeys.Clear();
+        StateHasChanged();
     }
 
     private WatchlistItem? FindLibraryItem(TmdbSearchResultItem item)
         => WatchlistSvc.Items.FirstOrDefault(i =>
             i.Title.Equals(item.DisplayTitle, StringComparison.OrdinalIgnoreCase) &&
-            (item.DisplayDate.Length >= 4 && i.Year.Contains(item.DisplayDate.Substring(0, 4))));
+            (item.DisplayDate.Length >= 4 && i.Year.Contains(item.DisplayDate[..4])));
 
     protected override async Task OnParametersSetAsync()
     {
         if (string.IsNullOrWhiteSpace(Query)) return;
-        cts?.Cancel(); cts = new CancellationTokenSource();
-        directorsMap.Clear(); _directorRefreshCounter = 0; _selectedKeys.Clear(); isEditing = false;
-        isLoading = true; results = null;
+
+        cts?.Cancel();
+        cts = new CancellationTokenSource();
+        directorsMap.Clear();
+        _directorRefreshCounter = 0;
+        _selectedKeys.Clear();
+        isEditing = false;
+        isLoading = true;
+        results = null;
+
         try
         {
-            var apiKey = Config["TmdbApiKey"];
-            var url = $"https://api.themoviedb.org/3/search/multi?api_key={apiKey}&query={Uri.EscapeDataString(Uri.UnescapeDataString(Query))}";
-            var response = await Http.GetFromJsonAsync<TmdbSearchResponse>(url);
-            results = response?.Results;
+            var decodedQuery = Uri.UnescapeDataString(Query);
+
+            if (IsPersonSearch)
+            {
+                var apiKey = Config["TmdbApiKey"];
+                var url = $"https://api.themoviedb.org/3/search/person?api_key={apiKey}&query={Uri.EscapeDataString(decodedQuery)}&include_adult=false";
+                var response = await Http.GetFromJsonAsync<TmdbSearchResponse>(url);
+                results = response?.Results ?? new();
+                foreach (var r in results)
+                {
+                    r.MediaType = "person";
+                }
+            }
+            else
+            {
+                var apiKey = Config["TmdbApiKey"];
+                var url = $"https://api.themoviedb.org/3/search/multi?api_key={apiKey}&query={Uri.EscapeDataString(decodedQuery)}&include_adult=false";
+                var response = await Http.GetFromJsonAsync<TmdbSearchResponse>(url);
+                results = response?.Results?.Where(r => r.MediaType == "movie" || r.MediaType == "tv").ToList() ?? new();
+            }
         }
-        catch (Exception ex) { Console.WriteLine($"Search API Error: {ex.Message}"); results = new(); }
-        finally { isLoading = false; }
-        if (results != null) _ = FetchDirectorsAsync(results, cts.Token);
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Search API Error: {ex.Message}");
+            results = new();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+
+        if (!IsPersonSearch && results != null)
+        {
+            _ = FetchDirectorsAsync(results, cts.Token);
+        }
     }
 
     private async Task FetchDirectorsAsync(List<TmdbSearchResultItem> items, CancellationToken token)
@@ -371,22 +451,33 @@
         foreach (var item in items.Where(r => r.MediaType == "movie" || r.MediaType == "tv"))
         {
             if (token.IsCancellationRequested) break;
+
             var key = $"{item.MediaType}-{item.Id}";
             if (directorsMap.ContainsKey(key)) continue;
+
             try
             {
                 var movie = await WatchlistSvc.GetTmdbDetailsByIdAsync(item.Id, item.MediaType);
-                if (movie != null) 
-                { 
+                if (movie != null)
+                {
                     var directors = movie.Credits?.Crew?.Where(c => c.Job == "Director").Select(c => c.Name).ToList() ?? new();
-                    directorsMap[key] = directors.Any() ? string.Join(", ", directors) : "N/A"; 
-                    _directorRefreshCounter++; 
-                    if (_directorRefreshCounter % 5 == 0) await InvokeAsync(StateHasChanged); 
+                    directorsMap[key] = directors.Any() ? string.Join(", ", directors) : "N/A";
+                    _directorRefreshCounter++;
+                    if (_directorRefreshCounter % 5 == 0) await InvokeAsync(StateHasChanged);
                 }
             }
             catch { }
-            try { await Task.Delay(100, token); } catch (OperationCanceledException) { break; }
+
+            try
+            {
+                await Task.Delay(100, token);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
         }
+
         await InvokeAsync(StateHasChanged);
     }
 
@@ -405,9 +496,11 @@
         {
             var movie = await WatchlistSvc.GetTmdbDetailsByIdAsync(item.Id, item.MediaType);
             if (movie != null && !string.IsNullOrEmpty(movie.ImdbId))
+            {
                 await WatchlistSvc.AddToWatchlistAsync(new WatchlistItem
                 {
-                    ImdbId = movie.ImdbId, Title = movie.Title,
+                    ImdbId = movie.ImdbId,
+                    Title = movie.Title,
                     OriginalTitle = movie.OriginalTitle != movie.Title ? movie.OriginalTitle : null,
                     TitleType = item.MediaType == "movie" ? "Movie" : "TV Series",
                     Year = movie.ReleaseDate ?? "",
@@ -415,29 +508,20 @@
                     Genres = string.Join(", ", movie.GenreList.Select(g => g.Name)),
                     Director = movie.Credits?.Crew?.Where(c => c.Job == "Director").Select(c => c.Name).FirstOrDefault(),
                     Status = status,
-                    CurrentSeason = (status == WatchlistStatus.Watching && item.MediaType == "tv") ? 1 : null,
-                    CurrentEpisode = (status == WatchlistStatus.Watching && item.MediaType == "tv") ? 1 : null,
+                    CurrentSeason = status == WatchlistStatus.Watching && item.MediaType == "tv" ? 1 : null,
+                    CurrentEpisode = status == WatchlistStatus.Watching && item.MediaType == "tv" ? 1 : null,
                     PosterPath = movie.PosterPath
                 });
+            }
         }
-        else await WatchlistSvc.UpdateStatusAsync(lib, status);
-    }
-
-    private async Task OpenDirectorProfileAsync(TmdbSearchResultItem item, string directorName)
-    {
-        var m = await WatchlistSvc.GetTmdbDetailsByIdAsync(item.Id, item.MediaType);
-        var dirId = m?.Credits?.Crew?.FirstOrDefault(c => c.Name == directorName && c.Job == "Director")?.Id;
-        if (dirId.HasValue) 
+        else
         {
-            await WatchlistSvc.OpenPersonProfileAsync(dirId.Value);
+            await WatchlistSvc.UpdateStatusAsync(lib, status);
         }
     }
 
     private static string GetSearchResultYear(TmdbSearchResultItem item)
         => item.DisplayDate.Length >= 4 ? item.DisplayDate[..4] : "";
-
-    private string? ResolveSearchResultImdbId(TmdbSearchResultItem item)
-        => FindLibraryItem(item)?.ImdbId;
 }
 
 <style>

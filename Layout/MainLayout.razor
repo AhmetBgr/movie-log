@@ -832,7 +832,8 @@
         {
             _isOverlayOpen = false;
             WatchlistSvc.AddToSearchHistory(SearchText);
-            NavManager.NavigateTo($"search/{Uri.EscapeDataString(SearchText)}");
+            var searchType = _searchMode == SearchMode.Person ? "person" : "multi";
+            NavManager.NavigateTo($"search/{Uri.EscapeDataString(SearchText)}?type={searchType}");
         }
     }
 }
