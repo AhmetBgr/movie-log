@@ -187,16 +187,12 @@
                 </div>
 
                 <!-- Bottom Group: Overview/Plot -->
-                <div class="overview-section">
-                    @if (!string.IsNullOrEmpty(Item.Overview))
-                    {
+                @if (!string.IsNullOrEmpty(Item.Overview))
+                {
+                    <div class="overview-section">
                         <p class="overview-text mb-0">@Item.Overview</p>
-                    }
-                    else
-                    {
-                        <p class="overview-text text-muted fst-italic mb-0">No overview available.</p>
-                    }
-                </div>
+                    </div>
+                }
 
             </div><!-- /main content -->
         </div><!-- /outer row -->
