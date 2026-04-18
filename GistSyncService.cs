@@ -38,9 +38,10 @@ public class GistSyncService
         {
             GistId = settings.GistId?.Trim() ?? "",
             PersonalAccessToken = settings.PersonalAccessToken?.Trim() ?? "",
-            AutoSyncMode = GistAutoSyncMode.Disabled,
+            AutoSyncMode = settings.AutoSyncMode,
             AutoPullIntervalMinutes = Math.Max(1, settings.AutoPullIntervalMinutes),
-            AutoSyncPaused = true
+            AutoSyncPaused = settings.AutoSyncPaused,
+            LocalLibraryPath = settings.LocalLibraryPath?.Trim() ?? ""
         };
         await _storage.SaveAsync(SettingsStorageKey, normalized);
     }

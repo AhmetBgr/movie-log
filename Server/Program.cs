@@ -21,8 +21,6 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("http://localhost:5000") });
-builder.Services.AddScoped<LocalStorageService>();
-builder.Services.AddScoped<WatchlistService>();
 
 var app = builder.Build();
 
@@ -42,14 +40,11 @@ app.UseHttpsRedirection();
 app.UseRouting();
 app.UseCors("ExtensionPolicy");
 
+// Map routes
 app.MapControllers();
 app.MapRazorPages();
 app.UseBlazorFrameworkFiles();
 app.UseStaticFiles();
 app.MapFallbackToFile("index.html");
-
-// Initialize the watchlist service
-var watchlistSvc = app.Services.GetRequiredService<WatchlistService>();
-_ = watchlistSvc.InitializeAsync();
 
 await app.RunAsync();

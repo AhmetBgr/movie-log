@@ -15,4 +15,5 @@ public class GistSettings
     public GistAutoSyncMode AutoSyncMode { get; set; } = GistAutoSyncMode.Disabled;
     public int AutoPullIntervalMinutes { get; set; } = 5;
     public bool AutoSyncPaused { get; set; } = false;
+    public string LocalLibraryPath { get; set; } = "";
 }

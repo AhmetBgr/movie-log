@@ -3,6 +3,8 @@
 @using MyPrivateWatchlist.Models
 @using MyPrivateWatchlist.Components
 @inject MyPrivateWatchlist.Services.WatchlistService WatchlistSvc
+@inject MyPrivateWatchlist.Services.GistSyncService GistSync
+@inject HttpClient Http
 @inject IJSRuntime JS
 @inject NavigationManager NavManager
 @implements IDisposable
@@ -71,7 +73,7 @@
             }
         </div>
 
-        @if (ActiveTab != "watching")
+        @if (ActiveTab != "watching" && ActiveTab != "ready")
         {
             <button class="tb-btn @(showFilters ? "active" : "") position-relative" @onclick="ToggleFilters">
                 <i class="bi bi-funnel"></i>
@@ -84,56 +86,69 @@
             </button>
         }
 
-        <button class="tb-btn @(isEditing ? "active" : "")" @onclick="ToggleEdit">
-            <i class="bi @(isEditing ? "bi-check-lg" : "bi-pencil")"></i>
-            <span class="tb-label">@(isEditing ? "Done" : "Edit")</span>
-        </button>
-
-        <div class="tb-divider"></div>
-
-        <button class="tb-btn tb-btn-sort @(CurrentSortColumn == "Title" ? "sorted" : "")"
-                @onclick='() => ToggleSort("Title")'>
-            <i class="bi @(CurrentSortColumn == "Title" ? (CurrentSortDescending ? "bi-sort-alpha-up-alt" : "bi-sort-alpha-down") : "bi-sort-alpha-down")"></i>
-            <span class="tb-label">Title</span>
-        </button>
-        <button class="tb-btn tb-btn-sort @(CurrentSortColumn == "Year" ? "sorted" : "")"
-                @onclick='() => ToggleSort("Year")'>
-            <i class="bi @(CurrentSortColumn == "Year" ? (CurrentSortDescending ? "bi-sort-numeric-up-alt" : "bi-sort-numeric-down") : "bi-sort-numeric-down")"></i>
-            <span class="tb-label">Year</span>
-        </button>
-        
-        @if (ActiveTab == "watched" || (ActiveTab == "collections" && SelectedCollectionId != null))
+        @if (ActiveTab != "ready")
         {
-            <button class="tb-btn tb-btn-sort @(CurrentSortColumn == "Rating" ? "sorted" : "")"
-                    @onclick='() => ToggleSort("Rating")'>
-                <i class="bi bi-star"></i>
-                <span class="tb-label">Rating</span>
-            </button>
-        }
-
-        <button class="tb-btn tb-btn-sort @(CurrentSortColumn == "DateAdded" ? "sorted" : "")"
-                @onclick='() => ToggleSort("DateAdded")'>
-            <i class="bi bi-calendar-plus"></i>
-            <span class="tb-label">Added</span>
-        </button>
-
-        @if (ActiveTab == "collections" && SelectedCollectionId != null)
-        {
-            <button class="tb-btn tb-btn-sort @(CurrentSortColumn == "Order" ? "sorted" : "")"
-                    @onclick='() => ToggleSort("Order")'>
-                <i class="bi bi-list-ol"></i>
-                <span class="tb-label">List Order</span>
+            <button class="tb-btn @(isEditing ? "active" : "")" @onclick="ToggleEdit">
+                <i class="bi @(isEditing ? "bi-check-lg" : "bi-pencil")"></i>
+                <span class="tb-label">@(isEditing ? "Done" : "Edit")</span>
             </button>
         }
 
         <div class="tb-divider"></div>
 
-        <button class="tb-btn @(!isCardView ? "active" : "")" @onclick="() => SetView(false)" title="Table view">
-            <i class="bi bi-list-ul"></i>
-        </button>
-        <button class="tb-btn @(isCardView ? "active" : "")" @onclick="() => SetView(true)" title="Card view">
-            <i class="bi bi-grid-3x2-gap"></i>
-        </button>
+        @if (ActiveTab != "ready")
+        {
+            <button class="tb-btn tb-btn-sort @(CurrentSortColumn == "Title" ? "sorted" : "")"
+                    @onclick='() => ToggleSort("Title")'>
+                <i class="bi @(CurrentSortColumn == "Title" ? (CurrentSortDescending ? "bi-sort-alpha-up-alt" : "bi-sort-alpha-down") : "bi-sort-alpha-down")"></i>
+                <span class="tb-label">Title</span>
+            </button>
+            <button class="tb-btn tb-btn-sort @(CurrentSortColumn == "Year" ? "sorted" : "")"
+                    @onclick='() => ToggleSort("Year")'>
+                <i class="bi @(CurrentSortColumn == "Year" ? (CurrentSortDescending ? "bi-sort-numeric-up-alt" : "bi-sort-numeric-down") : "bi-sort-numeric-down")"></i>
+                <span class="tb-label">Year</span>
+            </button>
+            
+            @if (ActiveTab == "watched" || (ActiveTab == "collections" && SelectedCollectionId != null))
+            {
+                <button class="tb-btn tb-btn-sort @(CurrentSortColumn == "Rating" ? "sorted" : "")"
+                        @onclick='() => ToggleSort("Rating")'>
+                    <i class="bi bi-star"></i>
+                    <span class="tb-label">Rating</span>
+                </button>
+            }
+
+            <button class="tb-btn tb-btn-sort @(CurrentSortColumn == "DateAdded" ? "sorted" : "")"
+                    @onclick='() => ToggleSort("DateAdded")'>
+                <i class="bi bi-calendar-plus"></i>
+                <span class="tb-label">Added</span>
+            </button>
+
+            @if (ActiveTab == "collections" && SelectedCollectionId != null)
+            {
+                <button class="tb-btn tb-btn-sort @(CurrentSortColumn == "Order" ? "sorted" : "")"
+                        @onclick='() => ToggleSort("Order")'>
+                    <i class="bi bi-list-ol"></i>
+                    <span class="tb-label">List Order</span>
+                </button>
+            }
+
+            <div class="tb-divider"></div>
+
+            <button class="tb-btn @(!isCardView ? "active" : "")" @onclick="() => SetView(false)" title="Table view">
+                <i class="bi bi-list-ul"></i>
+            </button>
+            <button class="tb-btn @(isCardView ? "active" : "")" @onclick="() => SetView(true)" title="Card view">
+                <i class="bi bi-grid-3x2-gap"></i>
+            </button>
+        }
+        else
+        {
+            <button class="tb-btn" @onclick="ScanLocalMediaAsync" disabled="@_isScanning">
+                <i class="bi bi-arrow-clockwise @(_isScanning ? "bi-spin" : "")"></i>
+                <span class="tb-label">Scan Folder</span>
+            </button>
+        }
     </div>
 
     <!-- ── Bulk Action bar ────────────────────────────────────────── -->
@@ -233,7 +248,7 @@
             </div>
         }
 
-        @if (showFilters && ActiveTab != "watching")
+        @if (showFilters && ActiveTab != "watching" && ActiveTab != "ready")
         {
             <div class="filter-panel-wrapper h-100" @onclick="@(() => SetFilterVisibility(false))">
                 <div @onclick:stopPropagation="true" class="d-flex h-100">
@@ -273,6 +288,87 @@
                     </div>
                 </div>
             }
+            else if (ActiveTab == "ready")
+            {
+                <div class="ready-tab-content pt-2 p-3">
+                    @if (!IsLocalHost)
+                    {
+                        <div class="text-center py-5 opacity-50 px-3">
+                            <i class="bi bi-cloud-slash fs-1 d-block mb-3"></i>
+                            <h5 class="fw-bold">Local Media Not Available</h5>
+                            <p class="small mx-auto" style="max-width: 450px;">
+                                The "Ready" tab requires the <strong>Movie Log Server</strong> to be running locally on your PC to access your file system and launch players. 
+                                This feature is disabled when viewing the app via GitHub Pages or other remote hosts.
+                            </p>
+                            <div class="mt-4 p-3 border rounded-3 bg-light text-start small mx-auto" style="max-width: 450px;">
+                                <div class="fw-bold mb-1"><i class="bi bi-info-circle me-1"></i> How to use this feature:</div>
+                                1. Download the repository to your PC.<br/>
+                                2. Run <strong>Start_MovieLog.bat</strong>.<br/>
+                                3. Configure your media folder in the settings.
+                            </div>
+                        </div>
+                    }
+                    else if (_isScanning)
+                    {
+                        <div class="text-center py-5 opacity-50">
+                            <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                            <span>Scanning folder...</span>
+                        </div>
+                    }
+                    else if (!_localMediaFiles.Any())
+                    {
+                         <div class="text-center py-5 opacity-50">
+                            <i class="bi bi-folder-x fs-1 d-block mb-3"></i>
+                            <p>No media files found or path not configured.</p>
+                            <button class="btn btn-sm btn-outline-primary rounded-pill px-4" @onclick='() => NavManager.NavigateTo("configure")'>Configure Path</button>
+                        </div>
+                    }
+                    else
+                    {
+                         <div class="card-list-frame">
+                             <div class="row row-cols-1 g-0">
+                                @foreach (var file in _localMediaFiles)
+                                {
+                                    var matched = WatchlistSvc.Items.FirstOrDefault(i => i.ImdbId == file.MatchedImdbId);
+                                    <div class="col card-row">
+                                        <div class="d-flex align-items-center gap-3 px-2">
+                                            @if (matched != null)
+                                            {
+                                                <img src="@matched.FullPosterUrl" style="width: 50px; height: 75px; object-fit: cover; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.2);" />
+                                                <div class="flex-grow-1 overflow-hidden">
+                                                    <div class="fw-bold text-truncate">@matched.Title (@matched.ParsedYear)</div>
+                                                    <div class="small text-secondary text-truncate" style="font-size:0.75rem;">@file.FileName</div>
+                                                     <div class="mt-1 d-flex align-items-center gap-2">
+                                                        <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25" style="font-size:0.65rem;">READY</span>
+                                                        <span class="small text-muted" style="font-size:0.7rem;">@((file.SizeBytes / 1024.0 / 1024.0 / 1024.0).ToString("N2")) GB</span>
+                                                    </div>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <div class="bg-secondary bg-opacity-10 d-flex align-items-center justify-content-center" style="width: 50px; height: 75px; border-radius: 8px;">
+                                                    <i class="bi bi-file-earmark-play fs-4 opacity-25"></i>
+                                                </div>
+                                                <div class="flex-grow-1 overflow-hidden">
+                                                    <div class="fw-bold text-truncate">@file.CleanName @(file.Year.HasValue ? $"({file.Year})" : "")</div>
+                                                    <div class="small text-secondary text-truncate" style="font-size:0.75rem;">@file.FileName</div>
+                                                     <div class="mt-1 d-flex align-items-center gap-2">
+                                                        <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25" style="font-size:0.65rem;">UNMATCHED</span>
+                                                        <span class="small text-muted" style="font-size:0.7rem;">@((file.SizeBytes / 1024.0 / 1024.0 / 1024.0).ToString("N2")) GB</span>
+                                                    </div>
+                                                </div>
+                                            }
+                                            <button class="btn btn-primary rounded-pill px-4 shadow-sm" @onclick="() => PlayMediaAsync(file.FullPath)">
+                                                <i class="bi bi-play-fill me-1"></i>Play
+                                            </button>
+                                        </div>
+                                    </div>
+                                }
+                             </div>
+                         </div>
+                    }
+                </div>
+            }
             else if (!itemsList.Any() && !isEditing)
             {
                 <div class="d-flex align-items-center justify-content-center h-100 py-5">
@@ -304,7 +400,6 @@
                 {
                     <div class="table-wrap table-wrap--wide p-2">
                         @{
-
                             var pagedItems = itemsList.Take(_currentPageSize).ToList();
                         }
                         <div class="card-list-frame">
@@ -312,7 +407,7 @@
                             @foreach (var item in pagedItems)
                             {
                                 var rank = (SelectedCollection != null && CurrentSortColumn == "Order") ? (SelectedCollection.Items.FirstOrDefault(ci => ci.ImdbId == item.ImdbId)?.Order + 1 ?? 0) : 0;
-                                <div class="col card-row" @key="item">
+                                <div class="col card-row" @key="item.ImdbId">
                                     <MovieCard Item="item"
                                                IsEditMode="@isEditing"
                                                IsSelected="@_selectedIds.Contains(item.ImdbId)"
@@ -359,8 +454,9 @@
 @code {
     [Parameter] public string? Tab { get; set; }
 
-    private string ActiveTab => (Tab?.ToLower() ?? "watchlist"); // Default changed to watchlist
-    private string DisplayTabName => ActiveTab switch { "watching" => "Watching", "watched" => "Watched", "watchlist" => "Watchlist", _ => "Library" };
+    private string ActiveTab => (Tab?.ToLower() ?? "watchlist"); 
+    private string DisplayTabName => ActiveTab switch { "watching" => "Watching", "watched" => "Watched", "watchlist" => "Watchlist", "ready" => "Ready", _ => "Library" };
+    private bool IsLocalHost => NavManager.BaseUri.Contains("localhost") || NavManager.BaseUri.Contains("127.0.0.1");
 
     private bool _isReady = false;
     private bool isEditing = false;
@@ -383,6 +479,8 @@
     }
 
     private List<TabInfo> _tabsList = new();
+    private List<LocalMediaFile> _localMediaFiles = new();
+    private bool _isScanning = false;
 
     private void RefreshLocalCaches(bool forceHeavy = false)
     {
@@ -391,6 +489,7 @@
             new TabInfo { Id = "watchlist", Label = "Watchlist", Icon = "bi-list-nested", Count = WatchlistSvc.FilteredItems.Count() },
             new TabInfo { Id = "watched", Label = "Watched", Icon = "bi-check2-all", Count = WatchlistSvc.WatchedItems.Count() },
             new TabInfo { Id = "watching", Label = "Watching", Icon = "bi-play-circle-fill", Count = WatchlistSvc.WatchingItems.Count() },
+            new TabInfo { Id = "ready", Label = "Ready", Icon = "bi-hdd-fill", Count = _localMediaFiles.Count },
             new TabInfo { Id = "collections", Label = "Collections", Icon = "bi-folder-fill", Count = WatchlistSvc.Collections.Count }
         };
 
@@ -432,11 +531,9 @@
                 
                 var items = WatchlistSvc.Items.Where(i => col.MovieIds.Contains(i.ImdbId));
                 
-                // Still apply core filters if any (search, title etc)
                 if (!string.IsNullOrEmpty(WatchlistSvc.SearchQuery))
                     items = items.Where(i => i.Title.Contains(WatchlistSvc.SearchQuery, StringComparison.OrdinalIgnoreCase));
                 
-                // Handle Sorting within collection
                 if (CurrentSortColumn == "Order")
                 {
                     items = CurrentSortDescending 
@@ -519,7 +616,6 @@
         _selectedIds.Clear();
         if (Tab == _lastTab && Tab == "collections")
         {
-            // Only reset if clicking the same tab we are already on
             SelectedCollectionId = null;
         }
         _lastTab = Tab;
@@ -532,7 +628,7 @@
         {
             _currentPageSize = DefaultPageSize;
             _isReady = true;
-            if (!new[] { "watching", "watched", "watchlist", "collections" }.Contains(ActiveTab))
+            if (!new[] { "watching", "watched", "watchlist", "collections", "ready" }.Contains(ActiveTab))
             {
                 NavManager.NavigateTo("library/watchlist", false);
             }
@@ -541,6 +637,7 @@
                 await RestoreViewPreference(false);
                 await RestoreFilterPreference(false);
                 RefreshLocalCaches(false);
+                if (ActiveTab == "ready") _ = ScanLocalMediaAsync();
             }
         }
     }
@@ -554,7 +651,7 @@
                 try
                 {
                     var savedTab = await JS.InvokeAsync<string?>("sessionStorage.getItem", "last_library_tab");
-                    if (!string.IsNullOrEmpty(savedTab) && new[] { "watching", "watched", "watchlist", "collections" }.Contains(savedTab))
+                    if (!string.IsNullOrEmpty(savedTab) && new[] { "watching", "watched", "watchlist", "collections", "ready" }.Contains(savedTab))
                     {
                         NavManager.NavigateTo($"library/{savedTab}", replace: true);
                         return;
@@ -569,14 +666,76 @@
             }
 
             try { _holdRef = DotNetObjectReference.Create(this); await JS.InvokeVoidAsync("holdSelect.init", _holdRef); } catch {}
-            var isDesktop = await JS.InvokeAsync<bool>("uiHelpers.isDesktop");
             await RestoreViewPreference();
             await RestoreFilterPreference();
         }
 
-        if (_isReady && new[] { "watching", "watched", "watchlist", "collections" }.Contains(ActiveTab))
+        if (_isReady && new[] { "watching", "watched", "watchlist", "collections", "ready" }.Contains(ActiveTab))
         {
             try { _ = JS.InvokeVoidAsync("sessionStorage.setItem", "last_library_tab", ActiveTab); } catch { }
+        }
+    }
+
+    private async Task ScanLocalMediaAsync()
+    {
+        try
+        {
+            _isScanning = true;
+            StateHasChanged();
+            
+            var settings = await GistSync.GetSettingsAsync();
+            if (string.IsNullOrWhiteSpace(settings.LocalLibraryPath))
+            {
+                _localMediaFiles = new();
+                return;
+            }
+
+            var response = await Http.GetAsync($"/api/media/scan?path={Uri.EscapeDataString(settings.LocalLibraryPath)}");
+            if (response.IsSuccessStatusCode)
+            {
+                var results = await response.Content.ReadFromJsonAsync<List<LocalMediaFile>>();
+                if (results != null)
+                {
+                    foreach(var file in results)
+                    {
+                        var match = WatchlistSvc.Items.FirstOrDefault(i => 
+                            string.Equals(i.Title, file.CleanName, StringComparison.OrdinalIgnoreCase) && 
+                            (file.Year == null || i.ParsedYear == file.Year));
+                        
+                        if (match != null) file.MatchedImdbId = match.ImdbId;
+                    }
+                    _localMediaFiles = results.OrderBy(f => f.MatchedImdbId == null).ThenBy(f => f.CleanName).ToList();
+                }
+            }
+            else
+            {
+                var errorText = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Scan failed with status {response.StatusCode}: {errorText}");
+                _localMediaFiles = new();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Scan exception: {ex.Message}");
+            _localMediaFiles = new();
+        }
+        finally
+        {
+            _isScanning = false;
+            RefreshLocalCaches();
+            StateHasChanged();
+        }
+    }
+
+    private async Task PlayMediaAsync(string fullPath)
+    {
+        try
+        {
+            await Http.PostAsJsonAsync("/api/media/play", new PlayMediaRequest { FullPath = fullPath });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Play error: {ex.Message}");
         }
     }
 
@@ -707,8 +866,6 @@
         _editingCollection = null;
     }
 
-
-
     public void Dispose() { WatchlistSvc.OnStateChanged -= HandleStateChanged; _holdRef?.Dispose(); }
     private void HandleStateChanged() 
     { 
@@ -791,6 +948,16 @@
         color: #fff; 
         box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
     }
+    .disc-tab.active[data-tab="ready"] { 
+        background: #4f46e5; 
+        color: #fff; 
+        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
+    }
+    .disc-tab.active[data-tab="collections"] { 
+        background: #f59e0b; 
+        color: #fff; 
+        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+    }
 
     .tab-badge-min {
         background: rgba(0,0,0,0.08);
@@ -841,12 +1008,6 @@
         .collections-list-wrap { padding: 8px 12px; }
     }
 
-    .disc-tab.active[data-tab="collections"] { 
-        background: #f59e0b; 
-        color: #fff; 
-        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
-    }
-
     .discovery-loadmore-wrap {
         display: flex;
         justify-content: center;
@@ -858,7 +1019,7 @@
 
     .filter-panel-wrapper { 
         display: flex; 
-        z-index: 100; 
+        z-index: 1000; 
     }
 
     @@media (max-width: 650px) {
@@ -898,7 +1059,6 @@
     .tb-search-wrap:focus-within {
         background: #fff;
         border-color: #6366f1;
-        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
         max-width: 320px;
     }
     .tb-search-wrap i:not(.clear-btn) {
@@ -923,24 +1083,15 @@
         cursor: pointer;
         opacity: 0.5;
         font-size: 0.9rem;
-        transition: all 0.2s;
-    }
-    .tb-search-wrap .clear-btn:hover { 
-        opacity: 1; 
-        color: #ef4444; 
-        transform: scale(1.1);
     }
 
-    @@media (max-width: 767px) {
-        .tb-search-wrap {
-            max-width: 140px;
-            margin-right: 4px;
-        }
-        .tb-search-wrap:focus-within {
-            max-width: 180px;
-        }
-        .tb-search-input {
-            font-size: 0.8rem;
-        }
+    /* Spinner Animation */
+    @@keyframes bi-spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+    .bi-spin {
+        display: inline-block;
+        animation: bi-spin 1.5s infinite linear;
     }
 </style>
