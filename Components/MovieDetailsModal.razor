@@ -105,7 +105,7 @@
 
                                         <span class="small fw-bold text-secondary text-uppercase tracking-wider mb-2" style="font-size: 0.65rem;">Rating</span>
                                         <div class="rounded-3 d-flex flex-column align-items-center justify-content-center shadow-sm transition-all rating-box-indicator" 
-                                             style="width: 75px; height: 75px; background-color: @(libItem?.Rating20 == null ? "#fff" : GetRatingColor(libItem.Rating20.Value)); 
+                                             style="width: 75px; height: 75px; background-color: @(libItem?.Rating20 == null ? "#fff" : Visuals.GetRatingColor(libItem.Rating20.Value)); 
                                                     color: @(libItem?.Rating20 == null ? "#adb5bd" : "#fff"); 
                                                     border: @(libItem?.Rating20 == null ? "2px dashed #dee2e6" : "none")">
                                             <input type="number" class="form-control form-control-sm text-center fw-black p-0 border-0 bg-transparent fs-2 no-spinner shadow-none @(libItem?.Rating20 == null ? "text-dark" : "text-white")" 
@@ -534,12 +534,7 @@
         }
     }
 
-    private string GetRatingColor(int val)
-    {
-        // 0 to 100 -> Hue 0 to 120
-        double hue = (val / 100.0) * 120;
-        return $"hsl({hue}, 70%, 40%)";
-    }
+
 
     private string FormatRuntime(int minutes)
     {

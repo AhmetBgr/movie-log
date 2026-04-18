@@ -74,7 +74,7 @@
                         var displayRating = ShowUserRatingOnly ? UserRatingForItem(item) : item.Rating20;
                     }
                     <span class="entry-rating @(displayRating == null ? "no-rating" : "")" 
-                          style="@(displayRating.HasValue ? $"color:{GetRatingColor(displayRating.Value)};" : "")">
+                          style="@(displayRating.HasValue ? $"color:{Visuals.GetRatingColor(displayRating.Value)};" : "")">
                         @(displayRating?.ToString() ?? "—")
                     </span>
                 </div>
@@ -172,7 +172,7 @@
         StateHasChanged();
     }
 
-    private string GetRatingColor(int val) { double hue = (val / 100.0) * 120; return $"hsl({hue}, 70%, 40%)"; }
+
 
     /// <summary>
     /// Returns the rating to display. If ShowUserRatingOnly=true, only returns a value

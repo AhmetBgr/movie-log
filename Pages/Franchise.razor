@@ -68,7 +68,7 @@
                                             
                                             @if (existingLibItem != null && existingLibItem.Rating20.HasValue)
                                             {
-                                                <div class="rating-badge-v2" style="background-color: @(GetRatingColor(existingLibItem.Rating20.Value));">
+                                                <div class="rating-badge-v2" style="background-color: @(Visuals.GetRatingColor(existingLibItem.Rating20.Value));">
                                                     @existingLibItem.UserRating
                                                 </div>
                                             }
@@ -302,11 +302,7 @@
         NavManager.NavigateTo("");
     }
 
-    private string GetRatingColor(int val)
-    {
-        double hue = (val / 100.0) * 120;
-        return $"hsl({hue}, 70%, 45%)";
-    }
+
 
     private async Task OpenMovie(TmdbMovie part)
     {

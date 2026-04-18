@@ -152,7 +152,7 @@
                         {
                             <div class="d-flex align-items-center mt-1">
                                 <div class="rating-box-sm @(Item.Rating20 == null ? "rating-empty" : "")"
-                                     style="@(Item.Rating20 != null ? $"background:{GetRatingColor(Item.Rating20.Value)};" : "")">
+                                     style="@(Item.Rating20 != null ? $"background:{Visuals.GetRatingColor(Item.Rating20.Value)};" : "")">
                                     <span class="rating-static @(Item.Rating20 == null ? "" : "text-white")">
                                         @(Item.Rating20?.ToString() ?? "–")
                                     </span>
@@ -248,11 +248,6 @@
         return null;
     }
 
-    private string GetRatingColor(int val)
-    {
-        double hue = (val / 100.0) * 120;
-        return $"hsl({hue}, 70%, 40%)";
-    }
     private async Task UpdateRating20(WatchlistItem item, int? r)
     {
         if (r.HasValue) r = Math.Clamp(r.Value, 0, 100);

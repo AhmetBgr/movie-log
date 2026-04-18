@@ -74,6 +74,59 @@
         .extra-small {
             font-size: 0.75rem;
         }
+
+        /* Rating Distribution Styles */
+        .rating-chart-container {
+            height: 200px;
+            display: flex;
+            flex-direction: column;
+            margin-top: 10px;
+        }
+        .chart-bars-wrap {
+            flex-grow: 1;
+            height: 150px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            padding: 0 4px;
+        }
+        .bar-col {
+            flex: 1;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: center;
+            min-width: 0;
+        }
+        .bar-count {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: #64748b;
+            margin-bottom: 4px;
+            height: 1rem;
+        }
+        .bar-fill {
+            width: 70%;
+            max-width: 32px;
+            border-radius: 6px 6px 0 0;
+            transition: height 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .chart-labels-wrap {
+            display: flex;
+            justify-content: space-between;
+            border-top: 1.5px solid rgba(0,0,0,0.1);
+            padding-top: 8px;
+            margin-top: 2px;
+        }
+        .label-box {
+            flex: 1;
+            text-align: center;
+            font-size: 0.65rem;
+            font-weight: 800;
+            color: #94a3b8;
+            white-space: nowrap;
+        }
     </style>
     
     <div class="mb-4 pb-3 border-bottom">
@@ -97,8 +150,7 @@
                     @foreach (var (item, index) in RecentRatings.Select((v, i) => (v, i)))
                     {
                         var rating = item.Rating20 ?? 0;
-                        var hue = (rating / 100.0) * 120;
-                        var color = $"hsl({hue}, 70%, 45%)";
+                        var color = Visuals.GetRatingColor(rating);
                         var percentile = RatingPercentiles.GetValueOrDefault(rating, 0);
                         
                         <div class="rating-row d-flex align-items-center py-1 px-2 mb-1 @(index % 2 != 0 ? "bg-alternate" : "")" style="border-radius: 6px;">
@@ -192,43 +244,45 @@
 
         <!-- 4. Rating Distribution -->
         <div class="col">
-            <div class="stat-card d-flex flex-column">
+            <div class="stat-card d-flex flex-column h-100">
                 <div class="stat-card-title">
                     <i class="bi bi-star-fill" style="color: #f59e0b;"></i> Rating Distribution
                 </div>
                 
-                <div class="row mb-4">
-                    @{
-                        var avgHue = (AvgRating / 100.0) * 120;
-                        var mostCommonHue = (MostCommonRating / 100.0) * 120;
-                    }
+                <!-- Summary Stats -->
+                <div class="row g-0 mb-4 py-2 bg-light bg-opacity-10 rounded-3">
                     <div class="col-6 text-center border-end">
-                        <div class="fs-2 fw-bold" style="color: hsl(@avgHue, 70%, 45%);">@(AvgRating > 0 ? AvgRating.ToString("0.0") : "—")</div>
-                        <div class="small text-muted text-uppercase fw-semibold" style="letter-spacing: 0.5px;">Avg Rating</div>
+                        <div class="fs-2 fw-black" style="color: @Visuals.GetRatingColor(AvgRating);">@(AvgRating > 0 ? AvgRating.ToString("0.0") : "—")</div>
+                        <div class="text-uppercase fw-bold text-secondary" style="font-size: 0.65rem; letter-spacing: 1px;">Avg Rating</div>
                     </div>
                     <div class="col-6 text-center">
-                        <div class="fs-2 fw-bold" style="color: hsl(@mostCommonHue, 70%, 45%);">@(MostCommonRating > 0 ? MostCommonRating.ToString() : "—")</div>
-                        <div class="small text-muted text-uppercase fw-semibold" style="letter-spacing: 0.5px;">Most Common</div>
+                        <div class="fs-2 fw-black" style="color: @Visuals.GetRatingColor(MostCommonRating);">@(MostCommonRating > 0 ? MostCommonRating.ToString() : "—")</div>
+                        <div class="text-uppercase fw-bold text-secondary" style="font-size: 0.65rem; letter-spacing: 1px;">Most Common</div>
                     </div>
                 </div>
 
-                <div class="flex-grow-1 d-flex flex-column justify-content-end">
+                <div class="rating-chart-container">
                     @{ var maxRating = RatingDistribution.Any() ? RatingDistribution.Max(x => x.Value) : 0; }
-                    <div class="chart-container d-flex align-items-end justify-content-between pt-2" style="height: 140px; gap: 4px;">
+                    
+                    <div class="chart-bars-wrap">
                         @foreach(var r in RatingDistribution)
                         {
-                            var h = maxRating > 0 ? (r.Value * 90 / maxRating) : 0;
-                            // Extract upper bound for color calculation (e.g. "71-80" -> 80)
+                            var h = maxRating > 0 ? (r.Value * 100 / maxRating) : 0;
                             int upper = 0;
                             if (int.TryParse(r.Key.Split('-').LastOrDefault(), out var val)) upper = val;
-                            var hue = (upper / 100.0) * 120;
-                            var color = $"hsl({hue}, 70%, 40%)";
+                            var color = Visuals.GetRatingColor(upper);
                             
-                            <div class="d-flex flex-column align-items-center justify-content-end h-100" style="flex: 1; min-width: 28px;" title="@r.Key: @r.Value movies">
-                                <div class="text-muted mb-1 fw-bold" style="font-size: 0.65rem; height: 1.1rem; white-space: nowrap;">@(r.Value > 0 ? r.Value.ToString() : "")</div>
-                                <div class="rounded-top" style="width: 70%; max-width: 28px; height: @(h)px; min-height: @(r.Value > 0 ? "4px" : "0px"); background-color: @color; transition: height 0.5s ease; @(r.Value == 0 ? "display:none;" : "")"></div>
-                                <div class="mt-2 text-secondary text-center fw-bold" style="font-size: 0.6rem; height: 1.2rem; line-height: 1.1;">@r.Key.Replace("-", "-\n")</div>
+                            <div class="bar-col" title="@r.Key: @r.Value movies">
+                                <div class="bar-count">@(r.Value > 0 ? r.Value.ToString() : "")</div>
+                                <div class="bar-fill" style="height: @(h)%; background-color: @color; @(r.Value == 0 ? "opacity: 0.1;" : "")"></div>
                             </div>
+                        }
+                    </div>
+                    
+                    <div class="chart-labels-wrap">
+                        @foreach(var r in RatingDistribution)
+                        {
+                            <div class="label-box">@r.Key</div>
                         }
                     </div>
                 </div>
@@ -340,11 +394,10 @@
                 {
                     @foreach(var g in currentRatedGenres)
                     {
-                        var hue = (g.Value / 100.0) * 120;
                         <div class="mb-3">
                             <div class="d-flex justify-content-between mb-1">
                                 <span class="fw-semibold text-dark">@g.Key</span>
-                                <span class="fw-bold" style="color: hsl(@hue, 70%, 40%);">@g.Value.ToString("0.0")</span>
+                                <span class="fw-bold" style="color: @Visuals.GetRatingColor(g.Value);">@g.Value.ToString("0.0")</span>
                             </div>
                             <div class="progress" style="height: 8px;">
                                 <div class="progress-bar" style="width: @g.Value%; background-color: #ec4899;"></div>
@@ -379,11 +432,10 @@
                 {
                     @foreach(var d in currentDirRatings)
                     {
-                        var hue = (d.Value / 100.0) * 120;
                         <div class="mb-3">
                             <div class="d-flex justify-content-between mb-1">
                                 <a href="/search/@Uri.EscapeDataString(d.Key)" target="_blank" class="fw-semibold text-dark text-truncate text-decoration-none director-link" style="max-width: 75%;" title="@d.Key">@d.Key</a>
-                                <span class="fw-bold" style="color: hsl(@hue, 70%, 40%);">@d.Value.ToString("0.0")</span>
+                                <span class="fw-bold" style="color: @Visuals.GetRatingColor(d.Value);">@d.Value.ToString("0.0")</span>
                             </div>
                             <div class="progress" style="height: 8px;">
                                 <div class="progress-bar" style="width: @d.Value%; background-color: #f59e0b;"></div>
@@ -428,10 +480,8 @@
                     <div class="chart-container d-flex align-items-end justify-content-between pt-2" style="height: 140px; gap: 4px;">
                         @foreach(var d in DecadeRatingTrend)
                         {
-                            var h = maxTrend > 0 ? (d.Value * 100 / 100) : 0; // Scale to 100
-                            var hue = (d.Value / 100.0) * 120;
                             <div class="d-flex flex-column align-items-center justify-content-end h-100" style="flex: 1; min-width: 32px;" title="@d.Key: @d.Value.ToString("0.0") avg">
-                                <div class="fw-bold mb-1" style="font-size: 0.7rem; height: 1.1rem; color: hsl(@hue, 70%, 40%);">@d.Value.ToString("0.0")</div>
+                                <div class="fw-bold mb-1" style="font-size: 0.7rem; height: 1.1rem; color: @Visuals.GetRatingColor(d.Value);">@d.Value.ToString("0.0")</div>
                                 <div class="rounded-top" style="width: 70%; max-width: 28px; height: @(d.Value)px; background-color: #14b8a6; transition: height 0.5s ease;"></div>
                                 <div class="mt-2 text-secondary text-center fw-bold" style="font-size: 0.75rem; height: 1.2rem;">@d.Key</div>
                             </div>

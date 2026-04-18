@@ -366,12 +366,7 @@
 
     private static int GetRating100Value(WatchlistItem item) => Math.Max(0, Math.Min(100, item.Rating20 ?? item.UserRating ?? 0));
 
-    private static string GetRatingColor(int val)
-    {
-        var clamped = Math.Max(0, Math.Min(100, val));
-        var hue = (clamped / 100.0) * 120.0;
-        return $"hsl({hue}, 70%, 40%)";
-    }
+
 
     private void HandleLibraryStateChanged() => InvokeAsync(StateHasChanged);
 
