@@ -24,7 +24,7 @@
         <div class="watched-grid">
             @foreach (var item in pagedItems)
             {
-                <div class="watched-entry" 
+                <div class="watched-entry" @key="item"
                      data-holdselect-id="@item.ImdbId"
                      @onclick="() => OnItemClick.InvokeAsync(item)">
                     @if (IsEditing)

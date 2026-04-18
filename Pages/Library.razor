@@ -251,7 +251,8 @@
             </div>
         }
 
-        <div class="content-scroll" @onscroll="OnScroll">
+        <div class="content-scroll">
+            @{ var itemsList = CurrentItems.ToList(); }
             @if (ActiveTab == "collections" && SelectedCollectionId == null)
             {
                 <div class="collections-list-wrap">
@@ -272,7 +273,7 @@
                     </div>
                 </div>
             }
-            else if (!CurrentItems.Any() && !isEditing)
+            else if (!itemsList.Any() && !isEditing)
             {
                 <div class="d-flex align-items-center justify-content-center h-100 py-5">
                     <div class="text-center opacity-50 py-5">
@@ -285,13 +286,13 @@
             {
                 @if (!isCardView)
                 {
-                    <MovieGridTable Items="CurrentItems.ToList()"
+                    <MovieGridTable Items="itemsList"
                                    IsEditing="isEditing"
                                    SelectedIds="_selectedIds"
                                    OnToggleSelect="ToggleSelect"
                                    OnItemClick="HandleRowClick"
                                    ShowSummary="true"
-                                   TotalCount="CurrentItemCount"
+                                   TotalCount="itemsList.Count"
                                    SortInfo="@SortInfoText"
                                    CanReorder="@(ActiveTab == "collections" && SelectedCollectionId != null && CurrentSortColumn == "Order")"
                                    GetRank="@(ActiveTab == "collections" && SelectedCollectionId != null && CurrentSortColumn == "Order" ? (item => SelectedCollection?.Items.FirstOrDefault(ci => ci.ImdbId == item.ImdbId)?.Order + 1 ?? 0) : null)"
@@ -303,7 +304,7 @@
                 {
                     <div class="table-wrap table-wrap--wide p-2">
                         @{
-                            var itemsList = CurrentItems.ToList();
+
                             var pagedItems = itemsList.Take(_currentPageSize).ToList();
                         }
                         <div class="card-list-frame">
@@ -706,7 +707,7 @@
         _editingCollection = null;
     }
 
-    private void OnScroll(EventArgs e) { /* Placeholder */ }
+
 
     public void Dispose() { WatchlistSvc.OnStateChanged -= HandleStateChanged; _holdRef?.Dispose(); }
     private void HandleStateChanged() 
