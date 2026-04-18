@@ -180,25 +180,25 @@
                 </div>
                 <div class="row row-cols-2 g-3 mt-2">
                     <div class="col">
-                        <a href="/library/watched" class="p-3 rounded-3 text-center h-100 d-flex flex-column justify-content-center text-decoration-none" style="background: rgba(99, 102, 241, 0.08); display: block;">
+                        <a href="library/watched" class="p-3 rounded-3 text-center h-100 d-flex flex-column justify-content-center text-decoration-none" style="background: rgba(99, 102, 241, 0.08); display: block;">
                             <div class="fs-2 fw-bold" style="color: #6366f1;">@WatchedCount</div>
                             <div class="small fw-semibold mt-1" style="color: #6366f1; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">Watched</div>
                         </a>
                     </div>
                     <div class="col">
-                        <a href="/library/watchlist" class="p-3 rounded-3 text-center h-100 d-flex flex-column justify-content-center text-decoration-none" style="background: rgba(100, 116, 139, 0.08); display: block;">
+                        <a href="library/watchlist" class="p-3 rounded-3 text-center h-100 d-flex flex-column justify-content-center text-decoration-none" style="background: rgba(100, 116, 139, 0.08); display: block;">
                             <div class="fs-2 fw-bold" style="color: #64748b;">@WatchlistCount</div>
                             <div class="small fw-semibold mt-1" style="color: #64748b; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">Watchlist</div>
                         </a>
                     </div>
                     <div class="col">
-                        <a href="/library/watching" class="p-3 rounded-3 text-center h-100 d-flex flex-column justify-content-center text-decoration-none" style="background: rgba(16, 185, 129, 0.08); display: block;">
+                        <a href="library/watching" class="p-3 rounded-3 text-center h-100 d-flex flex-column justify-content-center text-decoration-none" style="background: rgba(16, 185, 129, 0.08); display: block;">
                             <div class="fs-2 fw-bold" style="color: #10b981;">@WatchingCount</div>
                             <div class="small fw-semibold mt-1" style="color: #10b981; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">Watching</div>
                         </a>
                     </div>
                     <div class="col">
-                        <a href="/library/collections" class="p-3 rounded-3 text-center h-100 d-flex flex-column justify-content-center text-decoration-none" style="background: rgba(245, 158, 11, 0.08); display: block;">
+                        <a href="library/collections" class="p-3 rounded-3 text-center h-100 d-flex flex-column justify-content-center text-decoration-none" style="background: rgba(245, 158, 11, 0.08); display: block;">
                             <div class="fs-2 fw-bold" style="color: #f59e0b;">@CollectionCount</div>
                             <div class="small fw-semibold mt-1" style="color: #f59e0b; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">Collections</div>
                         </a>
@@ -341,7 +341,7 @@
                         var pct = maxDir > 0 ? (d.Value * 100 / maxDir) : 0;
                         <div class="mb-3">
                             <div class="d-flex justify-content-between mb-1">
-                                <a href="/search/@Uri.EscapeDataString(d.Key)" target="_blank" class="fw-semibold text-dark text-truncate text-decoration-none director-link" style="max-width: 75%;" title="@d.Key">@d.Key</a>
+                                <a href="search/@Uri.EscapeDataString(d.Key)" target="_blank" class="fw-semibold text-dark text-truncate text-decoration-none director-link" style="max-width: 75%;" title="@d.Key">@d.Key</a>
                                 <span class="fw-bold text-secondary">@d.Value <span class="fw-normal text-muted small" style="font-size: 0.75em;">movies</span></span>
                             </div>
                             <div class="progress" style="height: 8px;">
@@ -434,7 +434,7 @@
                     {
                         <div class="mb-3">
                             <div class="d-flex justify-content-between mb-1">
-                                <a href="/search/@Uri.EscapeDataString(d.Key)" target="_blank" class="fw-semibold text-dark text-truncate text-decoration-none director-link" style="max-width: 75%;" title="@d.Key">@d.Key</a>
+                                <a href="search/@Uri.EscapeDataString(d.Key)" target="_blank" class="fw-semibold text-dark text-truncate text-decoration-none director-link" style="max-width: 75%;" title="@d.Key">@d.Key</a>
                                 <span class="fw-bold" style="color: @Visuals.GetRatingColor(d.Value);">@d.Value.ToString("0.0")</span>
                             </div>
                             <div class="progress" style="height: 8px;">
