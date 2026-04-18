@@ -7,22 +7,6 @@ public enum RatingSystem
     HundredPoint
 }
 
-public class LocalMediaFile
-{
-    public string FileName { get; set; } = "";
-    public string FullPath { get; set; } = "";
-    public string CleanName { get; set; } = "";
-    public int? Year { get; set; }
-    public long SizeBytes { get; set; }
-    public string? MatchedImdbId { get; set; }
-}
-
-public class PlayMediaRequest
-{
-    public string FullPath { get; set; } = "";
-}
-
-
 public enum WatchlistStatus
 {
     Pending,

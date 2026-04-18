@@ -185,36 +185,6 @@
         </div>
     </div>
 
-    @if (IsLocalHost)
-    {
-        <!-- Local Media -->
-        <div class="card mb-4 shadow-sm border">
-            <div class="card-header bg-transparent fw-bold border-bottom py-3">
-                <i class="bi bi-folder2-open me-2 text-secondary"></i>Local Media (Ready Tab)
-            </div>
-            <div class="card-body">
-                <p class="small text-secondary mb-3">Specify a folder on your Windows machine containing media files to enable the "Ready" tab in your library.</p>
-                
-                <div class="mb-3">
-                    <label class="form-label small text-secondary fw-semibold mb-1">Media Folder Path</label>
-                    <div class="input-group input-group-sm">
-                        <span class="input-group-text bg-light border-end-0"><i class="bi bi-folder"></i></span>
-                        <input class="form-control" placeholder="e.g. D:\Movies" @bind="localLibraryPath" />
-                    </div>
-                    <div class="form-text x-small mt-2 text-muted">
-                        <i class="bi bi-info-circle me-1"></i>Example: <code>C:\Users\YourName\Videos</code> or <code>D:\Media</code>
-                    </div>
-                </div>
-
-                <div class="d-flex flex-wrap gap-2">
-                    <button class="btn btn-sm btn-outline-dark px-3 mt-1" @onclick="SaveMediaSettingsAsync" disabled="@syncBusy">
-                        <i class="bi bi-save me-1"></i>Save Settings
-                    </button>
-                </div>
-            </div>
-        </div>
-    }
-
     <!-- Danger Zone -->
     <div class="card border-danger mb-5 shadow-sm">
         <div class="card-header bg-danger bg-opacity-10 text-danger fw-bold border-danger border-opacity-25 py-3">
@@ -239,8 +209,6 @@
     private string statusMessage = "";
     private string gistId = "";
     private string gistPat = "";
-    private string localLibraryPath = "";
-    private bool IsLocalHost => NavManager.BaseUri.Contains("localhost") || NavManager.BaseUri.Contains("127.0.0.1");
     private string gistStatusMessage = "";
     private bool gistStatusIsError = false;
     private bool syncBusy = false;
@@ -263,7 +231,6 @@
         var saved = await GistSync.GetSettingsAsync();
         gistId = saved.GistId;
         gistPat = saved.PersonalAccessToken;
-        localLibraryPath = saved.LocalLibraryPath;
         await AutoSync.EnsureStartedAsync();
         AutoSync.OnStatusChanged += HandleAutoSyncStatusChanged;
         RefreshAutoSyncStatus();
@@ -291,31 +258,6 @@
         {
             gistStatusIsError = true;
             gistStatusMessage = $"Error saving settings: {ex.Message}";
-        }
-        finally
-        {
-            syncBusy = false;
-        }
-    }
-
-    private async Task SaveMediaSettingsAsync()
-    {
-        try
-        {
-            syncBusy = true;
-            gistStatusMessage = "";
-            gistStatusIsError = false;
-
-            var settings = await GistSync.GetSettingsAsync();
-            settings.LocalLibraryPath = localLibraryPath;
-            await GistSync.SaveSettingsAsync(settings);
-            
-            gistStatusMessage = "Local media settings saved.";
-        }
-        catch (Exception ex)
-        {
-            gistStatusIsError = true;
-            gistStatusMessage = $"Error saving media settings: {ex.Message}";
         }
         finally
         {
