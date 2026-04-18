@@ -13,274 +13,196 @@
 
 <PageTitle>Configure & Data</PageTitle>
 
-<div class="container py-4" style="padding-left: 4.5px; padding-right: 4.5px;">
-    <style>
-        @@media (max-width: 768px) {
-            .container {
-                padding-left: 2px !important;
-                padding-right: 2px !important;
-            }
-        }
-    </style>
-    <h2 class="mb-4 fw-bold text-dark d-flex align-items-center">
-        <i class="bi bi-gear-fill me-3 text-secondary"></i> Configure & Data Management
-    </h2>
+<div class="container py-4 px-2 px-md-4 max-w-lg mx-auto">
+    <h3 class="mb-4 fw-bold">Configuration</h3>
 
-    <div class="row g-4 mb-5">
-        <div class="col-md-4">
-            <div class="card shadow-sm border-0 rounded-3 h-100">
-                <div class="card-body p-4">
-                    <div class="d-flex align-items-center mb-4">
-                        <div class="bg-warning bg-opacity-10 text-warning p-2 rounded-3 me-3">
-                            <i class="bi bi-clock-history fs-4"></i>
-                        </div>
-                        <h5 class="card-title mb-0 fw-bold text-dark">Search Discovery</h5>
-                    </div>
-
-                    <div class="form-check form-switch mb-3 p-3 rounded-3 bg-light border">
-                        <input class="form-check-input ms-0 me-3 mt-1" type="checkbox" id="enableSearchHistory" 
-                                checked="@WatchlistSvc.EnableSearchHistory" 
-                                @onchange="(e) => WatchlistSvc.EnableSearchHistory = (bool)e.Value!">
-                        <label class="form-check-label fw-bold text-dark" for="enableSearchHistory">Remember Search History</label>
-                        <p class="text-secondary x-small mb-0 mt-2">When enabled, the app stores your last 10 searches locally for quick access while typing.</p>
-                    </div>
-
-                    @if (WatchlistSvc.SearchHistory.Any())
-                    {
-                        <button class="btn btn-outline-danger btn-sm w-100 rounded-pill py-2 mt-2 fw-medium border-2" @onclick="WatchlistSvc.ClearSearchHistory">
-                            <i class="bi bi-trash3 me-2"></i> Clear History Now
-                        </button>
-                    }
-                </div>
-            </div>
+    <!-- Tools & Management -->
+    <div class="card mb-4 shadow-sm border">
+        <div class="card-header bg-transparent fw-bold border-bottom py-3">
+            <i class="bi bi-tools me-2 text-secondary"></i>Tools & Management
         </div>
-    </div>
-
-    <!-- Advanced Tools -->
-    <div class="row g-4 mb-5">
-        <div class="col-md-12">
-            <div class="card shadow-sm border-0 rounded-3" style="background: linear-gradient(90deg, #f8faff 0%, #ffffff 100%);">
-                <div class="card-body p-4 d-flex align-items-center flex-wrap gap-4">
-                    <div class="bg-primary bg-opacity-10 text-primary p-3 rounded-circle shadow-sm">
-                         <i class="bi bi-clipboard2-pulse-fill fs-3"></i>
-                    </div>
-                    <div class="flex-grow-1">
-                        <h5 class="fw-bold mb-1 text-dark">Data Integrity & Health Audit</h5>
-                        <p class="text-secondary small mb-0">Identify items in your library with missing genres, overviews, runtimes, or posters.</p>
-                    </div>
-                    <button class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm" @onclick='() => NavManager.NavigateTo("audit")'>
-                        Run Health Audit
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row g-4">
-        <div class="col-12">
-            <div class="card shadow-sm border-0 rounded-3" style="background: linear-gradient(135deg, #f8fbff 0%, #ffffff 100%);">
-                <div class="card-body p-4 d-flex align-items-center flex-wrap gap-4">
-                    <div class="bg-primary bg-opacity-10 text-primary p-3 rounded-circle shadow-sm">
-                        <i class="bi bi-box-arrow-up-right fs-3"></i>
-                    </div>
-                    <div class="flex-grow-1">
-                        <h5 class="fw-bold mb-1 text-dark">External Link Operations</h5>
-                        <p class="text-secondary small mb-0">Manage reusable outbound link templates like IMDb, Letterboxd, Reddit, Google, or site-specific search links on a dedicated page.</p>
-                    </div>
-                    <button class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm" @onclick='() => NavManager.NavigateTo("open-on")'>
-                        Open External Links
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-12">
-            <div class="card shadow-sm border-0 rounded-3" style="background: linear-gradient(135deg, #f8fbff 0%, #ffffff 100%);">
-                <div class="card-body p-4 d-flex align-items-center flex-wrap gap-4">
-                    <div class="bg-primary bg-opacity-10 text-primary p-3 rounded-circle shadow-sm">
-                        <i class="bi bi-hdd-stack-fill fs-3"></i>
-                    </div>
-                    <div class="flex-grow-1">
-                        <h5 class="fw-bold mb-1 text-dark">import/export operations</h5>
-                        <p class="text-secondary small mb-0">Open Data Hub to import CSV files, export watchlist slices and collections as CSV, or back up the whole save file as JSON.</p>
-                    </div>
-                    <button class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm" @onclick='() => NavManager.NavigateTo("data-hub")'>
-                        Open Data Hub
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- API Connection Settings -->
-        <div class="col-12">
-            <div class="card shadow-sm border-0 rounded-3">
-                <div class="card-body p-4">
-                    <div class="d-flex align-items-center mb-4">
-                        <div class="bg-dark bg-opacity-10 text-dark p-2 rounded-3 me-3">
-                            <i class="bi bi-key-fill fs-4"></i>
-                        </div>
-                        <h5 class="card-title mb-0 fw-bold">Connection Settings</h5>
-                    </div>
-                    <div class="row g-4">
-                        <div class="col-md-6 border-end">
-                            <label class="form-label small fw-bold text-secondary text-uppercase tracking-wider">TMDB API Key</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light border-0"><i class="bi bi-shield-lock-fill text-muted"></i></span>
-                                <input type="password" class="form-control bg-light border-0 py-2" value="@Config["TmdbApiKey"]" readonly />
-                            </div>
-                            <div class="form-text x-small mt-1 text-muted"><i class="bi bi-info-circle me-1"></i> Managed via system configuration.</div>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold text-secondary text-uppercase tracking-wider">OpenSubtitles API Key</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light border-0"><i class="bi bi-keyboard-fill text-muted"></i></span>
-                                <input type="password" class="form-control bg-light border-0 py-2" 
-                                       @bind="WatchlistSvc.OpenSubtitlesApiKey" 
-                                       @bind:event="oninput"
-                                       placeholder="Enter your API Key" />
-                            </div>
-                            <div class="form-text x-small mt-1 text-muted">
-                                <i class="bi bi-link-45deg me-1"></i> Get from <a href="https://www.opensubtitles.com/en/consumers" target="_blank" class="text-decoration-none">opensubtitles.com</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Library Sync Help -->
-        <div class="col-12">
-            <div class="card shadow-sm border-0 rounded-3">
-                <div class="card-body p-4">
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="bg-success bg-opacity-10 text-success p-2 rounded-3 me-3">
-                            <i class="bi bi-cloud-arrow-up-fill fs-4"></i>
-                        </div>
-                        <h5 class="card-title mb-0 fw-bold">Library Sync (GitHub Gist)</h5>
-                    </div>
-
-                    <p class="text-secondary small mb-3">
-                        Sync lets you use one shared library across devices (mobile + desktop) by saving your list to a <strong>Secret Gist</strong>.
-                    </p>
-
-                    <ol class="small text-secondary mb-3 ps-3">
-                        <li>Create a <strong>Secret Gist</strong> on GitHub with a file named <code>watchlist.json</code>. GitHub does not allow empty content, so put <code>[]</code> as the initial file content.</li>
-                        <li>Copy the Gist ID from the gist URL (the long id after <code>/gists/...</code>).</li>
-                        <li>Create a GitHub Personal Access Token with <strong>Gist</strong> permission (minimum required scope). See quick steps below.</li>
-                        <li>Enter <strong>Gist ID</strong> and <strong>PAT</strong> in the form below and press <strong>Save Sync Settings</strong>.</li>
-                        <li>Use <strong>Check Sync</strong> to compare your device with the gist, then use <strong>Sync Now</strong> to push or pull the newer side.</li>
-                    </ol>
-
-                    <div class="bg-light border rounded-3 p-3 mb-3">
-                        <div class="small fw-bold text-dark mb-2">PAT quick setup (GitHub)</div>
-                        <ol class="small text-secondary mb-0 ps-3">
-                            <li>GitHub → <strong>Settings</strong> → <strong>Developer settings</strong> → <strong>Personal access tokens</strong>.</li>
-                            <li>Choose <strong>Tokens (classic)</strong> or fine-grained token with gist access.</li>
-                            <li>Set an expiration date (recommended), then grant <strong>Gist</strong> access.</li>
-                            <li>Generate token and copy it immediately (GitHub shows it once).</li>
-                            <li>Paste token into this page's sync settings and save.</li>
-                        </ol>
-                    </div>
-
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold text-secondary text-uppercase">Gist ID</label>
-                            <input class="form-control bg-light border-0 py-2"
-                                   placeholder="e.g. 1a2b3c4d5e6f..."
-                                   @bind="gistId" />
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold text-secondary text-uppercase">GitHub PAT (gist scope)</label>
-                            <input type="password"
-                                   class="form-control bg-light border-0 py-2"
-                                   placeholder="ghp_..."
-                                   @bind="gistPat" />
-                        </div>
-                        <div class="col-12">
-                            <div class="small text-secondary bg-light border rounded-3 p-3">
-                                Sync is manual now. Use Check Sync to compare local data with the gist, and Sync Now to push or pull the newer side.
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="d-flex flex-wrap gap-2 mb-2">
-                        <button class="btn btn-outline-dark btn-sm rounded-pill px-3" @onclick="SaveGistSettingsAsync" disabled="@syncBusy">
-                            <i class="bi bi-save me-1"></i>Save Sync Settings
-                        </button>
-                        <button class="btn btn-outline-primary btn-sm rounded-pill px-3" @onclick="CheckSyncStatusAsync" disabled="@syncBusy">
-                            <i class="bi bi-arrow-repeat me-1"></i>Check Sync
-                        </button>
-                        <button class="btn btn-outline-success btn-sm rounded-pill px-3" @onclick="SyncNowAsync" disabled="@(syncBusy || !syncActionNeeded)">
-                            <i class="bi bi-stars me-1"></i>Smart Sync
-                        </button>
-                        <button class="btn btn-outline-info btn-sm rounded-pill px-3" @onclick="PullNowAsync" disabled="@syncBusy">
-                            <i class="bi bi-cloud-download me-1"></i>Pull from Gist
-                        </button>
-                        <button class="btn btn-outline-secondary btn-sm rounded-pill px-3" @onclick="PushNowAsync" disabled="@syncBusy">
-                            <i class="bi bi-cloud-upload me-1"></i>Push to Gist
-                        </button>
-                    </div>
-
-                    @if (!string.IsNullOrWhiteSpace(gistStatusMessage))
-                    {
-                        <div class="alert @(gistStatusIsError ? "alert-danger" : "alert-success") border-0 py-2 px-3 mb-2 small">
-                            @gistStatusMessage
-                        </div>
-                    }
-
-                    <div class="bg-light border rounded-3 p-3 mb-2">
-                        <div class="small fw-bold text-dark mb-2">Manual Sync Status</div>
-                        <div class="small text-secondary">@syncStateLabel</div>
-                        <div class="small text-secondary">Last sync: @(autoSyncLastAt ?? "Never")</div>
-                        <div class="small text-secondary">Direction: @autoSyncDirection</div>
-                        @if (!string.IsNullOrWhiteSpace(syncRemoteSummary))
-                        {
-                            <div class="small text-secondary mt-1">@syncRemoteSummary</div>
-                        }
-                        @if (syncHasConflict)
-                        {
-                            <div class="small text-warning mt-1">Both local and gist changed. Sync Now will use whichever side changed more recently.</div>
-                        }
-                        @if (!string.IsNullOrWhiteSpace(autoSyncLastError))
-                        {
-                            <div class="small text-danger mt-1">Last error: @autoSyncLastError</div>
-                        }
-                    </div>
-
-                    <div class="alert alert-warning border-0 py-2 px-3 mb-2 small">
-                        <i class="bi bi-shield-lock me-2"></i>
-                        Your PAT is sensitive. Keep it private and rotate/revoke it from GitHub if compromised.
-                    </div>
-
-                    <div class="text-muted x-small">
-                        Sync credentials are stored locally in your browser's localStorage on this device and are not hardcoded in the app. You should be able to configure sync entirely from the Configure page/UI without opening code.
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Danger Zone -->
-        <div class="col-12 mt-4">
-            <div class="card shadow-sm border-danger border-opacity-25 rounded-3 bg-danger bg-opacity-10">
-                <div class="card-body p-4 d-flex justify-content-between align-items-center">
+        <div class="list-group list-group-flush">
+            <!-- Search Discovery -->
+            <div class="list-group-item py-3">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <div>
-                        <h5 class="fw-bold text-danger mb-1 d-flex align-items-center">
-                            <i class="bi bi-exclamation-triangle-fill me-2"></i> Danger Zone
-                        </h5>
-                        <p class="text-danger small mb-0 opacity-75">This will permanently delete your entire library (Watchlist & History) from this device.</p>
+                        <h6 class="mb-1"><i class="bi bi-clock-history me-2 text-secondary"></i>Search History</h6>
+                        <small class="text-secondary d-block">Remember the last 10 searches locally for quicker access.</small>
                     </div>
-                    <button class="btn btn-danger rounded-pill px-4 fw-bold shadow-sm" @onclick="ClearLibrary">
-                        <i class="bi bi-trash3-fill me-2"></i> Delete All Data
-                    </button>
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" id="enableSearchHistory" 
+                                    checked="@WatchlistSvc.EnableSearchHistory" 
+                                    @onchange="(e) => WatchlistSvc.EnableSearchHistory = (bool)e.Value!"
+                                    style="transform: scale(1.1); cursor: pointer;" />
+                        </div>
+                        @if (WatchlistSvc.SearchHistory.Any())
+                        {
+                            <button class="btn btn-sm btn-outline-secondary" @onclick="WatchlistSvc.ClearSearchHistory">Clear</button>
+                        }
+                    </div>
                 </div>
             </div>
+
+            <!-- Health Audit -->
+            <div class="list-group-item py-3">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div>
+                        <h6 class="mb-1"><i class="bi bi-clipboard2-pulse me-2 text-secondary"></i>Health Audit</h6>
+                        <small class="text-secondary d-block">Identify items with missing metadata (genres, overviews, etc).</small>
+                    </div>
+                    <button class="btn btn-sm btn-outline-primary px-3" @onclick='() => NavManager.NavigateTo("audit")'>Open</button>
+                </div>
+            </div>
+
+            <!-- External Links -->
+            <div class="list-group-item py-3">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div>
+                        <h6 class="mb-1"><i class="bi bi-box-arrow-up-right me-2 text-secondary"></i>External Links</h6>
+                        <small class="text-secondary d-block">Manage outbound link templates (IMDb, Letterboxd, Google).</small>
+                    </div>
+                    <button class="btn btn-sm btn-outline-primary px-3" @onclick='() => NavManager.NavigateTo("open-on")'>Open</button>
+                </div>
+            </div>
+
+            <!-- Data Hub -->
+            <div class="list-group-item py-3">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div>
+                        <h6 class="mb-1"><i class="bi bi-hdd-stack me-2 text-secondary"></i>Data Hub</h6>
+                        <small class="text-secondary d-block">Import CSVs, export collections, and manage local storage.</small>
+                    </div>
+                    <button class="btn btn-sm btn-outline-primary px-3" @onclick='() => NavManager.NavigateTo("data-hub")'>Open</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- API Connections -->
+    <div class="card mb-4 shadow-sm border">
+        <div class="card-header bg-transparent fw-bold border-bottom py-3">
+            <i class="bi bi-key me-2 text-secondary"></i>API Connections
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label small text-secondary fw-semibold mb-1">TMDB API Key (System)</label>
+                    <input type="password" class="form-control form-control-sm bg-light" value="@Config["TmdbApiKey"]" readonly />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small text-secondary fw-semibold mb-1">OpenSubtitles API Key</label>
+                    <input type="password" class="form-control form-control-sm" 
+                           @bind="WatchlistSvc.OpenSubtitlesApiKey" 
+                           @bind:event="oninput" placeholder="Enter key..." />
+                    <div class="form-text x-small mt-1 text-muted">Get from <a href="https://www.opensubtitles.com/en/consumers" target="_blank" class="text-decoration-none">opensubtitles.com</a></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sync -->
+    <div class="card mb-4 shadow-sm border">
+        <div class="card-header bg-transparent fw-bold border-bottom py-3">
+            <i class="bi bi-cloud-arrow-up me-2 text-secondary"></i>Library Sync (GitHub Gist)
+        </div>
+        <div class="card-body">
+            <p class="small text-secondary mb-3">Sync your library across devices using a GitHub Secret Gist. Requires a <code>watchlist.json</code> file with <code>[]</code> and a PAT with gist scope.</p>
+            
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label class="form-label small text-secondary fw-semibold mb-1">Gist ID</label>
+                    <input class="form-control form-control-sm" placeholder="e.g. 1a2b3c4d5e6f..." @bind="gistId" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small text-secondary fw-semibold mb-1">GitHub PAT (Gist scope)</label>
+                    <input type="password" class="form-control form-control-sm" placeholder="ghp_..." @bind="gistPat" />
+                </div>
+            </div>
+
+            <div class="d-flex flex-wrap gap-2 mb-3">
+                <button class="btn btn-sm btn-outline-dark px-3 mt-1" @onclick="SaveGistSettingsAsync" disabled="@syncBusy">
+                    <i class="bi bi-save me-1"></i>Save
+                </button>
+                <button class="btn btn-sm btn-outline-secondary px-3 mt-1" @onclick="CheckSyncStatusAsync" disabled="@syncBusy">
+                    <i class="bi bi-arrow-repeat me-1"></i>Check
+                </button>
+                <button class="btn btn-sm btn-success px-3 mt-1" @onclick="SyncNowAsync" disabled="@(syncBusy || !syncActionNeeded)">
+                    <i class="bi bi-stars me-1"></i>Smart Sync
+                </button>
+                <button class="btn btn-sm btn-outline-info px-3 mt-1" @onclick="PullNowAsync" disabled="@syncBusy">
+                    <i class="bi bi-cloud-download me-1"></i>Pull
+                </button>
+                <button class="btn btn-sm btn-outline-warning px-3 mt-1" @onclick="PushNowAsync" disabled="@syncBusy">
+                    <i class="bi bi-cloud-upload me-1"></i>Push
+                </button>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(gistStatusMessage))
+            {
+                <div class="alert @(gistStatusIsError ? "alert-danger" : "alert-success") py-2 px-3 mb-3 small border-0">
+                    @gistStatusMessage
+                </div>
+            }
+
+            <div class="bg-light p-3 rounded border small text-secondary">
+                <div class="mb-1 text-dark fw-bold">Manual Sync Status</div>
+                <div class="mb-1"><strong>Status:</strong> @syncStateLabel</div>
+                <div class="mb-1"><strong>Last sync:</strong> @(autoSyncLastAt ?? "Never") &bull; <strong>Dir:</strong> @autoSyncDirection</div>
+                @if (!string.IsNullOrWhiteSpace(syncRemoteSummary))
+                {
+                    <div class="mt-1"><i class="bi bi-info-circle me-1"></i>@syncRemoteSummary</div>
+                }
+                @if (syncHasConflict)
+                {
+                    <div class="text-warning mt-1"><i class="bi bi-exclamation-triangle me-1"></i>Conflict detected. Smart Sync uses newest changes.</div>
+                }
+                @if (!string.IsNullOrWhiteSpace(autoSyncLastError))
+                {
+                    <div class="text-danger mt-1">Error: @autoSyncLastError</div>
+                }
+            </div>
+
+            <div class="mt-4 pt-3 border-top small text-secondary">
+                <div class="fw-bold text-dark mb-2">Setup Instructions</div>
+                <ol class="ps-3 mb-3 text-muted">
+                    <li class="mb-1">Create a <a href="https://gist.github.com" target="_blank" class="text-decoration-none">Secret Gist</a> with a file named <code>watchlist.json</code> containing exactly <code>[]</code>.</li>
+                    <li class="mb-1">Copy the <strong>Gist ID</strong> from the URL (the 32-character string at the end of the address).</li>
+                    <li class="mb-1">Generate a <a href="https://github.com/settings/tokens" target="_blank" class="text-decoration-none">Personal Access Token (PAT)</a> with <strong>gist</strong> access.</li>
+                    <li>Paste the Gist ID and PAT above, save settings, and use <strong>Smart Sync</strong>.</li>
+                </ol>
+                
+                <div class="bg-light p-3 rounded border border-secondary border-opacity-25 mt-3">
+                    <div class="fw-bold text-dark mb-2">PAT Quick Setup</div>
+                    <ol class="ps-3 mb-0 text-muted">
+                        <li class="mb-1">Go to GitHub <strong>Settings</strong> &rarr; <strong>Developer settings</strong> &rarr; <strong>Personal access tokens</strong>.</li>
+                        <li class="mb-1">Choose <strong>Tokens (classic)</strong> and click <strong>Generate new token</strong>.</li>
+                        <li class="mb-1">Set an expiration date and check the <strong>gist</strong> scope permission.</li>
+                        <li>Click Generate and copy the token immediately (it will only be shown once).</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Danger Zone -->
+    <div class="card border-danger mb-5 shadow-sm">
+        <div class="card-header bg-danger bg-opacity-10 text-danger fw-bold border-danger border-opacity-25 py-3">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>Danger Zone
+        </div>
+        <div class="card-body bg-danger bg-opacity-10 d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <strong class="text-danger d-block mb-1">Clear Library Data</strong>
+                <p class="small text-danger opacity-75 mb-0">Permanently delete watchlist and history on this device.</p>
+            </div>
+            <button class="btn btn-danger px-4" @onclick="ClearLibrary">Delete All</button>
         </div>
     </div>
 </div>
 
 <style>
     .x-small { font-size: 0.75rem; }
-    .tracking-wider { letter-spacing: 0.05em; }
+    .max-w-lg { max-width: 800px; }
 </style>
 
 @code {
