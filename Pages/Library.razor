@@ -371,6 +371,7 @@
     private HashSet<string> _selectedIds = new();
     private DotNetObjectReference<Library>? _holdRef;
     private string? _lastTab;
+    private bool _redirectedFromEmptyTab;
     private double _touchStartX;
     private double _touchEndX;
 
@@ -527,11 +528,34 @@
         if (string.IsNullOrEmpty(Tab))
         {
             _isReady = false;
+            if (!_redirectedFromEmptyTab)
+            {
+                _redirectedFromEmptyTab = true;
+                try
+                {
+                    var savedTab = await JS.InvokeAsync<string?>("sessionStorage.getItem", "last_library_tab");
+                    if (!string.IsNullOrEmpty(savedTab) && new[] { "watching", "watched", "watchlist", "collections" }.Contains(savedTab))
+                    {
+                        NavManager.NavigateTo($"library/{savedTab}", replace: true);
+                    }
+                    else
+                    {
+                        NavManager.NavigateTo("library/watchlist", replace: true);
+                    }
+                }
+                catch
+                {
+                    NavManager.NavigateTo("library/watchlist", replace: true);
+                }
+            }
+
+            return;
         }
         else
         {
             _currentPageSize = DefaultPageSize;
             _isReady = true;
+            _redirectedFromEmptyTab = false;
             if (!new[] { "watching", "watched", "watchlist", "collections" }.Contains(ActiveTab))
             {
                 NavManager.NavigateTo("library/watchlist", false);
@@ -549,29 +573,7 @@
     {
         if (firstRender)
         {
-            if (string.IsNullOrEmpty(Tab))
-            {
-                try
-                {
-                    var savedTab = await JS.InvokeAsync<string?>("sessionStorage.getItem", "last_library_tab");
-                    if (!string.IsNullOrEmpty(savedTab) && new[] { "watching", "watched", "watchlist", "collections" }.Contains(savedTab))
-                    {
-                        NavManager.NavigateTo($"library/{savedTab}", replace: true);
-                        return;
-                    }
-                    else
-                    {
-                        NavManager.NavigateTo("library/watchlist", replace: true);
-                        return;
-                    }
-                }
-                catch { }
-            }
-
             try { _holdRef = DotNetObjectReference.Create(this); await JS.InvokeVoidAsync("holdSelect.init", _holdRef); } catch {}
-            var isDesktop = await JS.InvokeAsync<bool>("uiHelpers.isDesktop");
-            await RestoreViewPreference();
-            await RestoreFilterPreference();
         }
 
         if (_isReady && new[] { "watching", "watched", "watchlist", "collections" }.Contains(ActiveTab))
