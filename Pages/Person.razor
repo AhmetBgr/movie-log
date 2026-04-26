@@ -60,7 +60,7 @@
                                 {
                                     <div class="meta-item">
                                         <i class="bi bi-briefcase me-2"></i>
-                                        @person.KnownForDepartment
+                                        @KnownForCategoryLabel
                                     </div>
                                 }
                             </div>
@@ -76,7 +76,7 @@
                         <div class="d-flex flex-wrap gap-4 mb-5 p-4 rounded-4 bg-light bg-opacity-50 border shadow-sm">
                             <div class="stat-item">
                                 <div class="stat-label">Known For</div>
-                                <div class="stat-value">@person.KnownForDepartment</div>
+                                <div class="stat-value">@KnownForCategoryLabel</div>
                             </div>
                             <div class="tb-divider d-none d-md-block"></div>
                             <div class="stat-item">
@@ -104,7 +104,10 @@
                         @if (KnownForCredits.Any())
                         {
                             <section class="mb-5">
-                                <h2 class="section-title mb-4">Known For</h2>
+                                <h2 class="section-title mb-4">
+                                    Known For
+                                    <span class="badge rounded-pill bg-light border text-dark ms-2">@KnownForCategoryLabel</span>
+                                </h2>
                                 <div class="row row-cols-3 row-cols-sm-4 row-cols-md-5 row-cols-lg-5 g-2">
                                     @foreach (var credit in KnownForCredits)
                                     {
@@ -157,8 +160,54 @@
                         {
                             <section>
                                 <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 gap-3">
-                                    <h2 class="section-title mb-0">Full Filmography</h2>
-                                    
+                                    <div class="d-flex flex-column gap-2">
+                                        <h2 class="section-title mb-0">Full Filmography</h2>
+
+                                        <div class="toolbar-primary bg-light border p-1 rounded-pill d-inline-flex flex-wrap">
+                                            <button class="tb-btn @(filmographyRole == FilmographyRoleAll ? "active" : "")"
+                                                    @onclick='() => SetFilmographyRole(FilmographyRoleAll)'
+                                                    aria-pressed="@(filmographyRole == FilmographyRoleAll)">
+                                                <i class="bi bi-grid-3x3-gap"></i>
+                                                <span class="tb-label">All</span>
+                                            </button>
+                                            <button class="tb-btn @(filmographyRole == FilmographyRoleActing ? "active" : "")"
+                                                    @onclick='() => SetFilmographyRole(FilmographyRoleActing)'
+                                                    disabled="@(!HasFilmographyCreditsFor(FilmographyRoleActing))"
+                                                    aria-pressed="@(filmographyRole == FilmographyRoleActing)">
+                                                <i class="bi bi-people"></i>
+                                                <span class="tb-label">Acting</span>
+                                            </button>
+                                            <button class="tb-btn @(filmographyRole == FilmographyRoleDirecting ? "active" : "")"
+                                                    @onclick='() => SetFilmographyRole(FilmographyRoleDirecting)'
+                                                    disabled="@(!HasFilmographyCreditsFor(FilmographyRoleDirecting))"
+                                                    aria-pressed="@(filmographyRole == FilmographyRoleDirecting)">
+                                                <i class="bi bi-camera-reels"></i>
+                                                <span class="tb-label">Directing</span>
+                                            </button>
+                                            <button class="tb-btn @(filmographyRole == FilmographyRoleWriting ? "active" : "")"
+                                                    @onclick='() => SetFilmographyRole(FilmographyRoleWriting)'
+                                                    disabled="@(!HasFilmographyCreditsFor(FilmographyRoleWriting))"
+                                                    aria-pressed="@(filmographyRole == FilmographyRoleWriting)">
+                                                <i class="bi bi-pencil-square"></i>
+                                                <span class="tb-label">Writing</span>
+                                            </button>
+                                            <button class="tb-btn @(filmographyRole == FilmographyRoleCinematography ? "active" : "")"
+                                                    @onclick='() => SetFilmographyRole(FilmographyRoleCinematography)'
+                                                    disabled="@(!HasFilmographyCreditsFor(FilmographyRoleCinematography))"
+                                                    aria-pressed="@(filmographyRole == FilmographyRoleCinematography)">
+                                                <i class="bi bi-camera"></i>
+                                                <span class="tb-label">Cinematography</span>
+                                            </button>
+                                            <button class="tb-btn @(filmographyRole == FilmographyRoleCrew ? "active" : "")"
+                                                    @onclick='() => SetFilmographyRole(FilmographyRoleCrew)'
+                                                    disabled="@(!HasFilmographyCreditsFor(FilmographyRoleCrew))"
+                                                    aria-pressed="@(filmographyRole == FilmographyRoleCrew)">
+                                                <i class="bi bi-gear"></i>
+                                                <span class="tb-label">Crew</span>
+                                            </button>
+                                        </div>
+                                    </div>
+
                                     <div class="toolbar-primary bg-light border p-1 rounded-pill d-inline-flex">
                                         <button class="tb-btn @(sortColumn == "Rating" ? "active" : "")" @onclick='() => SetSort("Rating")'>
                                             <i class="bi @(sortColumn == "Rating" ? (sortDescending ? "bi-star-fill" : "bi-star") : "bi-star")"></i>
@@ -175,8 +224,20 @@
                                     </div>
                                 </div>
                                 
-                                <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-5 row-cols-xl-6 g-3 g-md-4">
-                                    @foreach (var credit in SortedCredits)
+                                @{
+                                    var filmographyCredits = SortedCredits.ToList();
+                                }
+
+                                @if (filmographyCredits.Count == 0)
+                                {
+                                    <div class="text-secondary fs-6 opacity-75">
+                                        No credits found for <span class="fw-bold">@filmographyRole</span>.
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-5 row-cols-xl-6 g-3 g-md-4">
+                                    @foreach (var credit in filmographyCredits)
                                     {
                                         <div class="col">
                                             <div class="movie-card" @onclick="() => OpenMovie(credit)">
@@ -199,7 +260,8 @@
                                             </div>
                                         </div>
                                     }
-                                </div>
+                                    </div>
+                                }
                             </section>
                         }
                     </div>
@@ -395,10 +457,50 @@
     private bool isLoading = true;
     private bool showFullBio = false;
 
+    private const string FilmographyRoleAll = "All";
+    private const string FilmographyRoleActing = "Acting";
+    private const string FilmographyRoleDirecting = "Directing";
+    private const string FilmographyRoleWriting = "Writing";
+    private const string FilmographyRoleCinematography = "Cinematography";
+    private const string FilmographyRoleCrew = "Crew";
+
+    private static readonly HashSet<string> DirectingJobs = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Director",
+        "Co-Director",
+        "Series Director",
+        "Second Unit Director",
+        "Assistant Director",
+        "First Assistant Director",
+        "Second Assistant Director",
+        "Third Assistant Director"
+    };
+
+    private static readonly HashSet<string> WritingJobs = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Writer",
+        "Screenplay",
+        "Story",
+        "Teleplay",
+        "Novel",
+        "Comic Book",
+        "Original Story"
+    };
+
+    private static readonly HashSet<string> CinematographyJobs = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Director of Photography",
+        "Cinematography",
+        "Cinematographer"
+    };
+
+    private string filmographyRole = FilmographyRoleAll;
+
     protected override async Task OnParametersSetAsync()
     {
         isLoading = true;
         showFullBio = false;
+        filmographyRole = FilmographyRoleAll;
         person = null;
         credits = null;
         StateHasChanged();
@@ -429,16 +531,145 @@
         StateHasChanged();
     }
 
-    private IEnumerable<TmdbPersonCreditItem> SortedCredits
+    private void SetFilmographyRole(string role)
+    {
+        filmographyRole = role;
+        StateHasChanged();
+    }
+
+    private static IEnumerable<TmdbPersonCreditItem> NormalizeCredits(IEnumerable<TmdbPersonCreditItem> credits)
+    {
+        return credits
+            .Where(c => !string.IsNullOrEmpty(c.PosterPath))
+            .Where(c => !c.GenreIds.Contains(10767)); // exclude Talk/late-night shows
+    }
+
+    private static bool IsDirectingCredit(TmdbPersonCreditItem credit)
+    {
+        if (string.IsNullOrWhiteSpace(credit.Job)) return false;
+        return DirectingJobs.Contains(credit.Job.Trim());
+    }
+
+    private static bool IsWritingCredit(TmdbPersonCreditItem credit)
+    {
+        if (string.IsNullOrWhiteSpace(credit.Job)) return false;
+        var job = credit.Job.Trim();
+        return WritingJobs.Contains(job) || job.Contains("writer", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsCinematographyCredit(TmdbPersonCreditItem credit)
+    {
+        if (string.IsNullOrWhiteSpace(credit.Job)) return false;
+        var job = credit.Job.Trim();
+        return CinematographyJobs.Contains(job)
+               || job.Contains("cinematograph", StringComparison.OrdinalIgnoreCase)
+               || job.Contains("photography", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private string? MapKnownForDepartmentToRole(string? knownForDepartment)
+    {
+        if (string.IsNullOrWhiteSpace(knownForDepartment)) return null;
+
+        return knownForDepartment.Trim() switch
+        {
+            "Acting" => FilmographyRoleActing,
+            "Directing" => FilmographyRoleDirecting,
+            "Writing" => FilmographyRoleWriting,
+            "Camera" => FilmographyRoleCinematography,
+            "Cinematography" => FilmographyRoleCinematography,
+            _ => null
+        };
+    }
+
+    private IEnumerable<TmdbPersonCreditItem> CreditsForRole(string role)
+    {
+        if (credits == null) return Enumerable.Empty<TmdbPersonCreditItem>();
+
+        IEnumerable<TmdbPersonCreditItem> filtered = role switch
+        {
+            FilmographyRoleActing => NormalizeCredits(credits.Cast),
+            FilmographyRoleCrew => NormalizeCredits(credits.Crew),
+            FilmographyRoleDirecting => NormalizeCredits(credits.Crew).Where(IsDirectingCredit),
+            FilmographyRoleWriting => NormalizeCredits(credits.Crew).Where(IsWritingCredit),
+            FilmographyRoleCinematography => NormalizeCredits(credits.Crew).Where(IsCinematographyCredit),
+            _ => NormalizeCredits(credits.Cast.Concat(credits.Crew))
+        };
+
+        return filtered.DistinctBy(c => $"{c.MediaType}-{c.Id}");
+    }
+
+    private string PrimaryKnownForRole
+    {
+        get
+        {
+            if (person == null || credits == null) return FilmographyRoleAll;
+
+            // Prefer TMDB's declared known_for_department if it maps cleanly and has results.
+            var mapped = MapKnownForDepartmentToRole(person.KnownForDepartment);
+            if (!string.IsNullOrEmpty(mapped) && CreditsForRole(mapped).Any()) return mapped;
+
+            // Otherwise pick the biggest category based on available credits.
+            var candidates = new[]
+            {
+                FilmographyRoleActing,
+                FilmographyRoleDirecting,
+                FilmographyRoleWriting,
+                FilmographyRoleCinematography,
+                FilmographyRoleCrew
+            };
+
+            var best = candidates
+                .Select(r => new { Role = r, Count = CreditsForRole(r).Count() })
+                .OrderByDescending(x => x.Count)
+                .FirstOrDefault(x => x.Count > 0);
+
+            return best?.Role ?? FilmographyRoleAll;
+        }
+    }
+
+    private string KnownForCategoryLabel => PrimaryKnownForRole;
+
+    private IEnumerable<TmdbPersonCreditItem> FilmographyCredits
     {
         get
         {
             if (credits == null) return Enumerable.Empty<TmdbPersonCreditItem>();
-            
-            var all = credits.Cast.Concat(credits.Crew)
-                .Where(c => !string.IsNullOrEmpty(c.PosterPath))
-                .Where(c => !c.GenreIds.Contains(10767)) // exclude Talk/late-night shows
-                .DistinctBy(c => $"{c.MediaType}-{c.Id}");
+
+            IEnumerable<TmdbPersonCreditItem> filtered = filmographyRole switch
+            {
+                FilmographyRoleActing => NormalizeCredits(credits.Cast),
+                FilmographyRoleCrew => NormalizeCredits(credits.Crew),
+                FilmographyRoleDirecting => NormalizeCredits(credits.Crew).Where(IsDirectingCredit),
+                FilmographyRoleWriting => NormalizeCredits(credits.Crew).Where(IsWritingCredit),
+                FilmographyRoleCinematography => NormalizeCredits(credits.Crew).Where(IsCinematographyCredit),
+                _ => NormalizeCredits(credits.Cast.Concat(credits.Crew))
+            };
+
+            return filtered.DistinctBy(c => $"{c.MediaType}-{c.Id}");
+        }
+    }
+
+    private bool HasFilmographyCreditsFor(string role)
+    {
+        if (credits == null) return false;
+
+        // Evaluate against the normalized (poster/genre filtered) set for a predictable UX.
+        return role switch
+        {
+            FilmographyRoleActing => NormalizeCredits(credits.Cast).Any(),
+            FilmographyRoleCrew => NormalizeCredits(credits.Crew).Any(),
+            FilmographyRoleDirecting => NormalizeCredits(credits.Crew).Any(IsDirectingCredit),
+            FilmographyRoleWriting => NormalizeCredits(credits.Crew).Any(IsWritingCredit),
+            FilmographyRoleCinematography => NormalizeCredits(credits.Crew).Any(IsCinematographyCredit),
+            _ => NormalizeCredits(credits.Cast.Concat(credits.Crew)).Any()
+        };
+    }
+
+    private IEnumerable<TmdbPersonCreditItem> SortedCredits
+    {
+        get
+        {
+            var all = FilmographyCredits;
 
             return sortColumn switch
             {
@@ -461,10 +692,7 @@
         {
             if (credits == null) return Enumerable.Empty<TmdbPersonCreditItem>();
             
-            var all = credits.Cast.Concat(credits.Crew)
-                .Where(c => !string.IsNullOrEmpty(c.PosterPath))
-                .Where(c => !c.GenreIds.Contains(10767)) // exclude Talk/late-night shows
-                .DistinctBy(c => $"{c.MediaType}-{c.Id}");
+            var all = CreditsForRole(PrimaryKnownForRole);
 
             return all.OrderByDescending(c => c.Popularity * Math.Max(1, c.VoteCount)).Take(5);
         }
