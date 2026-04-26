@@ -72,7 +72,8 @@ public class OpenOnLinkService
 
         var query = string.IsNullOrWhiteSpace(appendedYear) ? title : $"{title} {appendedYear}".Trim();
         var titleSlug = ToSlug(title, link.SlugCaseMode);
-        var titleSlugYear = string.IsNullOrWhiteSpace(appendedYear) ? titleSlug : $"{titleSlug}-{ToSlug(appendedYear)}".Trim('-');
+        var yearSlug = ToSlug(appendedYear);
+        var titleSlugYear = string.IsNullOrWhiteSpace(appendedYear) ? titleSlug : $"{titleSlug}-{yearSlug}".Trim('-');
 
         return link.Template
             .Replace("{query}", WebUtility.UrlEncode(query), StringComparison.Ordinal)
@@ -80,6 +81,7 @@ public class OpenOnLinkService
             .Replace("{year}", WebUtility.UrlEncode(appendedYear), StringComparison.Ordinal)
             .Replace("{titleSlug}", titleSlug, StringComparison.Ordinal)
             .Replace("{titleSlugYear}", titleSlugYear, StringComparison.Ordinal)
+            .Replace("{yearSlug}", yearSlug, StringComparison.Ordinal)
             .Replace("{imdbId}", WebUtility.UrlEncode(item.ImdbId ?? ""), StringComparison.Ordinal);
     }
 
@@ -155,11 +157,47 @@ public class OpenOnLinkService
 
         var queryPattern = new Regex(@"([?&](?:q|query|search|term|keyword|keywords|s)=)([^&#]+)", RegexOptions.IgnoreCase);
         if (queryPattern.IsMatch(value))
-            return queryPattern.Replace(value, "$1{query}", 1);
+        {
+            var inferredSlugCaseMode = slugCaseMode;
+            var result = queryPattern.Replace(value, match =>
+            {
+                var prefix = match.Groups[1].Value;
+                var rawEncodedValue = match.Groups[2].Value;
+
+                if (TryInferTitleAndYear(rawEncodedValue, out var separatorToken, out var inferredCaseMode))
+                {
+                    inferredSlugCaseMode = inferredCaseMode;
+                    return $"{prefix}{{titleSlug}}{separatorToken}{{yearSlug}}";
+                }
+
+                return $"{prefix}{{query}}";
+            }, 1);
+
+            slugCaseMode = inferredSlugCaseMode;
+            return result;
+        }
 
         var searchPathPattern = new Regex(@"(/(?:search|find)/)([^/?#]+)", RegexOptions.IgnoreCase);
         if (searchPathPattern.IsMatch(value))
-            return searchPathPattern.Replace(value, "$1{query}", 1);
+        {
+            var inferredSlugCaseMode = slugCaseMode;
+            var result = searchPathPattern.Replace(value, match =>
+            {
+                var prefix = match.Groups[1].Value;
+                var rawEncodedValue = match.Groups[2].Value;
+
+                if (TryInferTitleAndYear(rawEncodedValue, out var separatorToken, out var inferredCaseMode))
+                {
+                    inferredSlugCaseMode = inferredCaseMode;
+                    return $"{prefix}{{titleSlug}}{separatorToken}{{yearSlug}}";
+                }
+
+                return $"{prefix}{{query}}";
+            }, 1);
+
+            slugCaseMode = inferredSlugCaseMode;
+            return result;
+        }
 
         var slugPathPattern = new Regex(@"(/(?:film|tv|movie|show|title)/)([^/?#]+)(/?)", RegexOptions.IgnoreCase);
         var slugMatch = slugPathPattern.Match(value);
@@ -173,6 +211,39 @@ public class OpenOnLinkService
         }
 
         throw new InvalidOperationException("Could not infer a reusable template from this URL. Use a search URL or a URL containing an IMDb id.");
+    }
+
+    private static bool TryInferTitleAndYear(string rawEncodedValue, out string separatorToken, out string slugCaseMode)
+    {
+        separatorToken = "";
+        slugCaseMode = "title";
+
+        var decoded = WebUtility.UrlDecode(rawEncodedValue ?? "")?.Trim() ?? "";
+        if (string.IsNullOrWhiteSpace(decoded))
+            return false;
+
+        var match = Regex.Match(decoded, @"^(?<title>.+?)\s+(?<year>\d{4})$", RegexOptions.CultureInvariant);
+        if (!match.Success)
+            return false;
+
+        var title = match.Groups["title"].Value.Trim();
+        if (string.IsNullOrWhiteSpace(title))
+            return false;
+
+        // Preserve the join style as seen in the original URL (query strings often use + or %20).
+        // If the value already looks like a slug-year, keep the dash join.
+        if ((rawEncodedValue ?? "").Contains("+", StringComparison.Ordinal))
+            separatorToken = "+";
+        else if ((rawEncodedValue ?? "").Contains("%20", StringComparison.OrdinalIgnoreCase))
+            separatorToken = "%20";
+        else if (Regex.IsMatch(rawEncodedValue ?? "", @"-\d{4}$", RegexOptions.CultureInvariant))
+            separatorToken = "-";
+        else
+            separatorToken = "+";
+
+        var preservedTitleSlug = ToSlug(title, "preserve");
+        slugCaseMode = DetectSlugCaseMode(preservedTitleSlug);
+        return true;
     }
 
     private static string InferName(Uri uri)
@@ -208,6 +279,38 @@ public class OpenOnLinkService
             changed = true;
         }
 
+        // Migration: If a saved link template uses {query} but the sample URL clearly contains "title + year",
+        // update the template to use {titleSlug} + {yearSlug} so it can be more structured.
+        foreach (var link in links)
+        {
+            if (string.IsNullOrWhiteSpace(link.Template) || string.IsNullOrWhiteSpace(link.SampleUrl))
+                continue;
+
+            if (!link.Template.Contains("{query}", StringComparison.Ordinal))
+                continue;
+
+            try
+            {
+                var inferredTemplate = BuildTemplate(link.SampleUrl, out var inferredSlugCaseMode);
+                if (string.IsNullOrWhiteSpace(inferredTemplate))
+                    continue;
+
+                if (!inferredTemplate.Contains("{yearSlug}", StringComparison.Ordinal))
+                    continue;
+
+                if (string.Equals(inferredTemplate, link.Template, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                link.Template = inferredTemplate;
+                link.SlugCaseMode = inferredSlugCaseMode;
+                changed = true;
+            }
+            catch
+            {
+                // Ignore: keep the user's existing template if we can't infer safely.
+            }
+        }
+
         foreach (var defaults in GetDefaultLinks())
         {
             if (links.Any(existing =>
@@ -229,7 +332,7 @@ public class OpenOnLinkService
         return
         [
             CreateDefaultLink("Details", "https://ahmetbgr.github.io/movie-log/movie/{imdbId}", "https://ahmetbgr.github.io/movie-log/movie/tt39150234", "ahmetbgr.github.io"),
-            CreateDefaultLink("1337x Search", "https://1337x.to/search/{query}/1/", "https://1337x.to/search/dune+2022/1/", "1337x.to"),
+            CreateDefaultLink("1337x Search", "https://1337x.to/search/{titleSlug}+{yearSlug}/1/", "https://1337x.to/search/dune+2022/1/", "1337x.to"),
             CreateDefaultLink("Criticker", "https://www.criticker.com/film/{titleSlug}/", "https://www.criticker.com/film/Dune/", "www.criticker.com", "title"),
             CreateDefaultLink("Google Search", "https://www.google.com/search?q={query}", "https://www.google.com/search?q=Proven+Innocent+2019", "www.google.com"),
             CreateDefaultLink("Imdb", "https://www.imdb.com/title/{imdbId}/?ref_=wl_t_1", "https://www.imdb.com/title/{imdbId}/?ref_=wl_t_1", "www.imdb.com"),
