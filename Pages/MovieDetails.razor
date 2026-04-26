@@ -149,52 +149,131 @@
                         @* Column 2: Cast & Details *@
                         <div class="split-column">
                             <section class="details-section shadow-sm animate-in" style="animation-delay: 0.1s;">
-                                <h3 class="section-heading mb-4"><i class="bi bi-people me-2 text-primary"></i> Cast & Crew</h3>
-                                <div class="credits-wrap">
-                                    @if (movie.Credits?.Crew?.Any(c => c.Job == "Director") == true)
-                                    {
-                                        <div class="crew-group mb-4">
-                                            <label class="group-label">Directors</label>
-                                            <div class="person-grid-small">
-                                                @foreach (var dir in movie.Credits.Crew.Where(c => c.Job == "Director"))
-                                                {
-                                                    <div class="person-compact-card clickable" @onclick="() => WatchlistSvc.OpenPersonProfileAsync(dir.Id)">
-                                                        @if (!string.IsNullOrEmpty(dir.ProfilePath))
-                                                        {
-                                                            <img src="@dir.FullProfileUrl" alt="@dir.Name" />
-                                                        }
-                                                        else
-                                                        {
-                                                            <div class="person-placeholder-icon"><i class="bi bi-person-fill"></i></div>
-                                                        }
-                                                        <span>@dir.Name</span>
-                                                    </div>
-                                                }
-                                            </div>
-                                        </div>
-                                    }
+                                <div class="d-flex align-items-center flex-wrap gap-2 mb-3">
+                                    <h3 class="section-heading m-0"><i class="bi bi-people me-2 text-primary"></i> Cast & Crew</h3>
+                                </div>
 
-                                    @if (movie.Credits?.Cast?.Any() == true)
+                                <div class="credits-wrap">
+                                    @if (movie.Credits == null || (!movie.Credits.Cast.Any() && !movie.Credits.Crew.Any()))
                                     {
-                                        <div class="crew-group">
-                                            <label class="group-label">Lead Actors</label>
-                                            <div class="person-grid-small">
-                                                @foreach (var actor in movie.Credits.Cast.Take(12))
-                                                {
-                                                    <div class="person-compact-card clickable" @onclick="() => WatchlistSvc.OpenPersonProfileAsync(actor.Id)">
-                                                        @if (!string.IsNullOrEmpty(actor.ProfilePath))
-                                                        {
-                                                            <img src="@actor.FullProfileUrl" alt="@actor.Name" />
-                                                        }
-                                                        else
-                                                        {
-                                                            <div class="person-placeholder-icon"><i class="bi bi-person-fill"></i></div>
-                                                        }
-                                                        <span>@actor.Name</span>
-                                                    </div>
-                                                }
+                                        <div class="text-secondary small fw-semibold">No cast/crew data available.</div>
+                                    }
+                                    else
+                                    {
+                                        var directors = GetCrewDirectors(movie.Credits.Crew);
+                                        var cinematographers = GetCrewCinematographers(movie.Credits.Crew);
+                                        var writers = GetCrewWriters(movie.Credits.Crew);
+                                        var producers = GetCrewProducers(movie.Credits.Crew);
+
+                                        if (directors.Any())
+                                        {
+                                            <div class="crew-group mb-3">
+                                                <label class="group-label">Directors</label>
+                                                <div class="person-grid-small">
+                                                    @foreach (var dir in directors)
+                                                    {
+                                                        <div class="person-compact-card clickable" @onclick="() => WatchlistSvc.OpenPersonProfileAsync(dir.Id)">
+                                                            <div class="person-compact-text">
+                                                                <div class="person-compact-name">@dir.Name</div>
+                                                            </div>
+                                                        </div>
+                                                    }
+                                                </div>
                                             </div>
-                                        </div>
+                                        }
+
+                                        if (cinematographers.Any())
+                                        {
+                                            <div class="crew-group mb-3">
+                                                <label class="group-label">Cinematography</label>
+                                                <div class="person-grid-small">
+                                                    @foreach (var c in cinematographers)
+                                                    {
+                                                        <div class="person-compact-card clickable" @onclick="() => WatchlistSvc.OpenPersonProfileAsync(c.Id)">
+                                                            <div class="person-compact-text">
+                                                                <div class="person-compact-name">@c.Name</div>
+                                                                <div class="person-compact-role"><span class="job-title">@c.Job</span></div>
+                                                            </div>
+                                                        </div>
+                                                    }
+                                                </div>
+                                            </div>
+                                        }
+
+                                        if (writers.Any())
+                                        {
+                                            <div class="crew-group mb-3">
+                                                <label class="group-label">Writers</label>
+                                                <div class="person-grid-small">
+                                                    @foreach (var w in writers)
+                                                    {
+                                                        <div class="person-compact-card clickable" @onclick="() => WatchlistSvc.OpenPersonProfileAsync(w.Id)">
+                                                            <div class="person-compact-text">
+                                                                <div class="person-compact-name">@w.Name</div>
+                                                                <div class="person-compact-role"><span class="job-title">@w.Job</span></div>
+                                                            </div>
+                                                        </div>
+                                                    }
+                                                </div>
+                                            </div>
+                                        }
+
+                                        @if (movie.Credits.Cast.Any())
+                                        {
+                                            <details class="credits-toggle mt-2">
+                                                <summary class="credits-toggle-summary">
+                                                    <span>Stars</span>
+                                                    <span class="credits-toggle-count">@movie.Credits.Cast.Count</span>
+                                                </summary>
+                                                <div class="credits-toggle-body mt-2">
+                                                    <div class="person-grid-small">
+                                                        @foreach (var actor in movie.Credits.Cast)
+                                                        {
+                                                            <div class="person-compact-card clickable" @onclick="() => WatchlistSvc.OpenPersonProfileAsync(actor.Id)">
+                                                                <div class="person-compact-text">
+                                                                    <div class="person-compact-name person-compact-name-cast">@actor.Name</div>
+                                                                    @if (!string.IsNullOrWhiteSpace(actor.Character))
+                                                                    {
+                                                                        <div class="person-compact-role">
+                                                                            <span class="role-as">as</span>
+                                                                            <span class="role-character">@actor.Character</span>
+                                                                        </div>
+                                                                    }
+                                                                </div>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            </details>
+                                        }
+
+                                        @if (producers.Any())
+                                        {
+                                            var producerList = producers.ToList();
+                                            <details class="credits-toggle mt-2">
+                                                <summary class="credits-toggle-summary">
+                                                    <span>Producers</span>
+                                                    <span class="credits-toggle-count">@producerList.Count</span>
+                                                </summary>
+                                                <div class="credits-toggle-body mt-2">
+                                                    <div class="person-grid-small">
+                                                        @foreach (var p in producerList.Take(40))
+                                                        {
+                                                            <div class="person-compact-card clickable" @onclick="() => WatchlistSvc.OpenPersonProfileAsync(p.Id)">
+                                                                <div class="person-compact-text">
+                                                                    <div class="person-compact-name">@p.Name</div>
+                                                                    <div class="person-compact-role"><span class="job-title">@p.Job</span></div>
+                                                                </div>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                    @if (producerList.Count > 40)
+                                                    {
+                                                        <div class="text-secondary small fw-semibold mt-2">Showing 40 of @producerList.Count</div>
+                                                    }
+                                                </div>
+                                            </details>
+                                        }
                                     }
                                 </div>
                             </section>
@@ -695,27 +774,57 @@
     }
 
     /* Cast & Credits */
-    .group-label { display: block; font-size: 0.58rem; font-weight: 800; text-transform: uppercase; color: #94a3b8; margin-bottom: 8px; letter-spacing: 1px; }
-    .person-grid-small { display: flex; flex-wrap: wrap; gap: 6px; }
+    .group-label { display: block; font-size: 0.56rem; font-weight: 900; text-transform: uppercase; color: #94a3b8; margin-bottom: 6px; letter-spacing: 1px; }
+    .person-grid-small { display: flex; flex-wrap: wrap; gap: 4px; }
     .person-compact-card {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 6px;
         background: rgba(248,250,252,0.55);
-        padding: 5px 9px;
-        border-radius: 10px;
+        padding: 4px 7px;
+        border-radius: 9px;
         border: 1px solid #e2e8f0;
         transition: all 0.2s;
     }
-    .person-compact-card:hover { transform: translateY(-2px); border-color: var(--movie-accent); background: #fff; }
-    .person-compact-card img { width: 28px; height: 28px; border-radius: 7px; object-fit: cover; }
-    .person-compact-card span { font-weight: 700; font-size: 0.78rem; color: #1e293b; }
+    .person-compact-card:hover { transform: translateY(-1px); border-color: var(--movie-accent); background: #fff; }
 
-    .person-placeholder-icon {
-        width: 28px; height: 28px; border-radius: 7px;
-        background: #e2e8f0; color: #94a3b8;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 0.95rem;
+    .person-compact-text { display: flex; flex-direction: column; min-width: 0; }
+    .person-compact-name { font-weight: 900; font-size: 0.75rem; color: #0f172a; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 170px; }
+    .person-compact-name-cast { font-weight: 600; }
+    .person-compact-role { font-weight: 800; font-size: 0.62rem; color: #64748b; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 170px; }
+    .person-compact-role .role-as { color: #94a3b8; margin-right: 4px; }
+    .person-compact-role .role-character { color: var(--movie-accent); }
+    .person-compact-role .job-title { color: var(--movie-accent); }
+
+    .credits-toggle {
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        background: rgba(248,250,252,0.45);
+        padding: 8px 10px;
+    }
+    .credits-toggle-summary {
+        cursor: pointer;
+        list-style: none;
+        font-weight: 900;
+        font-size: 0.72rem;
+        color: #334155;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+    .credits-toggle-summary::-webkit-details-marker { display: none; }
+    .credits-toggle-summary:before { content: "▸"; display: inline-block; margin-right: 10px; color: #64748b; }
+    details[open].credits-toggle .credits-toggle-summary:before { content: "▾"; }
+    .credits-toggle-count {
+        font-weight: 900;
+        font-size: 0.64rem;
+        color: #64748b;
+        background: rgba(148, 163, 184, 0.18);
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        padding: 1px 8px;
+        border-radius: 999px;
+        flex: 0 0 auto;
     }
 
     /* Wiki & Subs */
@@ -834,7 +943,8 @@
         .compact-detail-tag { padding: 4px 6px; font-size: 0.65rem; }
         .details-loading-inline { align-items: flex-start; }
         .person-compact-card { padding: 4px 6px; gap: 5px; }
-        .person-compact-card span { font-size: 0.7rem; }
+        .person-compact-name { font-size: 0.7rem; }
+        .person-compact-role { font-size: 0.58rem; }
         .group-label { margin-bottom: 8px; font-size: 0.6rem; }
     }
     .wiki-html-content {
@@ -1065,6 +1175,8 @@
     private string? selectedLightboxPath;
     private bool showSavedIndicator = false;
 
+
+
     private List<TmdbEpisode>? episodes;
     private int selectedSeasonNumber = 1;
     private bool isLoadingEpisodes = false;
@@ -1234,6 +1346,46 @@
     }
 
     private void OpenLightbox(string path) => selectedLightboxPath = path;
+
+    private static IEnumerable<TmdbCrew> GetCrewDirectors(IEnumerable<TmdbCrew> crew)
+        => crew.Where(c => string.Equals(c.Job, "Director", StringComparison.OrdinalIgnoreCase))
+            .DistinctBy(c => c.Id);
+
+    private static IEnumerable<TmdbCrew> GetCrewCinematographers(IEnumerable<TmdbCrew> crew)
+    {
+        static bool IsCinematographyJob(string job)
+        {
+            if (string.IsNullOrWhiteSpace(job)) return false;
+            return string.Equals(job, "Director of Photography", StringComparison.OrdinalIgnoreCase) ||
+                   job.Contains("Cinematograph", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(job, "Cinematography", StringComparison.OrdinalIgnoreCase);
+        }
+
+        return crew.Where(c => IsCinematographyJob(c.Job))
+            .DistinctBy(c => c.Id);
+    }
+
+    private static IEnumerable<TmdbCrew> GetCrewWriters(IEnumerable<TmdbCrew> crew)
+    {
+        static bool IsWriterJob(string job)
+        {
+            if (string.IsNullOrWhiteSpace(job)) return false;
+            return job.Contains("Writer", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(job, "Screenplay", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(job, "Story", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(job, "Teleplay", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(job, "Novel", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(job, "Characters", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(job, "Author", StringComparison.OrdinalIgnoreCase);
+        }
+
+        return crew.Where(c => IsWriterJob(c.Job))
+            .DistinctBy(c => c.Id);
+    }
+
+    private static IEnumerable<TmdbCrew> GetCrewProducers(IEnumerable<TmdbCrew> crew)
+        => crew.Where(c => !string.IsNullOrWhiteSpace(c.Job) && c.Job.Contains("Producer", StringComparison.OrdinalIgnoreCase))
+            .DistinctBy(c => c.Id);
 
     private async Task OpenAsPopup()
     {
