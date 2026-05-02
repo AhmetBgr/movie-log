@@ -388,7 +388,7 @@
                         var pct = maxDir > 0 ? (d.Value * 100 / maxDir) : 0;
                         <div class="mb-3">
                             <div class="d-flex justify-content-between mb-1">
-                                <a href="search/@Uri.EscapeDataString(d.Key)" target="_blank" class="fw-semibold text-dark text-truncate text-decoration-none director-link" style="max-width: 75%;" title="@d.Key">@d.Key</a>
+                                <a href="person/name/@Uri.EscapeDataString(d.Key)" class="fw-semibold text-dark text-truncate text-decoration-none director-link" style="max-width: 75%;" title="@d.Key">@d.Key</a>
                                 <span class="fw-bold text-secondary">@d.Value <span class="fw-normal text-muted small" style="font-size: 0.75em;">movies</span></span>
                             </div>
                             <div class="progress" style="height: 8px;">
@@ -481,7 +481,7 @@
                     {
                         <div class="mb-3">
                             <div class="d-flex justify-content-between mb-1">
-                                <a href="search/@Uri.EscapeDataString(d.Key)" target="_blank" class="fw-semibold text-dark text-truncate text-decoration-none director-link" style="max-width: 75%;" title="@d.Key">@d.Key</a>
+                                <a href="person/name/@Uri.EscapeDataString(d.Key)" class="fw-semibold text-dark text-truncate text-decoration-none director-link" style="max-width: 75%;" title="@d.Key">@d.Key</a>
                                 <span class="fw-bold" style="color: @Visuals.GetRatingColor(d.Value);">@d.Value.ToString("0.0")</span>
                             </div>
                             <div class="progress" style="height: 8px;">

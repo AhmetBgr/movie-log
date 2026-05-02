@@ -1,0 +1,81 @@
+@page "/person/name/{Name}"
+@using MyPrivateWatchlist.Models
+@inject HttpClient Http
+@inject IConfiguration Config
+@inject NavigationManager NavManager
+
+<PageTitle>Person</PageTitle>
+
+<div class="container py-4">
+    @if (_loading)
+    {
+        <div class="text-muted">Looking up <span class="fw-semibold">@_displayName</span>…</div>
+    }
+    else if (_notFound)
+    {
+        <div class="alert alert-warning">
+            <div class="fw-semibold mb-1">No person found for “@_displayName”.</div>
+            <a class="alert-link" href="/search/@Uri.EscapeDataString(_displayName)">Search instead</a>
+        </div>
+    }
+    else if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <div class="alert alert-danger">@_error</div>
+    }
+</div>
+
+@code {
+    [Parameter] public string Name { get; set; } = "";
+
+    private bool _loading = true;
+    private bool _notFound;
+    private string _displayName = "";
+    private string? _error;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _loading = true;
+        _notFound = false;
+        _error = null;
+
+        _displayName = (Uri.UnescapeDataString(Name ?? "")).Trim();
+
+        if (string.IsNullOrWhiteSpace(_displayName))
+        {
+            _notFound = true;
+            _loading = false;
+            return;
+        }
+
+        try
+        {
+            var apiKey = Config["TmdbApiKey"];
+            if (string.IsNullOrWhiteSpace(apiKey))
+            {
+                _error = "TMDB API key is missing (TmdbApiKey).";
+                return;
+            }
+
+            var url = $"https://api.themoviedb.org/3/search/person?api_key={apiKey}&query={Uri.EscapeDataString(_displayName)}&include_adult=false";
+            var response = await Http.GetFromJsonAsync<TmdbPersonSearchResponse>(url);
+            var best = response?.Results?.FirstOrDefault();
+
+            if (best is null)
+            {
+                _notFound = true;
+                return;
+            }
+
+            NavManager.NavigateTo($"/person/{best.Id}", replace: true);
+        }
+        catch (Exception ex)
+        {
+            _error = $"Failed to look up person: {ex.Message}";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}
+
