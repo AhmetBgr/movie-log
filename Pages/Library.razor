@@ -117,6 +117,16 @@
             <span class="tb-label">Added</span>
         </button>
 
+        @if (ActiveTab == "watchlist")
+        {
+            <button class="tb-btn tb-btn-sort @(CurrentSortColumn == "Random" ? "sorted" : "")"
+                    @onclick='() => ToggleSort("Random")'
+                    title="Shuffle watchlist">
+                <i class="bi bi-shuffle"></i>
+                <span class="tb-label">Random</span>
+            </button>
+        }
+
         @if (ActiveTab == "collections" && SelectedCollectionId != null)
         {
             <button class="tb-btn tb-btn-sort @(CurrentSortColumn == "Order" ? "sorted" : "")"
@@ -564,6 +574,7 @@
             {
                 await RestoreViewPreference(false);
                 await RestoreFilterPreference(false);
+                await RestoreSortPreference(false);
                 RefreshLocalCaches(false);
             }
         }
@@ -617,6 +628,56 @@
         catch { }
     }
 
+    private async Task RestoreSortPreference(bool updateUI = true)
+    {
+        try
+        {
+            var colKey = $"{ActiveTab}_sortcol";
+            var descKey = $"{ActiveTab}_sortdesc";
+            var seedKey = $"{ActiveTab}_sortseed";
+
+            var savedCol = await JS.InvokeAsync<string?>("sessionStorage.getItem", colKey);
+            var savedDesc = await JS.InvokeAsync<string?>("sessionStorage.getItem", descKey);
+            var savedSeed = await JS.InvokeAsync<string?>("sessionStorage.getItem", seedKey);
+
+            if (!string.IsNullOrWhiteSpace(savedCol))
+            {
+                if (ActiveTab == "watching") WatchlistSvc.WatchingSortColumn = savedCol;
+                else if (ActiveTab == "watched") WatchlistSvc.WatchedSortColumn = savedCol;
+                else WatchlistSvc.SortColumn = savedCol;
+            }
+
+            if (!string.IsNullOrWhiteSpace(savedDesc) && bool.TryParse(savedDesc, out var desc))
+            {
+                if (ActiveTab == "watching") WatchlistSvc.WatchingSortDescending = desc;
+                else if (ActiveTab == "watched") WatchlistSvc.WatchedSortDescending = desc;
+                else WatchlistSvc.SortDescending = desc;
+            }
+
+            if (ActiveTab == "watchlist" && !string.IsNullOrWhiteSpace(savedSeed) && int.TryParse(savedSeed, out var seed))
+            {
+                WatchlistSvc.CurrentFilters.RandomSeed = seed;
+            }
+
+            if (updateUI) StateHasChanged();
+        }
+        catch { }
+    }
+
+    private void PersistSortPreference()
+    {
+        try
+        {
+            _ = JS.InvokeVoidAsync("sessionStorage.setItem", $"{ActiveTab}_sortcol", CurrentSortColumn);
+            _ = JS.InvokeVoidAsync("sessionStorage.setItem", $"{ActiveTab}_sortdesc", CurrentSortDescending.ToString().ToLower());
+            if (ActiveTab == "watchlist" && CurrentSortColumn == "Random")
+            {
+                _ = JS.InvokeVoidAsync("sessionStorage.setItem", $"{ActiveTab}_sortseed", WatchlistSvc.CurrentFilters.RandomSeed.ToString());
+            }
+        }
+        catch { }
+    }
+
     private void SetTab(string tabId)
     {
         _currentPageSize = DefaultPageSize;
@@ -645,6 +706,7 @@
         if (ActiveTab == "watching") WatchlistSvc.ToggleWatchingSort(col);
         else if (ActiveTab == "watched") WatchlistSvc.ToggleWatchedSort(col);
         else WatchlistSvc.ToggleSort(col);
+        PersistSortPreference();
     }
 
     private void ToggleSelect(string id) { if (!_selectedIds.Remove(id)) _selectedIds.Add(id); }

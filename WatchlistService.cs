@@ -89,6 +89,7 @@ public class WatchlistService
         public AdvancedFilterState AdvancedFilter { get; set; } = new() { IsActive = true };
         public string SortColumn { get; set; } = "DateAdded";
         public bool SortDescending { get; set; } = true;
+        public int RandomSeed { get; set; } = 0;
     }
 
     private Dictionary<string, TabFilterState> _tabFilters = new()
@@ -268,13 +269,21 @@ public class WatchlistService
         if (_watchlistDirty)
         {
             var pendingFiltered = Items.Where(i => i.Status == WatchlistStatus.Pending && PassesFilters(i, wl)).ToList();
-            _filteredCached = (wl.SortColumn switch
+            if (wl.SortColumn == "Random")
             {
-                "Year" => wl.SortDescending ? pendingFiltered.OrderByDescending(m => m.ParsedYear) : pendingFiltered.OrderBy(m => m.ParsedYear),
-                "Type" => wl.SortDescending ? pendingFiltered.OrderByDescending(m => m.TitleType) : pendingFiltered.OrderBy(m => m.TitleType),
-                "DateAdded" => wl.SortDescending ? pendingFiltered.OrderByDescending(m => m.DateAdded) : pendingFiltered.OrderBy(m => m.DateAdded),
-                _ => wl.SortDescending ? pendingFiltered.OrderByDescending(m => m.Title) : pendingFiltered.OrderBy(m => m.Title)
-            }).ToList();
+                var rng = new Random(wl.RandomSeed == 0 ? 1 : wl.RandomSeed);
+                _filteredCached = pendingFiltered.OrderBy(_ => rng.Next()).ToList();
+            }
+            else
+            {
+                _filteredCached = (wl.SortColumn switch
+                {
+                    "Year" => wl.SortDescending ? pendingFiltered.OrderByDescending(m => m.ParsedYear) : pendingFiltered.OrderBy(m => m.ParsedYear),
+                    "Type" => wl.SortDescending ? pendingFiltered.OrderByDescending(m => m.TitleType) : pendingFiltered.OrderBy(m => m.TitleType),
+                    "DateAdded" => wl.SortDescending ? pendingFiltered.OrderByDescending(m => m.DateAdded) : pendingFiltered.OrderBy(m => m.DateAdded),
+                    _ => wl.SortDescending ? pendingFiltered.OrderByDescending(m => m.Title) : pendingFiltered.OrderBy(m => m.Title)
+                }).ToList();
+            }
             _watchlistDirty = false;
             Console.WriteLine($"[Perf] Refresh: Watchlist (Calculated {pendingFiltered.Count} items in {sw.ElapsedMilliseconds}ms)");
             sw.Restart();
@@ -677,6 +686,15 @@ public class WatchlistService
 
     public void ToggleSort(string column)
     {
+        if (string.Equals(column, "Random", StringComparison.OrdinalIgnoreCase))
+        {
+            SortColumn = "Random";
+            SortDescending = false;
+            CurrentFilters.RandomSeed = Random.Shared.Next(1, int.MaxValue);
+            NotifyStateChanged();
+            return;
+        }
+
         if (SortColumn == column)
         {
             SortDescending = !SortDescending;
