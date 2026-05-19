@@ -185,17 +185,11 @@
     </div>
 </div>
 
-@if (selectedLightboxPath != null)
-{
-    <div class="panel-lightbox-overlay" @onclick="() => selectedLightboxPath = null">
-        <div class="panel-lightbox-content">
-            <img src="https://image.tmdb.org/t/p/original@(selectedLightboxPath)" class="img-fluid rounded shadow-lg" />
-            <button type="button" class="btn-close-lightbox" @onclick="() => selectedLightboxPath = null">
-                <i class="bi bi-x-lg"></i>
-            </button>
-        </div>
-    </div>
-}
+<ImageLightbox IsOpen="@isLightboxOpen"
+              IsOpenChanged="@(v => isLightboxOpen = v)"
+              Paths="@lightboxPaths"
+              Index="@lightboxIndex"
+              IndexChanged="@(i => lightboxIndex = i)" />
 
 <TrailerPlayer VideoKey="@WatchlistSvc.SelectedMovie?.TrailerKey" IsOpen="isTrailerOpen" OnClose="() => isTrailerOpen = false" />
 
@@ -611,11 +605,19 @@
 
 @code {
     private bool showScreenshots = false;
-    private string? selectedLightboxPath;
+    private bool isLightboxOpen;
+    private List<string> lightboxPaths = new();
+    private int lightboxIndex;
     private bool isTrailerOpen = false;
 
     private void ClosePanel() => WatchlistSvc.CloseSidePanel();
-    private void OpenLightbox(string path) => selectedLightboxPath = path;
+    private void OpenLightbox(string path)
+    {
+        // Side panel opens from the screenshots list; keep behavior aligned with MovieDetails gallery.
+        lightboxPaths = WatchlistSvc.SelectedMovie?.BackdropPaths?.ToList() ?? new();
+        lightboxIndex = Math.Max(0, lightboxPaths.IndexOf(path));
+        isLightboxOpen = lightboxPaths.Count > 0;
+    }
 
     protected override void OnInitialized()
     {

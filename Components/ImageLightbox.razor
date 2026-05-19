@@ -1,0 +1,266 @@
+@using Microsoft.AspNetCore.Components.Web
+
+@if (IsOpen)
+{
+    <div class="imglb-overlay" @onclick="Close">
+        <div class="imglb-stage @(IsZoomed ? "zoomed" : "")" @onclick:stopPropagation="true" @onkeydown="HandleKeyDown" tabindex="0" @ref="stageEl">
+            <div class="imglb-viewport" @onclick="Close">
+                <img class="imglb-img @(IsZoomed ? "zoomed" : "")"
+                     src="@GetFullUrl(CurrentPath)"
+                     alt="Image"
+                     style="transform: scale(@Zoom.ToString(System.Globalization.CultureInfo.InvariantCulture));"
+                     @onclick:stopPropagation="true"
+                     @onclick="ToggleZoom" />
+            </div>
+
+            <div class="imglb-bottom" @onclick="Close">
+                <div class="imglb-controls" @onclick:stopPropagation="true">
+                    @if (HasMultiple)
+                    {
+                        <button type="button" class="imglb-btn" title="Previous" @onclick="Prev" disabled="@IsAtStart">
+                            <i class="bi bi-chevron-left"></i>
+                        </button>
+                    }
+
+                    <button type="button" class="imglb-btn" title="Close" @onclick="Close">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+
+                    @if (HasMultiple)
+                    {
+                        <button type="button" class="imglb-btn" title="Next" @onclick="Next" disabled="@IsAtEnd">
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code
+{
+    private ElementReference stageEl;
+
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+
+    [Parameter] public IReadOnlyList<string> Paths { get; set; } = Array.Empty<string>();
+    [Parameter] public int Index { get; set; }
+    [Parameter] public EventCallback<int> IndexChanged { get; set; }
+
+    [Parameter] public string BaseUrl { get; set; } = "https://image.tmdb.org/t/p/original";
+
+    private static readonly double[] ZoomSteps = new[] { 1.0, 1.5, 2.0, 3.0, 4.0 };
+    private double Zoom { get; set; } = 1.0;
+
+    private bool HasMultiple => (Paths?.Count ?? 0) > 1;
+    private bool IsAtStart => Index <= 0;
+    private bool IsAtEnd => Index >= (Paths.Count - 1);
+    private bool IsZoomed => Zoom > 1.0;
+
+    private string CurrentPath => (Paths.Count == 0 || Index < 0 || Index >= Paths.Count) ? "" : Paths[Index];
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!IsOpen)
+        {
+            Zoom = 1.0;
+        }
+
+        if (Paths == null)
+        {
+            Paths = Array.Empty<string>();
+        }
+
+        if (Index < 0) Index = 0;
+        if (Paths.Count > 0 && Index >= Paths.Count) Index = Paths.Count - 1;
+
+        await base.OnParametersSetAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (IsOpen)
+        {
+            try
+            {
+                await stageEl.FocusAsync();
+            }
+            catch
+            {
+                // no-op
+            }
+        }
+    }
+
+    private string GetFullUrl(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return "";
+        if (path.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || path.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            return path;
+        if (path.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+            return path;
+
+        var baseUrl = BaseUrl?.TrimEnd('/') ?? "";
+        var p = path.TrimStart('/');
+        return string.IsNullOrEmpty(baseUrl) ? $"/{p}" : $"{baseUrl}/{p}";
+    }
+
+    private async Task Close()
+    {
+        Zoom = 1.0;
+        await IsOpenChanged.InvokeAsync(false);
+    }
+
+    private async Task SetIndex(int newIndex)
+    {
+        if (Paths.Count == 0) return;
+        if (newIndex < 0) newIndex = 0;
+        if (newIndex >= Paths.Count) newIndex = Paths.Count - 1;
+        Zoom = 1.0;
+        await IndexChanged.InvokeAsync(newIndex);
+    }
+
+    private Task Prev() => SetIndex(Index - 1);
+    private Task Next() => SetIndex(Index + 1);
+
+    private void ZoomTo(double z)
+    {
+        var min = ZoomSteps[0];
+        var max = ZoomSteps[^1];
+        if (z < min) z = min;
+        if (z > max) z = max;
+        Zoom = z;
+    }
+
+    private void ToggleZoom()
+    {
+        if (Zoom <= 1.0) ZoomTo(2.0);
+        else ZoomTo(1.0);
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (!IsOpen) return;
+
+        switch (e.Key)
+        {
+            case "Escape":
+                await Close();
+                break;
+            case "ArrowLeft":
+                if (!IsAtStart) await Prev();
+                break;
+            case "ArrowRight":
+                if (!IsAtEnd) await Next();
+                break;
+            case "+":
+            case "=":
+                ZoomTo(ZoomSteps.FirstOrDefault(s => s > Zoom) is var n && n > 0 ? n : ZoomSteps[^1]);
+                break;
+            case "-":
+                ZoomTo(ZoomSteps.Reverse().FirstOrDefault(s => s < Zoom) is var p && p > 0 ? p : ZoomSteps[0]);
+                break;
+        }
+    }
+}
+
+<style>
+    .imglb-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 3000;
+        background: rgba(10, 12, 18, 0.85);
+        backdrop-filter: blur(6px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+    }
+
+    .imglb-stage {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+        outline: none;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .imglb-viewport {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 18px;
+    }
+
+    .imglb-img {
+        max-width: 100%;
+        max-height: 100%;
+        border-radius: 0;
+        box-shadow: 0 18px 60px rgba(0,0,0,0.55);
+        transform-origin: center center;
+        transition: transform 0.12s ease-out;
+        cursor: zoom-in;
+        user-select: none;
+        -webkit-user-drag: none;
+    }
+
+    .imglb-img.zoomed {
+        cursor: zoom-out;
+    }
+
+    .imglb-btn {
+        border: 0;
+        background: rgba(255,255,255,0.12);
+        color: #fff;
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 8px 22px rgba(0,0,0,0.35);
+        backdrop-filter: blur(6px);
+    }
+
+    .imglb-btn:hover { background: rgba(255,255,255,0.18); }
+    .imglb-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .imglb-bottom {
+        flex: 0 0 auto;
+        padding: 12px 16px 16px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .imglb-stage.zoomed .imglb-bottom {
+        display: none;
+    }
+
+    .imglb-stage.zoomed .imglb-viewport {
+        padding: 0;
+    }
+
+    .imglb-stage.zoomed .imglb-img {
+        max-width: 100vw;
+        max-height: 100vh;
+    }
+
+    .imglb-controls {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+        border-radius: 14px;
+        background: rgba(0,0,0,0.35);
+        backdrop-filter: blur(6px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    }
+</style>

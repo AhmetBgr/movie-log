@@ -465,15 +465,11 @@
 </div>
 
 <!-- Lightbox & Player Overlay -->
-@if (selectedLightboxPath != null)
-{
-    <div class="lightbox-portal" @onclick="() => selectedLightboxPath = null">
-        <div class="lightbox-stage animate-pop-in">
-            <img src="https://image.tmdb.org/t/p/original@(selectedLightboxPath)" class="img-fluid shadow-premium rounded-4" />
-            <button class="btn-close-portal" @onclick="() => selectedLightboxPath = null"><i class="bi bi-x-lg"></i></button>
-        </div>
-    </div>
-}
+<ImageLightbox IsOpen="@isLightboxOpen"
+              IsOpenChanged="@(v => isLightboxOpen = v)"
+              Paths="@lightboxPaths"
+              Index="@lightboxIndex"
+              IndexChanged="@(i => lightboxIndex = i)" />
 
 <TrailerPlayer VideoKey="@movie?.TrailerKey" IsOpen="isTrailerOpen" OnClose="() => isTrailerOpen = false" />
 
@@ -1172,7 +1168,9 @@
     private bool isEnhancingDetails = false;
 
     private bool isTrailerOpen = false;
-    private string? selectedLightboxPath;
+    private bool isLightboxOpen;
+    private List<string> lightboxPaths = new();
+    private int lightboxIndex;
     private bool showSavedIndicator = false;
 
 
@@ -1345,7 +1343,12 @@
         return languageCode.ToUpperInvariant();
     }
 
-    private void OpenLightbox(string path) => selectedLightboxPath = path;
+    private void OpenLightbox(string path)
+    {
+        lightboxPaths = movie?.BackdropPaths?.ToList() ?? new();
+        lightboxIndex = Math.Max(0, lightboxPaths.IndexOf(path));
+        isLightboxOpen = lightboxPaths.Count > 0;
+    }
 
     private static IEnumerable<TmdbCrew> GetCrewDirectors(IEnumerable<TmdbCrew> crew)
         => crew.Where(c => string.Equals(c.Job, "Director", StringComparison.OrdinalIgnoreCase))

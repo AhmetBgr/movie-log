@@ -59,16 +59,31 @@
                         @foreach (var item in CurrentState.Items)
                         {
                             var libItem = FindLibraryItem(item);
+                            var key = $"{item.MediaType}-{item.Id}";
+                            var extra = libItem == null ? GetExtraDetails(key) : null;
+                            var shouldEnrichLibraryItem = libItem != null &&
+                                (string.IsNullOrWhiteSpace(libItem.PosterPath) || string.IsNullOrWhiteSpace(libItem.Overview));
                             var cardItem = libItem ?? new WatchlistItem
                             {
                                 Title = item.DisplayTitle,
-                                OriginalTitle = item.DisplayOriginalTitle,
+                                OriginalTitle = extra?.OriginalTitle ?? item.DisplayOriginalTitle,
                                 TitleType = item.MediaType == "movie" ? "Movie" : "TV Series",
                                 Year = GetYear(item),
-                                PosterPath = item.PosterPath,
+                                Genres = "",
+                                PosterPath = extra?.PosterPath ?? item.PosterPath,
+                                Overview = extra?.Overview,
                                 ImdbId = $"{(item.MediaType ?? "movie")}-{item.Id}",
                                 TmdbId = item.Id
                             };
+
+                            if (libItem == null && extra == null)
+                            {
+                                _ = EnsureExtraDetailsLoadedAsync(item);
+                            }
+                            else if (shouldEnrichLibraryItem)
+                            {
+                                _ = EnsureLibraryItemEnrichedAsync(libItem!, item);
+                            }
                             
                             <div class="col card-row" @key="item.Id">
                                 <MovieCard Item="cardItem"
@@ -132,6 +147,10 @@
     private readonly Dictionary<string, DiscoveryTabState> _tabStates = new();
     private string _activeTabKey = "trending";
     private DiscoveryTabState CurrentState => _tabStates[_activeTabKey];
+
+    private readonly Dictionary<string, DiscoveryExtraDetails> _extraDetailsCache = new();
+    private readonly HashSet<string> _extraDetailsInFlight = new();
+    private readonly HashSet<string> _libraryEnrichInFlight = new();
 
     protected override void OnInitialized()
     {
@@ -348,6 +367,94 @@
         return details?.ImdbId;
     }
 
+    private DiscoveryExtraDetails? GetExtraDetails(string key)
+        => _extraDetailsCache.TryGetValue(key, out var d) ? d : null;
+
+    private async Task EnsureExtraDetailsLoadedAsync(TmdbSearchResultItem item)
+    {
+        var mediaType = item.MediaType ?? "movie";
+        var key = $"{mediaType}-{item.Id}";
+
+        if (_extraDetailsCache.ContainsKey(key)) return;
+        if (!_extraDetailsInFlight.Add(key)) return;
+
+        try
+        {
+            var details = await WatchlistSvc.GetTmdbDetailsByIdAsync(item.Id, mediaType);
+            if (details != null)
+            {
+                _extraDetailsCache[key] = new DiscoveryExtraDetails
+                {
+                    Overview = details.Overview,
+                    PosterPath = details.PosterPath,
+                    OriginalTitle = details.OriginalTitle
+                };
+            }
+        }
+        catch
+        {
+            // ignore discovery enrichment failures; core list still works
+        }
+        finally
+        {
+            _extraDetailsInFlight.Remove(key);
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task EnsureLibraryItemEnrichedAsync(WatchlistItem libItem, TmdbSearchResultItem source)
+    {
+        var mediaType = source.MediaType ?? "movie";
+        var key = $"{mediaType}-{source.Id}";
+        if (!_libraryEnrichInFlight.Add(key)) return;
+
+        try
+        {
+            var details = await WatchlistSvc.GetTmdbDetailsByIdAsync(source.Id, mediaType);
+            if (details == null) return;
+
+            var changed = false;
+
+            if (string.IsNullOrWhiteSpace(libItem.PosterPath) && !string.IsNullOrWhiteSpace(details.PosterPath))
+            {
+                libItem.PosterPath = details.PosterPath;
+                changed = true;
+            }
+
+            if (string.IsNullOrWhiteSpace(libItem.Overview) && !string.IsNullOrWhiteSpace(details.Overview))
+            {
+                libItem.Overview = details.Overview;
+                changed = true;
+            }
+
+            if (string.IsNullOrWhiteSpace(libItem.OriginalTitle) && !string.IsNullOrWhiteSpace(details.OriginalTitle))
+            {
+                libItem.OriginalTitle = details.OriginalTitle;
+                changed = true;
+            }
+
+            if (!libItem.VoteAverage.HasValue && details.VoteAverage != 0)
+            {
+                libItem.VoteAverage = details.VoteAverage;
+                changed = true;
+            }
+
+            if (changed)
+            {
+                await WatchlistSvc.UpdateListAsync(WatchlistSvc.Items);
+            }
+        }
+        catch
+        {
+            // ignore enrichment failures
+        }
+        finally
+        {
+            _libraryEnrichInFlight.Remove(key);
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
     private static string GetLibraryStatusText(WatchlistStatus status) => status switch
     {
         WatchlistStatus.Pending => "In Watchlist",
@@ -442,6 +549,13 @@
         public int Page { get; set; }
         public int TotalPages { get; set; }
         public List<TmdbSearchResultItem> Items { get; set; } = new();
+    }
+
+    private sealed class DiscoveryExtraDetails
+    {
+        public string? Overview { get; set; }
+        public string? PosterPath { get; set; }
+        public string? OriginalTitle { get; set; }
     }
 
     public void Dispose()
