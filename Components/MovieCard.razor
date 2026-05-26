@@ -147,16 +147,21 @@
                             </div>
                         }
 
-                        <!-- Inline rating display (read-only) -->
+                        <!-- Inline rating display + like/dislike -->
                         @if (ShowRating)
                         {
-                            <div class="d-flex align-items-center mt-1">
+                            <div class="d-flex align-items-center mt-1 gap-2">
                                 <div class="rating-box-sm @(Item.Rating20 == null ? "rating-empty" : "")"
                                      style="@(Item.Rating20 != null ? $"background:{Visuals.GetRatingColor(Item.Rating20.Value)};" : "")">
                                     <span class="rating-static @(Item.Rating20 == null ? "" : "text-white")">
                                         @(Item.Rating20?.ToString() ?? "–")
                                     </span>
                                 </div>
+                                <button class="like-btn @(Item.IsLiked == true ? "like-btn-liked" : Item.IsLiked == false ? "like-btn-disliked" : "")"
+                                        @onclick="ToggleLike" @onclick:stopPropagation="true"
+                                        title="@(Item.IsLiked == true ? "Liked" : Item.IsLiked == false ? "Disliked" : "Like/Dislike")">
+                                    <i class="bi @(Item.IsLiked == false ? "bi-hand-thumbs-down-fill" : "bi-hand-thumbs-up-fill")"></i>
+                                </button>
                             </div>
                         }
 
@@ -258,6 +263,10 @@
     private async Task ChangeEpisode(WatchlistItem Item, int d) { var n = (Item.CurrentEpisode ?? 1) + d; if (n >= 1) await WatchlistSvc.UpdateProgressAsync(Item, Item.CurrentSeason, n); }
     private async Task ChangeSeason(WatchlistItem Item, int d) { await WatchlistSvc.UpdateProgressAsync(Item, Math.Max(1, (Item.CurrentSeason ?? 1) + d), Item.CurrentEpisode); }
 
+    private async Task ToggleLike()
+    {
+        if (Item != null) await WatchlistSvc.ToggleLikeAsync(Item);
+    }
 }
 
 <style>
@@ -309,6 +318,16 @@
         pointer-events: none; user-select: none;
     }
     .rating-static.text-white { color: #fff !important; }
+
+    .like-btn {
+        width: 28px; height: 28px; padding: 0; border: 1.5px solid #dee2e6;
+        border-radius: 6px; background: #f8f9fa; color: #bbb;
+        display: inline-flex; align-items: center; justify-content: center;
+        cursor: pointer; font-size: 0.75rem; transition: all 0.15s;
+    }
+    .like-btn:hover { border-color: #aaa; color: #555; background: #f0f0f0; }
+    .like-btn-liked { border-color: #22c55e !important; background: #dcfce7 !important; color: #16a34a !important; }
+    .like-btn-disliked { border-color: #ef4444 !important; background: #fee2e2 !important; color: #dc2626 !important; }
 
 
     .movie-card {

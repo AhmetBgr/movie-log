@@ -2,7 +2,6 @@
 @using System.Text.RegularExpressions
 @using MyPrivateWatchlist.Models
 @inject HttpClient Http
-@inject IConfiguration Config
 @inject MyPrivateWatchlist.Services.WatchlistService WatchlistSvc
 @inject MyPrivateWatchlist.Services.GistSyncService GistSync
 @inject MyPrivateWatchlist.Services.AutoSyncService AutoSync
@@ -86,16 +85,20 @@
         </div>
         <div class="card-body">
             <div class="row g-3">
-                <div class="col-md-6">
-                    <label class="form-label small text-secondary fw-semibold mb-1">TMDB API Key (System)</label>
-                    <input type="password" class="form-control form-control-sm bg-light" value="@Config["TmdbApiKey"]" readonly />
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label small text-secondary fw-semibold mb-1">OpenSubtitles API Key</label>
-                    <input type="password" class="form-control form-control-sm" 
-                           @bind="WatchlistSvc.OpenSubtitlesApiKey" 
-                           @bind:event="oninput" placeholder="Enter key..." />
-                    <div class="form-text x-small mt-1 text-muted">Get from <a href="https://www.opensubtitles.com/en/consumers" target="_blank" class="text-decoration-none">opensubtitles.com</a></div>
+                <div class="col-12">
+                    <label class="form-label small text-secondary fw-semibold mb-1">TMDB API Key</label>
+                    <input type="password" class="form-control form-control-sm"
+                           @bind="tmdbApiKeyInput"
+                           @bind:event="oninput"
+                           placeholder="Enter your TMDB API key..." />
+                    <div class="form-text x-small mt-1 text-muted d-flex justify-content-between align-items-center">
+                        <span>Get a free key from <a href="https://www.themoviedb.org/settings/api" target="_blank" class="text-decoration-none">themoviedb.org</a></span>
+                        <button class="btn btn-sm btn-outline-secondary py-0 px-2" @onclick="SaveTmdbKeyAsync">Save</button>
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(tmdbKeyMessage))
+                    {
+                        <div class="form-text text-success mt-1">@tmdbKeyMessage</div>
+                    }
                 </div>
             </div>
         </div>
@@ -207,6 +210,8 @@
 
 @code {
     private string statusMessage = "";
+    private string tmdbApiKeyInput = "";
+    private string tmdbKeyMessage = "";
     private string gistId = "";
     private string gistPat = "";
     private string gistStatusMessage = "";
@@ -228,6 +233,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        tmdbApiKeyInput = WatchlistSvc.TmdbApiKey;
         var saved = await GistSync.GetSettingsAsync();
         gistId = saved.GistId;
         gistPat = saved.PersonalAccessToken;
@@ -464,6 +470,16 @@
         syncRemoteSummary = AutoSync.LastRemoteSummary;
         syncHasConflict = AutoSync.HasConflict;
         syncActionNeeded = AutoSync.HasUnsyncedLocalChanges || AutoSync.HasRemoteChanges || AutoSync.HasConflict;
+    }
+
+    private async Task SaveTmdbKeyAsync()
+    {
+        WatchlistSvc.TmdbApiKey = tmdbApiKeyInput.Trim();
+        await Task.CompletedTask;
+        tmdbKeyMessage = "TMDB key saved.";
+        await Task.Delay(2000);
+        tmdbKeyMessage = "";
+        StateHasChanged();
     }
 
     public void Dispose()

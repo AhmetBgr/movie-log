@@ -250,6 +250,21 @@
                             <div class="small fw-semibold mt-1" style="color: #f59e0b; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">Collections</div>
                         </a>
                     </div>
+                    @if (LikedCount > 0 || DislikedCount > 0)
+                    {
+                        <div class="col">
+                            <div class="p-3 rounded-3 text-center h-100 d-flex flex-column justify-content-center" style="background: rgba(34, 197, 94, 0.08);">
+                                <div class="fs-2 fw-bold" style="color: #16a34a;">@LikedCount</div>
+                                <div class="small fw-semibold mt-1" style="color: #16a34a; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;"><i class="bi bi-hand-thumbs-up-fill"></i> Liked</div>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="p-3 rounded-3 text-center h-100 d-flex flex-column justify-content-center" style="background: rgba(239, 68, 68, 0.08);">
+                                <div class="fs-2 fw-bold" style="color: #dc2626;">@DislikedCount</div>
+                                <div class="small fw-semibold mt-1" style="color: #dc2626; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;"><i class="bi bi-hand-thumbs-down-fill"></i> Disliked</div>
+                            </div>
+                        </div>
+                    }
                 </div>
             </div>
         </div>
@@ -591,6 +606,8 @@
     private int WatchingCount => Watchlist.Items.Count(i => i.Status == WatchlistStatus.Watching);
     private int WatchedCount => Watchlist.Items.Count(i => i.Status == WatchlistStatus.Watched);
     private int CollectionCount => Watchlist.Collections.Count;
+    private int LikedCount => Watchlist.Items.Count(i => i.IsLiked == true);
+    private int DislikedCount => Watchlist.Items.Count(i => i.IsLiked == false);
     private int SelectedYear = DateTime.Now.Year;
     private int YearlyTotal = 0;
     private List<string> AvailableYears = new();

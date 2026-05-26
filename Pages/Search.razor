@@ -2,7 +2,6 @@
 @using MyPrivateWatchlist.Models
 @using MyPrivateWatchlist.Components
 @inject HttpClient Http
-@inject IConfiguration Config
 @inject IJSRuntime JS
 @inject MyPrivateWatchlist.Services.WatchlistService WatchlistSvc
 @implements IDisposable
@@ -415,7 +414,7 @@
 
             if (IsPersonSearch)
             {
-                var apiKey = Config["TmdbApiKey"];
+                var apiKey = WatchlistSvc.TmdbApiKey;
                 var url = $"https://api.themoviedb.org/3/search/person?api_key={apiKey}&query={Uri.EscapeDataString(decodedQuery)}&include_adult=false";
                 var response = await Http.GetFromJsonAsync<TmdbSearchResponse>(url);
                 results = response?.Results ?? new();
@@ -426,7 +425,7 @@
             }
             else
             {
-                var apiKey = Config["TmdbApiKey"];
+                var apiKey = WatchlistSvc.TmdbApiKey;
                 var url = $"https://api.themoviedb.org/3/search/multi?api_key={apiKey}&query={Uri.EscapeDataString(decodedQuery)}&include_adult=false";
                 var response = await Http.GetFromJsonAsync<TmdbSearchResponse>(url);
                 results = response?.Results?.Where(r => r.MediaType == "movie" || r.MediaType == "tv").ToList() ?? new();

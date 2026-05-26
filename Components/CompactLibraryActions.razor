@@ -51,6 +51,23 @@
             </div>
         </div>
 
+        <!-- Like / Dislike -->
+        @if (Item != null)
+        {
+            <div class="d-flex flex-column gap-1 flex-shrink-0">
+                <button class="like-dislike-btn @(Item.IsLiked == true ? "ldb-liked" : "")"
+                        title="@(Item.IsLiked == true ? "Liked (click to clear)" : "Like")"
+                        @onclick="() => SetLike(true)">
+                    <i class="bi bi-hand-thumbs-up-fill"></i>
+                </button>
+                <button class="like-dislike-btn @(Item.IsLiked == false ? "ldb-disliked" : "")"
+                        title="@(Item.IsLiked == false ? "Disliked (click to clear)" : "Dislike")"
+                        @onclick="() => SetLike(false)">
+                    <i class="bi bi-hand-thumbs-down-fill"></i>
+                </button>
+            </div>
+        }
+
         <!-- Collection Actions -->
         <div class="collection-actions flex-shrink-0">
             <details class="open-on-menu" open="@_isCollectionMenuOpen" @ontoggle="() => _isCollectionMenuOpen = !_isCollectionMenuOpen" @onclick:stopPropagation="true">
@@ -219,6 +236,16 @@
     }
     .open-on-close:hover { background: rgba(0, 0, 0, 0.06); color: #212529; }
 
+    .like-dislike-btn {
+        width: 30px; height: 18px; border: 1.5px solid #e2e8f0;
+        border-radius: 6px; background: #f8fafc; color: #cbd5e1;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 0.65rem; cursor: pointer; transition: all 0.15s; padding: 0;
+    }
+    .like-dislike-btn:hover { border-color: #94a3b8; color: #64748b; background: #f1f5f9; }
+    .ldb-liked  { border-color: #22c55e !important; background: #dcfce7 !important; color: #16a34a !important; }
+    .ldb-disliked { border-color: #ef4444 !important; background: #fee2e2 !important; color: #dc2626 !important; }
+
     .animate-fade-out {
         animation: fadeOutStatus 1.5s forwards;
     }
@@ -330,6 +357,12 @@
             showSavedIndicator = false;
             StateHasChanged();
         }
+    }
+
+    private async Task SetLike(bool liked)
+    {
+        if (Item == null) return;
+        await WatchlistSvc.SetLikeAsync(Item, Item.IsLiked == liked ? null : liked);
     }
 
     private async Task HandleCollectionToggle(CustomCollection col)

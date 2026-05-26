@@ -1163,8 +1163,6 @@
     private WikipediaSnippet? wikiSnippet;
     private bool isWikiLoading = false;
     
-    private List<OpenSubtitlesData>? subtitles;
-    private bool isSubsLoading = false;
     private bool isEnhancingDetails = false;
 
     private bool isTrailerOpen = false;
@@ -1186,7 +1184,6 @@
         movie = null;
         libItem = null;
         wikiSnippet = null;
-        subtitles = null;
         StateHasChanged();
 
         movie = await WatchlistSvc.GetTmdbBasicDetailsAsync(imdbId);
@@ -1197,7 +1194,6 @@
 
             // Render basic metadata first, then hydrate heavier details in the background.
             _ = LoadWikiDataAsync();
-            _ = LoadSubtitlesAsync();
             _ = EnhanceMovieDetailsAsync(movie.Id);
         }
 
@@ -1272,15 +1268,6 @@
 
         wikiSnippet = await WatchlistSvc.GetWikipediaSnippetAsync(movie.Title, movieYear, movie.MediaType);
         isWikiLoading = false;
-        StateHasChanged();
-    }
-
-    private async Task LoadSubtitlesAsync()
-    {
-        if (movie == null) return;
-        isSubsLoading = true;
-        subtitles = await WatchlistSvc.GetSubtitlesAsync(imdbId);
-        isSubsLoading = false;
         StateHasChanged();
     }
 

@@ -118,11 +118,21 @@
 
                                         @if (libItem?.Rating20 != null)
                                         {
-                                            <button class="btn btn-link btn-sm p-0 text-secondary opacity-50 hover-opacity-100 mt-1" 
+                                            <button class="btn btn-link btn-sm p-0 text-secondary opacity-50 hover-opacity-100 mt-1"
                                                     style="text-decoration: none;"
                                                     @onclick="() => HandleRatingEdit(new ChangeEventArgs { Value = null })"
                                                     title="Remove Rating">
                                                 <i class="bi bi-trash3-fill fs-5"></i>
+                                            </button>
+                                        }
+
+                                        @if (libItem != null)
+                                        {
+                                            <button class="modal-like-btn mt-2 @(libItem.IsLiked == true ? "modal-like-liked" : libItem.IsLiked == false ? "modal-like-disliked" : "")"
+                                                    @onclick="ToggleLikeModal"
+                                                    title="@(libItem.IsLiked == true ? "Liked — click to dislike" : libItem.IsLiked == false ? "Disliked — click to clear" : "Like this")">
+                                                <i class="bi @(libItem.IsLiked == false ? "bi-hand-thumbs-down-fill" : "bi-hand-thumbs-up-fill") me-1"></i>
+                                                @(libItem.IsLiked == true ? "Liked" : libItem.IsLiked == false ? "Disliked" : "Like")
                                             </button>
                                         }
                                     </div>
@@ -427,6 +437,16 @@
         box-shadow: 0 4px 12px rgba(13, 110, 253, 0.2) !important;
     }
 
+    .modal-like-btn {
+        display: inline-flex; align-items: center; justify-content: center;
+        padding: 4px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 600;
+        border: 1.5px solid #dee2e6; background: #f8f9fa; color: #888;
+        cursor: pointer; transition: all 0.15s; white-space: nowrap;
+    }
+    .modal-like-btn:hover { border-color: #aaa; background: #f0f0f0; color: #333; }
+    .modal-like-liked { border-color: #22c55e !important; background: #dcfce7 !important; color: #15803d !important; }
+    .modal-like-disliked { border-color: #ef4444 !important; background: #fee2e2 !important; color: #b91c1c !important; }
+
     @@media (max-width: 576px) {
         .small-mobile-text {
             font-size: 0.75rem;
@@ -599,36 +619,23 @@
 
     private async Task HandleStatusTabClick(WatchlistStatus status)
     {
-        Console.WriteLine($"HandleStatusTabClick called with status: {status}");
-        Console.WriteLine($"SelectedItem: {WatchlistSvc.SelectedItem?.Title}");
-        Console.WriteLine($"SelectedMovie: {WatchlistSvc.SelectedMovie?.Title}");
-        
         if (WatchlistSvc.SelectedItem != null && WatchlistSvc.SelectedMovie != null)
         {
             var libItem = GetLibraryItem();
-            Console.WriteLine($"libItem: {libItem?.Title} (null? {libItem == null})");
-            
+
             if (libItem == null)
             {
                 var newItem = CreateItem(status);
-                Console.WriteLine($"Creating new item: {newItem.Title} with status {newItem.Status}");
                 await WatchlistSvc.AddToWatchlistAsync(newItem);
-                Console.WriteLine("Item added successfully");
                 // Force UI update
                 StateHasChanged();
             }
             else
             {
-                Console.WriteLine($"Updating existing item from {libItem.Status} to {status}");
                 await WatchlistSvc.UpdateStatusAsync(libItem, status);
-                Console.WriteLine("Item updated successfully");
                 // Force UI update
                 StateHasChanged();
             }
-        }
-        else
-        {
-            Console.WriteLine("SelectedItem or SelectedMovie is null");
         }
     }
 
@@ -650,15 +657,17 @@
     private static string GetModalImdbId(TmdbMovie movie, WatchlistItem item)
         => movie.ImdbId ?? item.ImdbId ?? "";
 
+    private async Task ToggleLikeModal()
+    {
+        var item = GetLibraryItem();
+        if (item != null) await WatchlistSvc.ToggleLikeAsync(item);
+    }
+
     private WatchlistItem CreateItem(WatchlistStatus status)
     {
         var item = WatchlistSvc.SelectedItem!;
         var movie = WatchlistSvc.SelectedMovie!;
-        
-        Console.WriteLine($"CreateItem - Movie.ImdbId: '{movie.ImdbId}'");
-        Console.WriteLine($"CreateItem - SelectedItem.ImdbId: '{item.ImdbId}'");
-        Console.WriteLine($"CreateItem - Movie.Title: {movie.Title}");
-        
+
         return new WatchlistItem
         {
             ImdbId = movie.ImdbId ?? item.ImdbId ?? "",

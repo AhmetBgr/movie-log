@@ -38,7 +38,7 @@ public class WatchlistItem
     }
 
     [JsonIgnore]
-    public long GenreMask { get; set; }
+    public ulong GenreMask { get; set; }
 
     public string? Director { get; set; }
     public string? OriginalTitle { get; set; }
@@ -49,6 +49,7 @@ public class WatchlistItem
     public DateTime DateAdded { get; set; } = DateTime.Now;
     public int? UserRating { get; set; }
     public int? Rating20 { get; set; }
+    public bool? IsLiked { get; set; }
     public string? Overview { get; set; }
     public string? PosterPath { get; set; }
     public int? TmdbId { get; set; }
@@ -635,6 +636,7 @@ public class WatchlistItemSlim
     public DateTime DateAdded { get; set; } = DateTime.Now;
     public int? UserRating { get; set; }
     public int? Rating20 { get; set; }
+    public bool? IsLiked { get; set; }
     public int? TmdbId { get; set; }
     public int? Runtime { get; set; }
     public TmdbCollection? Collection { get; set; }
@@ -647,8 +649,8 @@ public class AdvancedFilterState
     public HashSet<string> IncludedGenres { get; set; } = new();
     public HashSet<string> ExcludedGenres { get; set; } = new();
 
-    [JsonIgnore] public long IncludedGenresMask { get; set; }
-    [JsonIgnore] public long ExcludedGenresMask { get; set; }
+    [JsonIgnore] public ulong IncludedGenresMask { get; set; }
+    [JsonIgnore] public ulong ExcludedGenresMask { get; set; }
 
     public HashSet<string> IncludedTypes { get; set; } = new();
     public HashSet<string> ExcludedTypes { get; set; } = new();
@@ -762,51 +764,6 @@ public class WikipediaDesktopUrls
 {
     [JsonPropertyName("page")]
     public string Page { get; set; } = "";
-}
-
-public class OpenSubtitlesSearchResult
-{
-    [JsonPropertyName("data")]
-    public List<OpenSubtitlesData> Data { get; set; } = new();
-}
-
-public class OpenSubtitlesData
-{
-    [JsonPropertyName("id")]
-    public string Id { get; set; } = "";
-
-    [JsonPropertyName("attributes")]
-    public OpenSubtitlesAttributes? Attributes { get; set; }
-}
-
-public class OpenSubtitlesAttributes
-{
-    [JsonPropertyName("language")]
-    public string Language { get; set; } = "";
-
-    [JsonPropertyName("moviehash")]
-    public string? MovieHash { get; set; }
-
-    [JsonPropertyName("url")]
-    public string? Url { get; set; }
-
-    [JsonPropertyName("release")]
-    public string? Release { get; set; }
-
-    [JsonPropertyName("download_count")]
-    public int? DownloadCount { get; set; }
-
-    [JsonPropertyName("files")]
-    public List<OpenSubtitlesFile> Files { get; set; } = new();
-}
-
-public class OpenSubtitlesFile
-{
-    [JsonPropertyName("file_id")]
-    public int? FileId { get; set; }
-
-    [JsonPropertyName("file_name")]
-    public string? FileName { get; set; }
 }
 
 // --- Wikipedia API Models ---

@@ -1,7 +1,7 @@
 @page "/person/name/{Name}"
 @using MyPrivateWatchlist.Models
 @inject HttpClient Http
-@inject IConfiguration Config
+@inject MyPrivateWatchlist.Services.WatchlistService WatchlistSvc
 @inject NavigationManager NavManager
 
 <PageTitle>Person</PageTitle>
@@ -49,10 +49,10 @@
 
         try
         {
-            var apiKey = Config["TmdbApiKey"];
+            var apiKey = WatchlistSvc.TmdbApiKey;
             if (string.IsNullOrWhiteSpace(apiKey))
             {
-                _error = "TMDB API key is missing (TmdbApiKey).";
+                _error = "TMDB API key is missing. Please add it in Configure.";
                 return;
             }
 

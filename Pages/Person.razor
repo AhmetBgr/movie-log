@@ -4,7 +4,6 @@
 @inject MyPrivateWatchlist.Services.WatchlistService WatchlistSvc
 @inject NavigationManager NavManager
 @inject HttpClient Http
-@inject IConfiguration Config
 @inject IJSRuntime JS
 @implements IDisposable
 
@@ -507,7 +506,7 @@
 
         try
         {
-            var apiKey = Config["TmdbApiKey"];
+            var apiKey = WatchlistSvc.TmdbApiKey;
             person = await Http.GetFromJsonAsync<TmdbPerson>($"https://api.themoviedb.org/3/person/{Id}?api_key={apiKey}");
             credits = await Http.GetFromJsonAsync<TmdbPersonCombinedCredits>($"https://api.themoviedb.org/3/person/{Id}/combined_credits?api_key={apiKey}");
         }

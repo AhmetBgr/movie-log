@@ -2,6 +2,7 @@ using MyPrivateWatchlist.Models;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using Microsoft.JSInterop;
+using Microsoft.Extensions.Logging;
 
 namespace MyPrivateWatchlist.Services;
 
@@ -12,6 +13,7 @@ public class WatchlistService
     private readonly IConfiguration _config;
     private readonly IJSRuntime _js;
     private readonly Microsoft.AspNetCore.Components.NavigationManager _nav;
+    private readonly ILogger<WatchlistService> _logger;
     private readonly Dictionary<string, TmdbMovie> _movieCache = new();
     private readonly Dictionary<string, TmdbMovie> _movieDetailsByIdCache = new();
     private readonly Dictionary<int, TmdbCollection> _collectionCache = new();
@@ -115,20 +117,20 @@ public class WatchlistService
     }
     public TabFilterState CurrentFilters => _tabFilters.TryGetValue(ActiveTab.ToLower(), out var f) ? f : _tabFilters["watchlist"];
 
-    private static readonly Dictionary<string, long> _genreBitMap = new(StringComparer.OrdinalIgnoreCase);
-    private static long EnsureGenreBit(string genre)
+    private static readonly Dictionary<string, ulong> _genreBitMap = new(StringComparer.OrdinalIgnoreCase);
+    private static ulong EnsureGenreBit(string genre)
     {
         if (string.IsNullOrWhiteSpace(genre)) return 0;
         if (_genreBitMap.TryGetValue(genre, out var bit)) return bit;
-        if (_genreBitMap.Count >= 63) return 0;
-        var newBit = 1L << _genreBitMap.Count;
+        if (_genreBitMap.Count >= 64) return 0; // ulong supports 64 distinct genres
+        var newBit = 1UL << _genreBitMap.Count;
         _genreBitMap[genre] = newBit;
         return newBit;
     }
 
-    private static long GetMaskForGenres(IEnumerable<string> genres)
+    private static ulong GetMaskForGenres(IEnumerable<string> genres)
     {
-        long mask = 0;
+        ulong mask = 0;
         foreach (var g in genres) mask |= EnsureGenreBit(g);
         return mask;
     }
@@ -169,11 +171,11 @@ public class WatchlistService
         set { _enableSearchHistory = value; _ = _storage.SaveAsync("enable_search_history", value); if(!value) ClearSearchHistory(); NotifyStateChanged(); } 
     }
 
-    private string _openSubtitlesApiKey = "";
-    public string OpenSubtitlesApiKey 
-    { 
-        get => _openSubtitlesApiKey; 
-        set { _openSubtitlesApiKey = value; _ = _storage.SaveAsync("opensubtitles_apikey", value); NotifyStateChanged(); } 
+    private string _tmdbApiKey = "";
+    public string TmdbApiKey
+    {
+        get => _tmdbApiKey;
+        set { _tmdbApiKey = value; _ = _storage.SaveAsync("tmdb_apikey", value); NotifyStateChanged(); }
     }
 
     public List<string> SearchHistory { get; set; } = new();
@@ -262,7 +264,7 @@ public class WatchlistService
                 _ => wg.SortDescending ? watching.OrderByDescending(m => m.Title) : watching.OrderBy(m => m.Title)
             }).ToList();
             _watchingDirty = false;
-            Console.WriteLine($"[Perf] Refresh: Watching (Calculated {watching.Count} items in {sw.ElapsedMilliseconds}ms)");
+            _logger.LogDebug("[Perf] Refresh: Watching ({Count} items, {ElapsedMs}ms)", watching.Count, sw.ElapsedMilliseconds);
             sw.Restart();
         }
 
@@ -285,7 +287,7 @@ public class WatchlistService
                 }).ToList();
             }
             _watchlistDirty = false;
-            Console.WriteLine($"[Perf] Refresh: Watchlist (Calculated {pendingFiltered.Count} items in {sw.ElapsedMilliseconds}ms)");
+            _logger.LogDebug("[Perf] Refresh: Watchlist ({Count} items, {ElapsedMs}ms)", pendingFiltered.Count, sw.ElapsedMilliseconds);
             sw.Restart();
         }
 
@@ -301,7 +303,7 @@ public class WatchlistService
                 _ => wd.SortDescending ? watchedFiltered.OrderByDescending(m => m.Title) : watchedFiltered.OrderBy(m => m.Title)
             }).ToList();
             _watchedDirty = false;
-            Console.WriteLine($"[Perf] Refresh: Watched (Calculated {watchedFiltered.Count} items in {sw.ElapsedMilliseconds}ms)");
+            _logger.LogDebug("[Perf] Refresh: Watched ({Count} items, {ElapsedMs}ms)", watchedFiltered.Count, sw.ElapsedMilliseconds);
             sw.Restart();
         }
     }
@@ -415,13 +417,14 @@ public class WatchlistService
         return true;
     }
 
-    public WatchlistService(HttpClient http, LocalStorageService storage, IConfiguration config, IJSRuntime js, Microsoft.AspNetCore.Components.NavigationManager nav)
+    public WatchlistService(HttpClient http, LocalStorageService storage, IConfiguration config, IJSRuntime js, Microsoft.AspNetCore.Components.NavigationManager nav, ILogger<WatchlistService> logger)
     {
         _http = http;
         _storage = storage;
         _config = config;
         _js = js;
         _nav = nav;
+        _logger = logger;
     }
 
     public async Task InitializeAsync()
@@ -442,11 +445,11 @@ public class WatchlistService
         var _lap = System.Diagnostics.Stopwatch.StartNew();
         void LogStep(string label)
         {
-            Console.WriteLine($"[INIT] {label,-45} {_lap.ElapsedMilliseconds,6} ms   (total: {_sw.ElapsedMilliseconds} ms)");
+            _logger.LogDebug("[INIT] {Label,-45} {LapMs,6} ms   (total: {TotalMs} ms)", label, _lap.ElapsedMilliseconds, _sw.ElapsedMilliseconds);
             _lap.Restart();
         }
 
-        Console.WriteLine("[INIT] ── Loading started ──────────────────────────────");
+        _logger.LogDebug("[INIT] ── Loading started ──────────────────────────────");
         try
         {
             _ratingSystem = await _storage.GetAsync<RatingSystem>("rating_system");
@@ -480,6 +483,7 @@ public class WatchlistService
                         DateAdded     = s.DateAdded,
                         UserRating    = s.UserRating,
                         Rating20      = s.Rating20,
+                        IsLiked       = s.IsLiked,
                         TmdbId        = s.TmdbId,
                         Runtime       = s.Runtime,
                         OriginalTitle = det?.OriginalTitle,
@@ -536,8 +540,8 @@ public class WatchlistService
             _enableSearchHistory = await _storage.GetAsync<bool>("enable_search_history");
             LogStep("GetAsync: enable_search_history");
 
-            _openSubtitlesApiKey = await _storage.GetAsync<string>("opensubtitles_apikey") ?? "";
-            LogStep("GetAsync: opensubtitles_apikey");
+            _tmdbApiKey = await _storage.GetAsync<string>("tmdb_apikey") ?? _config["TmdbApiKey"] ?? "";
+            LogStep("GetAsync: tmdb_apikey");
 
             SearchHistory = await _storage.GetAsync<List<string>>("search_history") ?? new();
             LogStep("GetAsync: search_history");
@@ -548,13 +552,13 @@ public class WatchlistService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[INIT] ERROR: {ex.Message}");
+            _logger.LogError(ex, "[INIT] Initialization failed");
         }
         finally
         {
             IsInitializing = false;
             _sw.Stop();
-            Console.WriteLine($"[INIT] ── Total init time: {_sw.ElapsedMilliseconds} ms ─────────────────");
+            _logger.LogDebug("[INIT] ── Total init time: {ElapsedMs} ms ─────────────────", _sw.ElapsedMilliseconds);
             OnStateChanged?.Invoke();
         }
     }
@@ -578,7 +582,7 @@ public class WatchlistService
 
     private async Task FetchGenreMapAsync()
     {
-        var apiKey = _config["TmdbApiKey"];
+        var apiKey = TmdbApiKey;
         try
         {
             var movieGenres = await _http.GetFromJsonAsync<TmdbGenreListResponse>($"https://api.themoviedb.org/3/genre/movie/list?api_key={apiKey}");
@@ -592,7 +596,7 @@ public class WatchlistService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Genre map fetch error: {ex.Message}");
+            _logger.LogWarning(ex, "Genre map fetch error");
         }
     }
 
@@ -604,18 +608,13 @@ public class WatchlistService
 
     public async Task UpdateListAsync(List<WatchlistItem> newList)
     {
-        Console.WriteLine($"UpdateListAsync called with {newList.Count} items");
         Items = newList;
-        Console.WriteLine("Items collection updated");
         ScheduleSave();
-        Console.WriteLine("ScheduleSave called");
         NotifyStateChanged();
-        Console.WriteLine("NotifyStateChanged called");
     }
 
     public async Task UpdateListAndCollectionsAsync(List<WatchlistItem> newList, List<CustomCollection> newCollections)
     {
-        Console.WriteLine($"UpdateListAndCollectionsAsync called with {newList.Count} items, {newCollections?.Count ?? 0} collections");
         Items = newList ?? new();
         Collections = newCollections ?? new();
         ScheduleSave();
@@ -653,7 +652,7 @@ public class WatchlistService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Save error: {ex.Message}");
+            _logger.LogError(ex, "Save to IndexedDB failed");
         }
     }
 
@@ -743,7 +742,7 @@ public class WatchlistService
             return cachedMovie;
         }
 
-        var apiKey = _config["TmdbApiKey"];
+        var apiKey = TmdbApiKey;
         var url = $"https://api.themoviedb.org/3/find/{imdbId}?api_key={apiKey}&external_source=imdb_id";
 
         try
@@ -775,15 +774,15 @@ public class WatchlistService
             }
         }
         catch (Exception ex)
-        { 
-            Console.WriteLine($"API Error fetching {imdbId}: {ex.Message}");
+        {
+            _logger.LogWarning(ex, "TMDB fetch failed for IMDB {ImdbId}", imdbId);
         }
         return null;
     }
 
     public async Task<TmdbMovie?> GetTmdbBasicDetailsAsync(string imdbId)
     {
-        var apiKey = _config["TmdbApiKey"];
+        var apiKey = TmdbApiKey;
         var url = $"https://api.themoviedb.org/3/find/{imdbId}?api_key={apiKey}&external_source=imdb_id";
 
         try
@@ -822,7 +821,7 @@ public class WatchlistService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"API Error fetching basic details for {imdbId}: {ex.Message}");
+            _logger.LogWarning(ex, "TMDB basic details fetch failed for {ImdbId}", imdbId);
         }
 
         return null;
@@ -830,7 +829,7 @@ public class WatchlistService
 
     public async Task<TmdbMovie?> GetTmdbDetailsByIdAsync(int tmdbId, string mediaType)
     {
-        var apiKey = _config["TmdbApiKey"];
+        var apiKey = TmdbApiKey;
         try
         {
             var cacheKey = $"{mediaType}:{tmdbId}";
@@ -912,7 +911,7 @@ public class WatchlistService
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Details enrichment error for movie {tmdbId}: {ex.Message}");
+                        _logger.LogDebug(ex, "Details enrichment error for movie {TmdbId}", tmdbId);
                     }
                     _movieDetailsByIdCache[cacheKey] = movie;
                     movie.MediaType = "movie";
@@ -1009,7 +1008,7 @@ public class WatchlistService
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Details enrichment error for tv {tv.Id}: {ex.Message}");
+                        _logger.LogDebug(ex, "Details enrichment error for TV {TvId}", tv.Id);
                     }
                     _movieDetailsByIdCache[cacheKey] = movie;
                     return movie;
@@ -1017,15 +1016,15 @@ public class WatchlistService
             }
         }
         catch (Exception ex)
-        { 
-            Console.WriteLine($"API Error fetching TMDB ID {tmdbId}: {ex.Message}");
+        {
+            _logger.LogWarning(ex, "TMDB fetch by ID failed for {TmdbId}", tmdbId);
         }
         return null;
     }
 
     public async Task<List<TmdbEpisode>> GetTmdbEpisodesAsync(int tvId, int seasonNumber)
     {
-        var apiKey = _config["TmdbApiKey"];
+        var apiKey = TmdbApiKey;
         var url = $"https://api.themoviedb.org/3/tv/{tvId}/season/{seasonNumber}?api_key={apiKey}";
         try
         {
@@ -1034,7 +1033,7 @@ public class WatchlistService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error fetching episodes for TV {tvId} S{seasonNumber}: {ex.Message}");
+            _logger.LogWarning(ex, "TMDB episodes fetch failed for TV {TvId} S{Season}", tvId, seasonNumber);
             return new();
         }
     }
@@ -1042,7 +1041,7 @@ public class WatchlistService
     public async Task<TmdbMovie?> GetTmdbDetailsByImdbIdAsync(string imdbId)
     {
         if (string.IsNullOrEmpty(imdbId) || imdbId.StartsWith("movie-") || imdbId.StartsWith("tv-")) return null;
-        var apiKey = _config["TmdbApiKey"];
+        var apiKey = TmdbApiKey;
         var url = $"https://api.themoviedb.org/3/find/{imdbId}?api_key={apiKey}&external_source=imdb_id";
         try
         {
@@ -1052,39 +1051,39 @@ public class WatchlistService
             var t = res?.TvResults?.FirstOrDefault();
             if (t != null) return await GetTmdbDetailsByIdAsync(t.Id, "tv");
         }
-        catch { }
+        catch (Exception ex) { _logger.LogDebug(ex, "TMDB find by IMDB ID failed for {ImdbId}", imdbId); }
         return null;
     }
 
     public async Task<List<TmdbCast>> SearchTmdbPeopleAsync(string query)
     {
         if (string.IsNullOrWhiteSpace(query)) return new();
-        var apiKey = _config["TmdbApiKey"];
+        var apiKey = TmdbApiKey;
         var url = $"https://api.themoviedb.org/3/search/person?api_key={apiKey}&query={Uri.EscapeDataString(query)}";
         try
         {
             var res = await _http.GetFromJsonAsync<TmdbPersonSearchResponse>(url);
             return res?.Results?.Select(r => new TmdbCast { Id = r.Id, Name = r.Name, ProfilePath = r.ProfilePath }).ToList() ?? new();
         }
-        catch { return new(); }
+        catch (Exception ex) { _logger.LogDebug(ex, "TMDB person search failed for query '{Query}'", query); return new(); }
     }
 
     public async Task<List<TmdbSearchResultItem>> SearchTmdbMultiAsync(string query)
     {
         if (string.IsNullOrWhiteSpace(query)) return new();
-        var apiKey = _config["TmdbApiKey"];
+        var apiKey = TmdbApiKey;
         var url = $"https://api.themoviedb.org/3/search/multi?api_key={apiKey}&query={Uri.EscapeDataString(query)}&include_adult=false";
         try
         {
             var res = await _http.GetFromJsonAsync<TmdbSearchResponse>(url);
             return res?.Results?.Where(r => r.MediaType == "movie" || r.MediaType == "tv").ToList() ?? new();
         }
-        catch { return new(); }
+        catch (Exception ex) { _logger.LogDebug(ex, "TMDB multi search failed for query '{Query}'", query); return new(); }
     }
 
     public async Task<HashSet<int>> GetPersonCreditsIdsAsync(int personId)
     {
-        var apiKey = _config["TmdbApiKey"];
+        var apiKey = TmdbApiKey;
         var url = $"https://api.themoviedb.org/3/person/{personId}/combined_credits?api_key={apiKey}";
         try
         {
@@ -1097,14 +1096,14 @@ public class WatchlistService
             }
             return ids;
         }
-        catch { return new(); }
+        catch (Exception ex) { _logger.LogDebug(ex, "TMDB person credits failed for person {PersonId}", personId); return new(); }
     }
 
     public async Task<TmdbCollection?> GetTmdbCollectionAsync(int collectionId)
     {
         if (_collectionCache.TryGetValue(collectionId, out var cached)) return cached;
 
-        var apiKey = _config["TmdbApiKey"];
+        var apiKey = TmdbApiKey;
         var url = $"https://api.themoviedb.org/3/collection/{collectionId}?api_key={apiKey}";
         try
         {
@@ -1115,13 +1114,13 @@ public class WatchlistService
                 return col;
             }
         }
-        catch (Exception ex) { Console.WriteLine($"Collection API error: {ex.Message}"); }
+        catch (Exception ex) { _logger.LogWarning(ex, "TMDB collection {CollectionId} fetch failed", collectionId); }
         return null;
     }
 
     public async Task<string?> ResolveImdbIdAsync(string title, int? year)
     {
-        var apiKey = _config["TmdbApiKey"];
+        var apiKey = TmdbApiKey;
         var query = System.Uri.EscapeDataString(title);
         var url = $"https://api.themoviedb.org/3/search/multi?api_key={apiKey}&query={query}";
         if (year.HasValue) url += $"&year={year.Value}&first_air_date_year={year.Value}";
@@ -1140,7 +1139,7 @@ public class WatchlistService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Resolve IMDb error for '{title}': {ex.Message}");
+            _logger.LogWarning(ex, "Resolve IMDb ID failed for title '{Title}'", title);
         }
         return null;
     }
@@ -1186,6 +1185,7 @@ public class WatchlistService
             DateAdded      = i.DateAdded,
             UserRating     = i.UserRating,
             Rating20       = i.Rating20,
+            IsLiked        = i.IsLiked,
             TmdbId         = i.TmdbId,
             Runtime        = i.Runtime,
             Collection     = i.Collection
@@ -1221,6 +1221,25 @@ public class WatchlistService
             existing.UserRating = rating100.HasValue ? (int)Math.Round(rating100.Value / 10.0) : null;
             await UpdateListAsync(Items);
         }
+    }
+
+    /// <summary>Cycles through: null → true → false → null.</summary>
+    public async Task ToggleLikeAsync(WatchlistItem item)
+    {
+        var existing = Items.FirstOrDefault(i => i.ImdbId == item.ImdbId);
+        if (existing == null) return;
+        existing.IsLiked = existing.IsLiked switch { null => true, true => false, false => null };
+        item.IsLiked = existing.IsLiked;
+        await UpdateListAsync(Items);
+    }
+
+    public async Task SetLikeAsync(WatchlistItem item, bool? liked)
+    {
+        var existing = Items.FirstOrDefault(i => i.ImdbId == item.ImdbId);
+        if (existing == null) return;
+        existing.IsLiked = liked;
+        item.IsLiked = liked;
+        await UpdateListAsync(Items);
     }
 
     public async Task UpdateProgressAsync(WatchlistItem item, int? season, int? episode)
@@ -1287,21 +1306,11 @@ public class WatchlistService
 
     public async Task AddItemAsync(WatchlistItem item)
     {
-        Console.WriteLine($"AddItemAsync called: {item.Title} (IMDB: {item.ImdbId})");
-        Console.WriteLine($"Current items count: {Items.Count}");
-        
         if (!Items.Any(i => i.ImdbId == item.ImdbId))
         {
-            Console.WriteLine("Item not found in collection, adding...");
             if (item.DateAdded == default) item.DateAdded = DateTime.Now;
             Items.Add(item);
-            Console.WriteLine($"Item added. New count: {Items.Count}");
             await UpdateListAsync(Items);
-            Console.WriteLine("UpdateListAsync completed");
-        }
-        else
-        {
-            Console.WriteLine("Item already exists in collection, not adding");
         }
     }
 
@@ -1393,7 +1402,7 @@ public class WatchlistService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Background hydrate error for '{item.Title}': {ex.Message}");
+            _logger.LogDebug(ex, "Background hydrate failed for '{Title}'", item.Title);
         }
     }
 
@@ -1641,7 +1650,7 @@ public class WatchlistService
 
     public async Task ShowGlobalRandomMovieAsync()
     {
-        var apiKey = _config["TmdbApiKey"];
+        var apiKey = TmdbApiKey;
         try
         {
             // Pick a random page from the top 500 pages of popular movies
@@ -1665,7 +1674,7 @@ public class WatchlistService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Global random error: {ex.Message}");
+            _logger.LogWarning(ex, "Global random movie fetch failed");
             _ = ShowToastAsync("Failed to fetch a random movie. Check your connection.");
         }
     }
@@ -1718,7 +1727,7 @@ public class WatchlistService
     {
         if (_personCache.TryGetValue(personId, out var cached)) return cached;
 
-        var apiKey = _config["TmdbApiKey"];
+        var apiKey = TmdbApiKey;
         var url = $"https://api.themoviedb.org/3/person/{personId}?api_key={apiKey}";
         try
         {
@@ -1729,7 +1738,7 @@ public class WatchlistService
                 return person;
             }
         }
-        catch (Exception ex) { Console.WriteLine($"Person details API error: {ex.Message}"); }
+        catch (Exception ex) { _logger.LogWarning(ex, "TMDB person {PersonId} details fetch failed", personId); }
         return null;
     }
 
@@ -1737,7 +1746,7 @@ public class WatchlistService
     {
         if (_personCreditsCache.TryGetValue(personId, out var cached)) return cached;
 
-        var apiKey = _config["TmdbApiKey"];
+        var apiKey = TmdbApiKey;
         var url = $"https://api.themoviedb.org/3/person/{personId}/combined_credits?api_key={apiKey}";
         try
         {
@@ -1751,7 +1760,7 @@ public class WatchlistService
                 return credits;
             }
         }
-        catch (Exception ex) { Console.WriteLine($"Person credits API error: {ex.Message}"); }
+        catch (Exception ex) { _logger.LogWarning(ex, "TMDB person {PersonId} credits fetch failed", personId); }
         return null;
     }
 
@@ -1816,32 +1825,9 @@ public class WatchlistService
             }
             return null;
         }
-        catch { return null; }
+        catch (Exception ex) { _logger.LogDebug(ex, "Wikipedia snippet fetch failed for '{Title}'", title); return null; }
     }
 
-    public async Task<List<OpenSubtitlesData>> GetSubtitlesAsync(string imdbId)
-    {
-        if (string.IsNullOrEmpty(OpenSubtitlesApiKey)) return new();
-
-        try
-        {
-            var id = imdbId.StartsWith("tt") ? imdbId[2..] : imdbId;
-            var url = $"https://api.opensubtitles.com/api/v1/subtitles?imdb_id={id}";
-            
-            using var request = new HttpRequestMessage(HttpMethod.Get, url);
-            request.Headers.Add("Api-Key", OpenSubtitlesApiKey);
-            request.Headers.Add("User-Agent", "MovieLogApp_v1.0");
-
-            var response = await _http.SendAsync(request);
-            if (response.IsSuccessStatusCode)
-            {
-                var result = await response.Content.ReadFromJsonAsync<OpenSubtitlesSearchResult>();
-                return result?.Data ?? new();
-            }
-        }
-        catch (Exception ex) { Console.WriteLine($"Search subtitles error: {ex.Message}"); }
-        return new();
-    }
     public async Task CreateCollectionAsync(string name)
     {
         if (string.IsNullOrWhiteSpace(name)) return;

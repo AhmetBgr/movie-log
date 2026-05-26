@@ -4,7 +4,6 @@
 @using MyPrivateWatchlist.Models
 @using MyPrivateWatchlist.Components
 @inject HttpClient Http
-@inject IConfiguration Config
 @inject MyPrivateWatchlist.Services.WatchlistService WatchlistSvc
 @inject IJSRuntime JS
 @implements IDisposable
@@ -292,9 +291,9 @@
 
     private async Task<DiscoveryFetchResult> FetchTabItemsAsync(DiscoveryTab tab, int page)
     {
-        var apiKey = Config["TmdbApiKey"];
+        var apiKey = WatchlistSvc.TmdbApiKey;
         if (string.IsNullOrWhiteSpace(apiKey))
-            throw new InvalidOperationException("TMDB API key is missing.");
+            throw new InvalidOperationException("TMDB API key is missing. Please add it in Configure.");
 
         var url = $"https://api.themoviedb.org/3{tab.Endpoint}?api_key={Uri.EscapeDataString(apiKey)}&page={page}";
         if (tab.Key == "upcoming")
