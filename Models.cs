@@ -668,7 +668,10 @@ public class AdvancedFilterState
     public double? MaxTmdbRating { get; set; }
     public bool UnratedOnly { get; set; }
     public bool ShortFilmsOnly { get; set; }
+    public LikeFilter LikeFilter { get; set; } = LikeFilter.Any;
 }
+
+public enum LikeFilter { Any, Liked, Disliked, None }
 
 /// <summary>
 /// Heavy details stored in the cold "my_movie_details" key.

@@ -404,6 +404,13 @@ public class WatchlistService
             if (f.AdvancedFilter.MaxTmdbRating.HasValue && (item.VoteAverage ?? 10) > f.AdvancedFilter.MaxTmdbRating.Value) return false;
 
             if (f.AdvancedFilter.UnratedOnly && item.Rating20.HasValue) return false;
+
+            if (f.AdvancedFilter.LikeFilter != LikeFilter.Any)
+            {
+                if (f.AdvancedFilter.LikeFilter == LikeFilter.Liked && item.IsLiked != true) return false;
+                if (f.AdvancedFilter.LikeFilter == LikeFilter.Disliked && item.IsLiked != false) return false;
+                if (f.AdvancedFilter.LikeFilter == LikeFilter.None && item.IsLiked.HasValue) return false;
+            }
             
             if (f.AdvancedFilter.MinRuntime.HasValue || f.AdvancedFilter.MaxRuntime.HasValue)
             {

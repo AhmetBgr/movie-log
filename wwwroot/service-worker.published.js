@@ -11,8 +11,9 @@ const cacheName = `${cacheNamePrefix}${self.assetsManifest.version}`;
 const offlineAssetsInclude = [ /\.dll$/, /\.pdb$/, /\.wasm/, /\.html/, /\.js$/, /\.json$/, /\.css$/, /\.woff$/, /\.png$/, /\.jpe?g$/, /\.gif$/, /\.ico$/, /\.blat$/, /\.dat$/, /\.webmanifest$/ ];
 const offlineAssetsExclude = [ /^service-worker\.js$/ ];
 
-// Replace with your base path if you are hosting on a subfolder. Ensure there is a trailing '/'.
-const base = "/";
+// Derive base from the service worker's own location so this works on both
+// GitHub Pages (/movie-log/) and localhost (/).
+const base = self.location.pathname.replace(/service-worker\.js$/, '');
 const baseUrl = new URL(base, self.origin);
 const manifestUrlList = self.assetsManifest.assets.map(asset => new URL(asset.url, baseUrl).href);
 
@@ -49,12 +50,14 @@ async function onFetch(event) {
         // Use Network-First caching strategy for the main application HTML wrapper
         // to prevent users from getting permanently stuck on an old cached version
         if (shouldServeIndexHtml) {
+            // Always fetch index.html, never the original navigation URL — GitHub Pages
+            // would 404 for any deep-link path that isn't a real file.
             try {
-                const networkResponse = await fetch(event.request);
-                cache.put(request, networkResponse.clone());
+                const networkResponse = await fetch('index.html');
+                cache.put('index.html', networkResponse.clone());
                 return networkResponse;
             } catch (error) {
-                return await cache.match(request);
+                return await cache.match('index.html');
             }
         } else {
             cachedResponse = await cache.match(request);

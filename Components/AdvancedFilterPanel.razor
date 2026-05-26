@@ -42,6 +42,13 @@
                             <i class="bi bi-x-circle text-danger ms-1 cursor-pointer" @onclick="ClearAppliedYears"></i>
                         </div>
                     }
+                    @if (WatchlistSvc.AdvancedFilter.LikeFilter != LikeFilter.Any)
+                    {
+                        <div class="summary-row">
+                            <span><b>Reaction:</b> @WatchlistSvc.AdvancedFilter.LikeFilter</span>
+                            <i class="bi bi-x-circle text-danger ms-1 cursor-pointer" @onclick="ClearAppliedLikeFilter"></i>
+                        </div>
+                    }
                 </div>
             </div>
         }
@@ -170,6 +177,30 @@
             }
         </div>
 
+        <div class="filter-section">
+            <div class="filter-label expanded">
+                <span>Reaction</span>
+            </div>
+            <div class="mt-2 d-flex gap-2">
+                <button class="reaction-filter-btn @(_localFilter.LikeFilter == LikeFilter.Any ? "rfb-active-any" : "")"
+                        @onclick="() => _localFilter.LikeFilter = LikeFilter.Any">
+                    All
+                </button>
+                <button class="reaction-filter-btn @(_localFilter.LikeFilter == LikeFilter.Liked ? "rfb-active-liked" : "")"
+                        @onclick="() => _localFilter.LikeFilter = LikeFilter.Liked">
+                    <i class="bi bi-hand-thumbs-up-fill me-1"></i>Liked
+                </button>
+                <button class="reaction-filter-btn @(_localFilter.LikeFilter == LikeFilter.Disliked ? "rfb-active-disliked" : "")"
+                        @onclick="() => _localFilter.LikeFilter = LikeFilter.Disliked">
+                    <i class="bi bi-hand-thumbs-down-fill me-1"></i>Disliked
+                </button>
+                <button class="reaction-filter-btn @(_localFilter.LikeFilter == LikeFilter.None ? "rfb-active-none" : "")"
+                        @onclick="() => _localFilter.LikeFilter = LikeFilter.None">
+                    <i class="bi bi-dash me-1"></i>None
+                </button>
+            </div>
+        </div>
+
     </div>
 
     <!-- Actions Area -->
@@ -234,7 +265,8 @@
             MaxRuntime = s.MaxRuntime,
             MinUserRating = s.MinUserRating,
             MaxUserRating = s.MaxUserRating,
-            UnratedOnly = s.UnratedOnly
+            UnratedOnly = s.UnratedOnly,
+            LikeFilter = s.LikeFilter
         };
     }
 
@@ -253,7 +285,8 @@
         if (a.MinTmdbRating != b.MinTmdbRating) return false;
         if (a.MaxTmdbRating != b.MaxTmdbRating) return false;
         if (a.UnratedOnly != b.UnratedOnly) return false;
-        
+        if (a.LikeFilter != b.LikeFilter) return false;
+
         if (!a.IncludedGenres.SetEquals(b.IncludedGenres)) return false;
         if (!a.ExcludedGenres.SetEquals(b.ExcludedGenres)) return false;
         if (!a.IncludedTypes.SetEquals(b.IncludedTypes)) return false;
@@ -347,15 +380,16 @@
         ApplyFilters();
     }
 
-    private bool HasAppliedFilters => 
-        WatchlistSvc.AdvancedFilter.IncludedGenres.Any() || 
+    private bool HasAppliedFilters =>
+        WatchlistSvc.AdvancedFilter.IncludedGenres.Any() ||
         WatchlistSvc.AdvancedFilter.ExcludedGenres.Any() ||
-        WatchlistSvc.AdvancedFilter.IncludedTypes.Any() || 
+        WatchlistSvc.AdvancedFilter.IncludedTypes.Any() ||
         WatchlistSvc.AdvancedFilter.ExcludedTypes.Any() ||
         WatchlistSvc.AdvancedFilter.MinRuntime.HasValue ||
         WatchlistSvc.AdvancedFilter.MaxRuntime.HasValue ||
         WatchlistSvc.AdvancedFilter.MinYear.HasValue ||
-        WatchlistSvc.AdvancedFilter.MaxYear.HasValue;
+        WatchlistSvc.AdvancedFilter.MaxYear.HasValue ||
+        WatchlistSvc.AdvancedFilter.LikeFilter != LikeFilter.Any;
 
     private string GetAppliedGenreSummary()
     {
@@ -391,6 +425,7 @@
     }
     private void ClearAppliedRuntime() { _localFilter.MinRuntime = null; _localFilter.MaxRuntime = null; ApplyFilters(); }
     private void ClearAppliedYears() { _localFilter.MinYear = null; _localFilter.MaxYear = null; ApplyFilters(); }
+    private void ClearAppliedLikeFilter() { _localFilter.LikeFilter = LikeFilter.Any; ApplyFilters(); }
 
     private async Task PickRandom()
     {
@@ -590,6 +625,28 @@
     .summary-row b { color: #1e293b; margin-right: 4px; }
 
     .cursor-pointer { cursor: pointer; }
+
+    .reaction-filter-btn {
+        flex: 1;
+        padding: 5px 4px;
+        border-radius: 8px;
+        border: 1.5px solid #e2e8f0;
+        background: #f8fafc;
+        color: #94a3b8;
+        font-size: 0.65rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: all 0.15s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .reaction-filter-btn:hover { border-color: #94a3b8; color: #64748b; }
+    .rfb-active-any  { border-color: #6366f1 !important; background: #eef2ff !important; color: #6366f1 !important; }
+    .rfb-active-liked    { border-color: #22c55e !important; background: #dcfce7 !important; color: #16a34a !important; }
+    .rfb-active-disliked { border-color: #ef4444 !important; background: #fee2e2 !important; color: #dc2626 !important; }
+    .rfb-active-none  { border-color: #94a3b8 !important; background: #f1f5f9 !important; color: #475569 !important; }
 
     .btn-apply-dirty {
         background: #6366f1;
