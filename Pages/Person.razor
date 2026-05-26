@@ -504,6 +504,7 @@
         credits = null;
         StateHasChanged();
 
+        await WatchlistSvc.InitializeAsync();
         try
         {
             var apiKey = WatchlistSvc.TmdbApiKey;

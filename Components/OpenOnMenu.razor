@@ -63,15 +63,22 @@
             _isFetching = true;
             _hasFetched = true;
             StateHasChanged();
-            
-            var fetchedImdbId = await FetchImdbIdAsync();
-            if (!string.IsNullOrWhiteSpace(fetchedImdbId))
+
+            try
             {
-                ImdbId = fetchedImdbId;
-                RefreshLinks();
+                var fetchedImdbId = await FetchImdbIdAsync();
+                if (!string.IsNullOrWhiteSpace(fetchedImdbId))
+                {
+                    ImdbId = fetchedImdbId;
+                    RefreshLinks();
+                }
             }
-            
-            _isFetching = false;
+            catch { }
+            finally
+            {
+                _isFetching = false;
+                StateHasChanged();
+            }
         }
     }
 

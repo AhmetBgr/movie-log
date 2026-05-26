@@ -178,27 +178,30 @@
         </div>
 
         <div class="filter-section">
-            <div class="filter-label expanded">
+            <div class="filter-label @(_showReaction ? "expanded" : "")" @onclick="ToggleReaction">
                 <span>Reaction</span>
             </div>
-            <div class="mt-2 d-flex gap-2">
-                <button class="reaction-filter-btn @(_localFilter.LikeFilter == LikeFilter.Any ? "rfb-active-any" : "")"
-                        @onclick="() => _localFilter.LikeFilter = LikeFilter.Any">
-                    All
-                </button>
-                <button class="reaction-filter-btn @(_localFilter.LikeFilter == LikeFilter.Liked ? "rfb-active-liked" : "")"
-                        @onclick="() => _localFilter.LikeFilter = LikeFilter.Liked">
-                    <i class="bi bi-hand-thumbs-up-fill me-1"></i>Liked
-                </button>
-                <button class="reaction-filter-btn @(_localFilter.LikeFilter == LikeFilter.Disliked ? "rfb-active-disliked" : "")"
-                        @onclick="() => _localFilter.LikeFilter = LikeFilter.Disliked">
-                    <i class="bi bi-hand-thumbs-down-fill me-1"></i>Disliked
-                </button>
-                <button class="reaction-filter-btn @(_localFilter.LikeFilter == LikeFilter.None ? "rfb-active-none" : "")"
-                        @onclick="() => _localFilter.LikeFilter = LikeFilter.None">
-                    <i class="bi bi-dash me-1"></i>None
-                </button>
-            </div>
+            @if (_showReaction)
+            {
+                <div class="mt-2 reaction-grid">
+                    <button class="reaction-filter-btn @(_localFilter.LikeFilter == LikeFilter.Any ? "rfb-active-any" : "")"
+                            @onclick="() => _localFilter.LikeFilter = LikeFilter.Any">
+                        <i class="bi bi-asterisk me-1"></i>All
+                    </button>
+                    <button class="reaction-filter-btn @(_localFilter.LikeFilter == LikeFilter.Liked ? "rfb-active-liked" : "")"
+                            @onclick="() => _localFilter.LikeFilter = LikeFilter.Liked">
+                        <i class="bi bi-hand-thumbs-up-fill me-1"></i>Liked
+                    </button>
+                    <button class="reaction-filter-btn @(_localFilter.LikeFilter == LikeFilter.Disliked ? "rfb-active-disliked" : "")"
+                            @onclick="() => _localFilter.LikeFilter = LikeFilter.Disliked">
+                        <i class="bi bi-hand-thumbs-down-fill me-1"></i>Disliked
+                    </button>
+                    <button class="reaction-filter-btn @(_localFilter.LikeFilter == LikeFilter.None ? "rfb-active-none" : "")"
+                            @onclick="() => _localFilter.LikeFilter = LikeFilter.None">
+                        <i class="bi bi-dash-circle me-1"></i>Unset
+                    </button>
+                </div>
+            }
         </div>
 
     </div>
@@ -237,6 +240,7 @@
     private bool _showTypes = false;
     private bool _showRanges = false;
     private bool _showQuick = false;
+    private bool _showReaction = false;
     private bool IsMobile = false;
 
     private AdvancedFilterState _localFilter = new();
@@ -318,6 +322,9 @@
                 var sQuick = await JS.InvokeAsync<string>("sessionStorage.getItem", $"afp_{Title}_quick");
                 if (sQuick != null) _showQuick = sQuick == "1";
 
+                var sReaction = await JS.InvokeAsync<string>("sessionStorage.getItem", $"afp_{Title}_reaction");
+                if (sReaction != null) _showReaction = sReaction == "1";
+
                 StateHasChanged();
             }
             catch { }
@@ -331,6 +338,7 @@
     private async Task ToggleTypes() { _showTypes = !_showTypes; await JS.InvokeVoidAsync("sessionStorage.setItem", $"afp_{Title}_types", _showTypes ? "1" : "0"); }
     private async Task ToggleRanges() { _showRanges = !_showRanges; await JS.InvokeVoidAsync("sessionStorage.setItem", $"afp_{Title}_ranges", _showRanges ? "1" : "0"); }
     private async Task ToggleQuick() { _showQuick = !_showQuick; await JS.InvokeVoidAsync("sessionStorage.setItem", $"afp_{Title}_quick", _showQuick ? "1" : "0"); }
+    private async Task ToggleReaction() { _showReaction = !_showReaction; await JS.InvokeVoidAsync("sessionStorage.setItem", $"afp_{Title}_reaction", _showReaction ? "1" : "0"); }
 
     private int GetGenreState(string g)
     {
@@ -626,14 +634,19 @@
 
     .cursor-pointer { cursor: pointer; }
 
+    .reaction-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+    }
+
     .reaction-filter-btn {
-        flex: 1;
-        padding: 5px 4px;
+        padding: 7px 4px;
         border-radius: 8px;
         border: 1.5px solid #e2e8f0;
         background: #f8fafc;
         color: #94a3b8;
-        font-size: 0.65rem;
+        font-size: 0.68rem;
         font-weight: 700;
         text-transform: uppercase;
         cursor: pointer;
@@ -641,12 +654,13 @@
         display: flex;
         align-items: center;
         justify-content: center;
+        width: 100%;
     }
     .reaction-filter-btn:hover { border-color: #94a3b8; color: #64748b; }
-    .rfb-active-any  { border-color: #6366f1 !important; background: #eef2ff !important; color: #6366f1 !important; }
+    .rfb-active-any      { border-color: #6366f1 !important; background: #eef2ff !important; color: #6366f1 !important; }
     .rfb-active-liked    { border-color: #22c55e !important; background: #dcfce7 !important; color: #16a34a !important; }
     .rfb-active-disliked { border-color: #ef4444 !important; background: #fee2e2 !important; color: #dc2626 !important; }
-    .rfb-active-none  { border-color: #94a3b8 !important; background: #f1f5f9 !important; color: #475569 !important; }
+    .rfb-active-none     { border-color: #94a3b8 !important; background: #f1f5f9 !important; color: #475569 !important; }
 
     .btn-apply-dirty {
         background: #6366f1;
@@ -661,6 +675,12 @@
     @@media (max-width: 576px) {
         .filter-section > div:not(.filter-label) {
             padding: 0 20px 24px;
+        }
+        .genre-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+        .reaction-grid {
+            grid-template-columns: repeat(4, 1fr);
         }
     }
 </style>

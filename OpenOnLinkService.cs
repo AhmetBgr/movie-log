@@ -61,12 +61,18 @@ public class OpenOnLinkService
         if (link == null || item == null || string.IsNullOrWhiteSpace(link.Template))
             return null;
 
-        if (link.Template.Contains("{imdbId}", StringComparison.Ordinal) && string.IsNullOrWhiteSpace(item.ImdbId))
+        // Only real IMDb IDs (tt*) are valid for {imdbId} links. Synthetic TMDB IDs like
+        // "movie-123" or "tv-456" must be treated as missing so we don't build broken URLs.
+        var imdbId = item.ImdbId;
+        var hasRealImdbId = !string.IsNullOrWhiteSpace(imdbId)
+            && imdbId.StartsWith("tt", StringComparison.OrdinalIgnoreCase);
+
+        if (link.Template.Contains("{imdbId}", StringComparison.Ordinal) && !hasRealImdbId)
             return null;
 
         var title = item.Title?.Trim() ?? "";
         var year = item.Year?.Trim() ?? "";
-        
+
         var isYearOnly = year.Length == 4 && int.TryParse(year, out _);
         var appendedYear = isYearOnly ? year : "";
 
@@ -82,7 +88,7 @@ public class OpenOnLinkService
             .Replace("{titleSlug}", titleSlug, StringComparison.Ordinal)
             .Replace("{titleSlugYear}", titleSlugYear, StringComparison.Ordinal)
             .Replace("{yearSlug}", yearSlug, StringComparison.Ordinal)
-            .Replace("{imdbId}", WebUtility.UrlEncode(item.ImdbId ?? ""), StringComparison.Ordinal);
+            .Replace("{imdbId}", WebUtility.UrlEncode(imdbId ?? ""), StringComparison.Ordinal);
     }
 
     public bool CanOpen(OpenOnLink link, WatchlistItem item)

@@ -1186,6 +1186,7 @@
         wikiSnippet = null;
         StateHasChanged();
 
+        await WatchlistSvc.InitializeAsync();
         movie = await WatchlistSvc.GetTmdbBasicDetailsAsync(imdbId);
         
         if (movie != null)

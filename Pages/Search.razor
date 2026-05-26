@@ -397,6 +397,7 @@
 
     protected override async Task OnParametersSetAsync()
     {
+        await WatchlistSvc.InitializeAsync();
         if (string.IsNullOrWhiteSpace(Query)) return;
 
         cts?.Cancel();
