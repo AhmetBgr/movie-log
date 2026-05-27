@@ -352,7 +352,7 @@ article.content:has(.page-shell) {
     padding: 0 10px;
     background: #fff;
     border-bottom: 1px solid #e8eaed;
-    min-height: 44px;
+    min-height: 35px;
     overflow-x: auto;
     overflow-y: hidden;
     scrollbar-width: none;
@@ -371,7 +371,7 @@ article.content:has(.page-shell) {
 .toolbar-actions {
     background: #f8faff;
     border-bottom: 1px solid #d0d9ff;
-    min-height: 40px;
+    min-height: 32px;
     transition: background 0.2s, border-color 0.2s;
     gap: 4px;
 }
@@ -385,7 +385,7 @@ article.content:has(.page-shell) {
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    padding: 5px 10px;
+    padding: 4px 10px;
     border: none;
     border-radius: 8px;
     background: transparent;

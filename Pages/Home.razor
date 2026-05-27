@@ -70,6 +70,9 @@
         .rating-movie-title:hover {
             color: #f97316 !important;
         }
+        .home-like-icon { font-size: 0.72rem; vertical-align: middle; flex-shrink: 0; line-height: 0; }
+        .home-like-icon.liked { color: #22c55e; }
+        .home-like-icon.disliked { color: #ef4444; }
         .extra-small {
             font-size: 0.75rem;
         }
@@ -162,6 +165,14 @@
                             <div class="text-dark d-flex flex-wrap align-items-baseline overflow-hidden" style="font-size: 1.1rem;">
                                 <OpenOnMenu Item="item" ButtonClass="me-1" />
                                 <span class="fw-bold rating-movie-title text-truncate" @onclick="() => Watchlist.ShowDetailsAsync(item)">@item.Title</span>
+                                @if (item.IsLiked == true)
+                                {
+                                    <i class="bi bi-hand-thumbs-up-fill home-like-icon liked ms-1" title="Liked"></i>
+                                }
+                                else if (item.IsLiked == false)
+                                {
+                                    <i class="bi bi-hand-thumbs-down-fill home-like-icon disliked ms-1" title="Disliked"></i>
+                                }
                                 @if (!string.IsNullOrWhiteSpace(GetYearOnly(item.Year)))
                                 {
                                     <span class="text-muted opacity-50 mx-1">•</span>
@@ -199,6 +210,14 @@
                             <div class="text-dark d-flex flex-wrap align-items-baseline overflow-hidden" style="font-size: 1.1rem;">
                                 <OpenOnMenu Item="item" ButtonClass="me-1" />
                                 <span class="fw-bold rating-movie-title text-truncate" @onclick="() => Watchlist.ShowDetailsAsync(item)">@item.Title</span>
+                                @if (item.IsLiked == true)
+                                {
+                                    <i class="bi bi-hand-thumbs-up-fill home-like-icon liked ms-1" title="Liked"></i>
+                                }
+                                else if (item.IsLiked == false)
+                                {
+                                    <i class="bi bi-hand-thumbs-down-fill home-like-icon disliked ms-1" title="Disliked"></i>
+                                }
                                 @if (!string.IsNullOrWhiteSpace(GetYearOnly(item.Year)))
                                 {
                                     <span class="text-muted opacity-50 mx-1">•</span>
