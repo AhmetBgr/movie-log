@@ -1157,6 +1157,7 @@ public class WatchlistService
         if (existing != null)
         {
             existing.Status = status;
+            existing.DateAdded = DateTime.Now;
             if (status == WatchlistStatus.Watching && existing.TitleType.Contains("TV", StringComparison.OrdinalIgnoreCase))
             {
                 existing.CurrentSeason ??= 1;

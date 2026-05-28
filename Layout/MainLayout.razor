@@ -112,6 +112,23 @@
                                                     @res.Subtitle
                                                 </div>
                                             </div>
+                                            @if (res.Type == "movie" || res.Type == "tv")
+                                            {
+                                                <button class="btn btn-sm btn-icon-ghost flex-shrink-0"
+                                                        title="Open details in new tab"
+                                                        disabled="@(_openingInNewTab != 0)"
+                                                        @onclick:stopPropagation="true"
+                                                        @onclick="() => OpenInNewTab(res)">
+                                                    @if (_openingInNewTab == res.Id)
+                                                    {
+                                                        <span class="spinner-border spinner-border-sm" style="width:14px;height:14px;"></span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <i class="bi bi-box-arrow-up-right"></i>
+                                                    }
+                                                </button>
+                                            }
                                         </div>
                                     }
                                 }
@@ -552,6 +569,24 @@
         flex-shrink: 0;
     }
 
+    .btn-icon-ghost {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        padding: 0;
+        border: none;
+        background: transparent;
+        color: #888;
+        border-radius: 6px;
+        transition: background 0.15s, color 0.15s;
+        opacity: 0;
+    }
+    .search-result-item:hover .btn-icon-ghost { opacity: 1; }
+    .btn-icon-ghost:hover { background: rgba(0,0,0,0.08); color: #333; }
+    .btn-icon-ghost:disabled { opacity: 0.4; cursor: not-allowed; }
+
     .search-backdrop {
         position: fixed;
         top: 0;
@@ -618,6 +653,25 @@
     private List<AutocompleteRes> _autocompleteResults = new();
     private CancellationTokenSource? _searchCts;
     private string _lastUri = "";
+    private int _openingInNewTab = 0;
+
+    private async Task OpenInNewTab(AutocompleteRes res)
+    {
+        if (_openingInNewTab != 0) return;
+        _openingInNewTab = res.Id;
+        StateHasChanged();
+        try
+        {
+            var details = await WatchlistSvc.GetTmdbDetailsByIdAsync(res.Id, res.Type);
+            if (!string.IsNullOrEmpty(details?.ImdbId))
+                await JS.InvokeVoidAsync("open", $"/movie/{details.ImdbId}", "_blank");
+        }
+        finally
+        {
+            _openingInNewTab = 0;
+            StateHasChanged();
+        }
+    }
 
     private async Task HandleSearchInput()
     {
