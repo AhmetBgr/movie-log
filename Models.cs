@@ -457,6 +457,9 @@ public class TmdbSearchResultItem
     [JsonPropertyName("vote_average")]
     public double VoteAverage { get; set; }
 
+    [JsonPropertyName("overview")]
+    public string? Overview { get; set; }
+
     public string DisplayTitle => Title ?? Name ?? "Unknown";
 
     public string? DisplayOriginalTitle 
