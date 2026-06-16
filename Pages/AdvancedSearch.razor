@@ -99,6 +99,55 @@
                     </div>
                 </div>
 
+                <!-- Keywords -->
+                <div class="as-section">
+                    <div class="as-label expanded">Keywords</div>
+                    <div class="as-section-body">
+                        @if (_selectedKeywords.Any())
+                        {
+                            <div class="as-keyword-tags mb-2">
+                                @foreach (var kw in _selectedKeywords)
+                                {
+                                    <span class="as-keyword-tag">
+                                        @kw.Name
+                                        <button class="as-keyword-remove" @onclick="() => RemoveKeyword(kw)"><i class="bi bi-x"></i></button>
+                                    </span>
+                                }
+                            </div>
+                        }
+                        <div class="d-flex gap-1 mb-2">
+                            <input type="text" class="form-control form-control-sm as-input shadow-none"
+                                   placeholder="e.g. time travel, heist…"
+                                   @bind="_keywordInput" @bind:event="oninput"
+                                   @onkeydown="HandleKeywordKeyDown" />
+                            <button class="btn btn-sm btn-outline-secondary px-2" @onclick="SearchKeywordsAsync" disabled="@_keywordSearching">
+                                @if (_keywordSearching)
+                                {
+                                    <span class="spinner-border spinner-border-sm"></span>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-search"></i>
+                                }
+                            </button>
+                        </div>
+                        @if (_keywordSuggestions.Any())
+                        {
+                            <div class="as-keyword-suggestions">
+                                @foreach (var kw in _keywordSuggestions.Take(10))
+                                {
+                                    var isSelected = _selectedKeywords.Any(s => s.Id == kw.Id);
+                                    <button class="as-keyword-sugg-btn @(isSelected ? "as-kw-selected" : "")"
+                                            @onclick="() => SelectKeyword(kw)">
+                                        @if (isSelected) { <i class="bi bi-check2 me-1"></i> }
+                                        @kw.Name
+                                    </button>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+
                 <!-- Library status -->
                 <div class="as-section">
                     <div class="as-label expanded">Library</div>
@@ -314,6 +363,10 @@
     private double? _maxRating;
     private int? _minVotes = 50;
     private LibFilter _libFilter = LibFilter.All;
+    private string _keywordInput = "";
+    private List<TmdbKeyword> _keywordSuggestions = new();
+    private readonly List<TmdbKeyword> _selectedKeywords = new();
+    private bool _keywordSearching;
 
     // ── Sort state (Library-style) ──
     private string _sortField = "popularity"; // popularity | title | year | rating
@@ -409,6 +462,46 @@
         if (_hasSearched) _ = EnsureRevealFilledAsync();
     }
 
+    private async Task SearchKeywordsAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_keywordInput))
+        {
+            _keywordSuggestions.Clear();
+            StateHasChanged();
+            return;
+        }
+        _keywordSearching = true;
+        StateHasChanged();
+        try
+        {
+            var url = $"https://api.themoviedb.org/3/search/keyword?api_key={Uri.EscapeDataString(WatchlistSvc.TmdbApiKey)}&query={Uri.EscapeDataString(_keywordInput.Trim())}";
+            var resp = await Http.GetFromJsonAsync<TmdbKeywordSearchResponse>(url);
+            _keywordSuggestions = resp?.Results ?? new();
+        }
+        catch { _keywordSuggestions.Clear(); }
+        finally
+        {
+            _keywordSearching = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleKeywordKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await SearchKeywordsAsync();
+    }
+
+    private void SelectKeyword(TmdbKeyword kw)
+    {
+        if (!_selectedKeywords.Any(k => k.Id == kw.Id))
+            _selectedKeywords.Add(kw);
+    }
+
+    private void RemoveKeyword(TmdbKeyword kw)
+    {
+        _selectedKeywords.RemoveAll(k => k.Id == kw.Id);
+    }
+
     private async Task ToggleSort(string field, bool defaultDesc)
     {
         if (_sortField == field) _sortDesc = !_sortDesc;
@@ -456,6 +549,9 @@
         _libFilter = LibFilter.All;
         _sortField = "popularity";
         _sortDesc = true;
+        _selectedKeywords.Clear();
+        _keywordSuggestions.Clear();
+        _keywordInput = "";
     }
 
     private async Task ApplyAsync()
@@ -566,6 +662,9 @@
         if (_maxRating.HasValue) sb.Append($"&vote_average.lte={_maxRating.Value.ToString(CultureInfo.InvariantCulture)}");
         if (_minVotes.HasValue && _minVotes > 0) sb.Append($"&vote_count.gte={_minVotes}");
 
+        if (_selectedKeywords.Any())
+            sb.Append($"&with_keywords={Uri.EscapeDataString(string.Join("|", _selectedKeywords.Select(k => k.Id)))}");
+
         return sb.ToString();
     }
 
@@ -611,6 +710,17 @@
     public void Dispose()
     {
         WatchlistSvc.OnStateChanged -= HandleStateChanged;
+    }
+
+    private sealed class TmdbKeyword
+    {
+        [JsonPropertyName("id")] public int Id { get; set; }
+        [JsonPropertyName("name")] public string Name { get; set; } = "";
+    }
+
+    private sealed class TmdbKeywordSearchResponse
+    {
+        [JsonPropertyName("results")] public List<TmdbKeyword> Results { get; set; } = new();
     }
 
     private sealed class DiscoverApiResponse
@@ -854,6 +964,63 @@
     .as-lib-pending { background: #e0e7ff; color: #3730a3; }
     .as-lib-watching { background: #dcfce7; color: #166534; }
     .as-lib-watched { background: #e5e7eb; color: #111827; }
+
+    .as-keyword-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+    }
+
+    .as-keyword-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        background: #e0e7ff;
+        color: #3730a3;
+        border-radius: 999px;
+        padding: 3px 6px 3px 9px;
+        font-size: 0.7rem;
+        font-weight: 600;
+    }
+
+    .as-keyword-remove {
+        background: none;
+        border: none;
+        padding: 0 1px;
+        line-height: 1;
+        color: #6366f1;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+    }
+    .as-keyword-remove:hover { color: #991b1b; }
+
+    .as-keyword-suggestions {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        max-height: 200px;
+        overflow-y: auto;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 4px;
+        background: #f8fafc;
+    }
+
+    .as-keyword-sugg-btn {
+        background: transparent;
+        border: none;
+        border-radius: 6px;
+        padding: 5px 8px;
+        font-size: 0.72rem;
+        text-align: left;
+        color: #475569;
+        cursor: pointer;
+        transition: background 0.15s;
+    }
+    .as-keyword-sugg-btn:hover { background: #e2e8f0; color: #1e293b; }
+    .as-kw-selected { background: #dcfce7; color: #166534; font-weight: 600; }
+    .as-kw-selected:hover { background: #bbf7d0; }
 
     @@media (max-width: 576px) {
         .as-genre-grid { grid-template-columns: repeat(3, 1fr); }
