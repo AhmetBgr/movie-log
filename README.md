@@ -27,7 +27,7 @@ Movie Log is a personal movie and TV show tracking application developed with Bl
 - **Privacy Focus**: All movie data, ratings, and search history are stored exclusively in your browser's local storage.
 - **Open On**: Quickly open movies on the website of your own choice.
 - **Discovery**: See new releases, popular movies or upcoming titles.
-- **Library Sync**: Optional library sync between your devices with Github Gists.
+- **Library Sync**: Optional full-library sync between your devices with GitHub Gists or your own Supabase project (setup SQL in `supabase/schema.sql`).
 - **Statistics**: See statistics about your library in home page.
 
 ## Getting Started
