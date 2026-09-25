@@ -14,6 +14,7 @@ builder.Services.AddScoped<GistSyncService>();
 builder.Services.AddScoped<AutoSyncService>();
 builder.Services.AddScoped<SupabaseApi>();
 builder.Services.AddScoped<SupabaseSyncService>();
+builder.Services.AddScoped<SupabaseAutoSyncService>();
 builder.Services.AddScoped<OpenOnLinkService>();
 var host = builder.Build();
 

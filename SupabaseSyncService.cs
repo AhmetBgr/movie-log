@@ -42,6 +42,8 @@ public class SupabaseSyncService
 
     public DateTimeOffset? LastSyncAt => _state?.LastSyncAt;
     public string? LastSyncSummary => _state?.LastSyncSummary;
+    /// <summary>Newest remote updated_at seen by the last sync; anything newer means another device wrote.</summary>
+    public DateTimeOffset? RemoteWatermark => _state?.RemoteWatermark;
     public string? LastError { get; private set; }
     public string? SignedInEmail { get; private set; }
     public bool IsSignedIn => !string.IsNullOrWhiteSpace(SignedInEmail);
@@ -161,6 +163,7 @@ public class SupabaseSyncService
             UpdateBaseline(state, plan, local, remote, pulled);
             state.LastSyncAt = DateTimeOffset.Now;
             state.LastSyncSummary = plan.Preview.Describe(mode);
+            state.RemoteWatermark = remote.Count > 0 ? remote.Values.Max(r => r.UpdatedAt) : null;
             await SaveStateAsync();
 
             Pending = new SyncPreview();
@@ -467,6 +470,7 @@ public class SupabaseSyncService
         public Dictionary<string, BaselineEntry> Baseline { get; set; } = new(StringComparer.Ordinal);
         public DateTimeOffset? LastSyncAt { get; set; }
         public string? LastSyncSummary { get; set; }
+        public DateTimeOffset? RemoteWatermark { get; set; }
     }
 }
 

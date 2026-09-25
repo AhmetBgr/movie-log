@@ -396,6 +396,15 @@
             if (window._swUpdateReady) window._blazorUpdateCallback();
         };
 
+        window.syncHelpers = {
+            register: function (dotnetRef) {
+                document.addEventListener('visibilitychange', () =>
+                    dotnetRef.invokeMethodAsync('OnVisibilityChanged', document.visibilityState === 'visible'));
+                window.addEventListener('online', () => dotnetRef.invokeMethodAsync('OnOnline'));
+                return document.visibilityState === 'visible';
+            }
+        };
+
         window.applyUpdate = function () {
             window.location.reload();
         };

@@ -3,6 +3,7 @@
 @inject NavigationManager NavManager
 @inject WatchlistService WatchlistSvc
 @inject AutoSyncService AutoSync
+@inject SupabaseAutoSyncService SupabaseAutoSync
 @inject IJSRuntime JS
 @using MyPrivateWatchlist.Components
 @using MyPrivateWatchlist.Models
@@ -810,6 +811,7 @@
             _dotNetRef = DotNetObjectReference.Create(this);
             await JS.InvokeVoidAsync("registerUpdateCallback", _dotNetRef);
             await AutoSync.EnsureStartedAsync();
+            await SupabaseAutoSync.StartAsync();
             try { WatchlistSvc.PrimeIsMobileCache(await JS.InvokeAsync<bool>("uiHelpers.isMobile")); } catch { }
         }
     }

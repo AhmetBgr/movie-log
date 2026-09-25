@@ -6,6 +6,7 @@
 @inject MyPrivateWatchlist.Services.GistSyncService GistSync
 @inject MyPrivateWatchlist.Services.AutoSyncService AutoSync
 @inject MyPrivateWatchlist.Services.SupabaseSyncService SupabaseSync
+@inject MyPrivateWatchlist.Services.SupabaseAutoSyncService SupabaseAutoSync
 @using MyPrivateWatchlist.Services
 @inject NavigationManager NavManager
 @inject IJSRuntime JS
@@ -220,6 +221,13 @@
                 }
             </div>
 
+            <div class="form-check form-switch mb-3">
+                <input class="form-check-input" type="checkbox" id="sbAutoSync" checked="@sbAutoSync" @onchange="ToggleSupabaseAutoSyncAsync" />
+                <label class="form-check-label small" for="sbAutoSync">
+                    Sync automatically <span class="text-secondary">(uploads your edits within seconds and picks up changes from other devices)</span>
+                </label>
+            </div>
+
             <div class="d-flex flex-wrap gap-2 mb-3">
                 <button class="btn btn-sm btn-outline-dark px-3 mt-1" @onclick="SaveSupabaseSettingsAsync" disabled="@sbBusy">
                     <i class="bi bi-save me-1"></i>Save
@@ -296,7 +304,7 @@
                     <li class="mb-1">Open <strong>SQL Editor</strong>, paste the contents of <code>supabase/schema.sql</code> from this repository and run it.</li>
                     <li class="mb-1">In <strong>Authentication &rarr; Users</strong>, click <strong>Add user &rarr; Create new user</strong> (tick <em>Auto Confirm</em>). Optionally disable new sign-ups under <strong>Authentication &rarr; Sign In / Providers</strong>.</li>
                     <li class="mb-1">Copy the <strong>Project URL</strong> and the <strong>anon / publishable key</strong> from <strong>Project Settings &rarr; API Keys</strong>.</li>
-                    <li>Paste them above, click <strong>Save</strong>, sign in with that user, then use <strong>Smart Sync</strong>.</li>
+                    <li>Paste them above, click <strong>Save</strong> and sign in with that user. With <strong>Sync automatically</strong> on, that's it &mdash; do the same on your other devices.</li>
                 </ol>
             </div>
         </div>
@@ -342,6 +350,7 @@
     private string sbAnonKey = "";
     private string sbEmail = "";
     private string sbPassword = "";
+    private bool sbAutoSync = true;
     private string sbStatusMessage = "";
     private bool sbStatusIsError = false;
     private bool sbBusy = false;
@@ -366,6 +375,7 @@
         sbUrl = sbSettings.ProjectUrl;
         sbAnonKey = sbSettings.AnonKey;
         sbEmail = sbSettings.Email;
+        sbAutoSync = sbSettings.AutoSync;
         SupabaseSync.OnStatusChanged += HandleSupabaseStatusChanged;
         await SupabaseSync.InitializeAsync();
 
@@ -373,7 +383,16 @@
     }
 
     private Task SaveSupabaseInputsAsync()
-        => SupabaseSync.SaveSettingsAsync(new SupabaseSettings { ProjectUrl = sbUrl, AnonKey = sbAnonKey, Email = sbEmail });
+        => SupabaseSync.SaveSettingsAsync(new SupabaseSettings { ProjectUrl = sbUrl, AnonKey = sbAnonKey, Email = sbEmail, AutoSync = sbAutoSync });
+
+    private async Task ToggleSupabaseAutoSyncAsync(ChangeEventArgs e)
+    {
+        sbAutoSync = e.Value is true;
+        var settings = await SupabaseSync.GetSettingsAsync();
+        settings.AutoSync = sbAutoSync;
+        await SupabaseSync.SaveSettingsAsync(settings);
+        if (sbAutoSync) _ = SupabaseAutoSync.SyncNowAsync();
+    }
 
     private async Task RunSupabaseActionAsync(Func<Task<string>> action, string errorPrefix)
     {
@@ -406,6 +425,11 @@
         await SaveSupabaseInputsAsync();
         await SupabaseSync.SignInAsync(sbEmail.Trim(), sbPassword);
         sbPassword = "";
+        if (sbAutoSync)
+        {
+            await SupabaseAutoSync.SyncNowAsync();
+            return "Signed in to Supabase. Automatic sync is on.";
+        }
         await SupabaseSync.RefreshStatusAsync();
         return "Signed in to Supabase.";
     }, "Sign-in failed");

@@ -5,6 +5,7 @@ public class SupabaseSettings
     public string ProjectUrl { get; set; } = "";
     public string AnonKey { get; set; } = "";
     public string Email { get; set; } = "";
+    public bool AutoSync { get; set; } = true;
 }
 
 public class SupabaseSession

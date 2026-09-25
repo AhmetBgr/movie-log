@@ -46,7 +46,8 @@ public class SupabaseApi
         {
             ProjectUrl = (settings.ProjectUrl ?? "").Trim().TrimEnd('/'),
             AnonKey = (settings.AnonKey ?? "").Trim(),
-            Email = (settings.Email ?? "").Trim()
+            Email = (settings.Email ?? "").Trim(),
+            AutoSync = settings.AutoSync
         };
         await _storage.SaveAsync(SettingsStorageKey, normalized);
     }
@@ -139,6 +140,15 @@ public class SupabaseApi
         }
 
         return result;
+    }
+
+    /// <summary>Returns the newest updated_at across all records (null when there are none). One tiny row, cheap to poll.</summary>
+    public async Task<DateTimeOffset?> FetchLatestUpdateAsync()
+    {
+        var (settings, session) = await RequireAuthAsync();
+        var url = $"{settings.ProjectUrl}/rest/v1/{TableName}?select=updated_at&order=updated_at.desc&limit=1";
+        var rows = await GetJsonAsync<List<SupabaseRecordHeader>>(settings, session, url);
+        return rows.Count > 0 ? rows[0].UpdatedAt : null;
     }
 
     /// <summary>Fetches full records (including data) for the given keys of one kind.</summary>

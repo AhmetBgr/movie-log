@@ -208,6 +208,8 @@ public class WatchlistService
     }
 
     public event Action? OnStateChanged;
+    /// <summary>Raised after library data (items/collections) is written to storage; UI-only changes don't raise it.</summary>
+    public event Action? OnLibraryPersisted;
     public void NotifyStateChanged(bool fullRefresh = false) 
     {
         if (fullRefresh) 
@@ -1217,6 +1219,7 @@ public class WatchlistService
         await _storage.SaveCompressedListAsync("my_movie_list_slim", slim);
         await _storage.SaveCompressedAsync("my_movie_details", _detailsStore);
         await _storage.SaveAsync("my_custom_collections", Collections);
+        OnLibraryPersisted?.Invoke();
     }
 
     public async Task UpdateRatingAsync(WatchlistItem item, int? rating100)
