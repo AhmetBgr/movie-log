@@ -34,7 +34,7 @@ Movie Log is a personal movie and TV show tracking application developed with Bl
 
 ### Prerequisites
 
-- .NET 8.0 SDK or newer
+- .NET 10 SDK
 - A modern web browser
 
 ### Running Locally
@@ -45,12 +45,24 @@ Movie Log is a personal movie and TV show tracking application developed with Bl
    cd movie-log
    ```
 
-2. Start the application:
+2. Start the application.
+
+   On Linux or macOS:
    ```bash
-   dotnet run
+   ./Start_MovieLog.sh
    ```
 
-3. Navigate to the local URL provided in the terminal (typically `https://localhost:7008`).
+   On Windows:
+   ```text
+   Start_MovieLog.bat
+   ```
+
+   You can also start it directly on any platform:
+   ```bash
+   dotnet run --launch-profile https
+   ```
+
+3. Navigate to `https://localhost:7008`. If HTTPS development certificates are unavailable on Linux, use `./Start_MovieLog.sh --http` and open `http://localhost:5017`.
 
 ## Technical Profile
 
