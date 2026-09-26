@@ -2,19 +2,31 @@
     display: flex;
     flex-direction: row;
     height: 100vh;
+    height: 100dvh;
+    min-height: 0;
     overflow: hidden;
 }
 
-main {
-    flex: 1;
-    min-width: 0;
+.layout-body {
+    flex: 1 1 auto;
     height: 100%;
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.main-scroll {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
 }
 
 @media (max-width: 575px) {
-    main {
+    .main-scroll {
         padding-bottom: 64px;
     }
 }
