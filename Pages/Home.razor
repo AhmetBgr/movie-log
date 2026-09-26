@@ -451,6 +451,125 @@
 
         .home-profile-count { color: #475569; font-size: 0.75rem; font-weight: 800; text-align: right; }
         .home-empty { color: #94a3b8; font-size: 0.85rem; padding: 28px 0; text-align: center; }
+
+        .home-see-more {
+            align-items: center;
+            background: transparent;
+            border: 0;
+            color: #4f46e5;
+            display: inline-flex;
+            flex-shrink: 0;
+            font-size: 0.78rem;
+            font-weight: 750;
+            gap: 5px;
+            padding: 3px 0;
+        }
+
+        .home-see-more:hover,
+        .home-see-more:focus-visible { color: #312e81; text-decoration: underline; }
+
+        .home-stats-modal-backdrop {
+            align-items: center;
+            background: rgba(15, 23, 42, 0.68);
+            display: flex;
+            inset: 0;
+            justify-content: center;
+            padding: 24px;
+            position: fixed;
+            z-index: 1100;
+        }
+
+        .home-stats-modal {
+            background: #fff;
+            border-radius: 18px;
+            box-shadow: 0 28px 80px rgba(15, 23, 42, 0.3);
+            display: flex;
+            flex-direction: column;
+            max-height: min(88vh, 860px);
+            max-width: 980px;
+            overflow: hidden;
+            width: 100%;
+        }
+
+        .home-stats-modal-header {
+            align-items: flex-start;
+            border-bottom: 1px solid #e9edf3;
+            display: flex;
+            gap: 18px;
+            justify-content: space-between;
+            padding: 20px 24px;
+        }
+
+        .home-stats-modal-body {
+            overflow-x: hidden;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            padding: 22px 24px 26px;
+        }
+
+        .home-modal-close {
+            align-items: center;
+            background: #f1f5f9;
+            border: 0;
+            border-radius: 50%;
+            color: #475569;
+            display: inline-flex;
+            flex: 0 0 auto;
+            height: 34px;
+            justify-content: center;
+            width: 34px;
+        }
+
+        .home-modal-kpis {
+            display: grid;
+            gap: 10px;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            margin-bottom: 22px;
+        }
+
+        .home-modal-kpi {
+            background: #f8fafc;
+            border: 1px solid #eef2f7;
+            border-radius: 12px;
+            padding: 13px;
+        }
+
+        .home-modal-kpi strong { color: #0f172a; display: block; font-size: 1.3rem; line-height: 1.1; }
+        .home-modal-kpi span { color: #64748b; display: block; font-size: 0.67rem; font-weight: 750; margin-top: 5px; text-transform: uppercase; }
+        .home-modal-section-title { color: #334155; font-size: 0.78rem; font-weight: 800; letter-spacing: 0.05em; margin: 22px 0 10px; text-transform: uppercase; }
+
+        .home-modal-table {
+            border: 1px solid #e9edf3;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .home-modal-table-row {
+            align-items: center;
+            border-bottom: 1px solid #eef2f7;
+            display: grid;
+            gap: 12px;
+            grid-template-columns: minmax(120px, 1.5fr) repeat(3, minmax(70px, 0.7fr));
+            padding: 10px 13px;
+        }
+
+        .home-modal-table-row:last-child { border-bottom: 0; }
+        .home-modal-table-row.header { background: #f8fafc; color: #64748b; font-size: 0.66rem; font-weight: 800; text-transform: uppercase; }
+        .home-modal-table-row > :not(:first-child) { text-align: right; }
+        .home-modal-table-name { color: #1e293b; font-size: 0.84rem; font-weight: 750; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        button.home-modal-table-name, a.home-modal-table-name { background: none; border: 0; padding: 0; text-align: left; text-decoration: none; }
+        button.home-modal-table-name:hover, a.home-modal-table-name:hover { color: #4f46e5; text-decoration: underline; }
+        .home-modal-table-value { color: #475569; font-size: 0.8rem; font-weight: 700; }
+
+        @@media (max-width: 575px) {
+            .home-stats-modal-backdrop { align-items: stretch; padding: 8px; }
+            .home-stats-modal { border-radius: 14px; max-height: none; }
+            .home-stats-modal-header { padding: 16px; }
+            .home-stats-modal-body { padding: 16px; }
+            .home-modal-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .home-modal-table { overflow-x: auto; }
+            .home-modal-table-row { min-width: 580px; }
+        }
     </style>
 
     <div class="mb-4 pb-3 border-bottom">
@@ -564,8 +683,10 @@
     }
     else
     {
+        <div class="row g-4 align-items-stretch mb-4">
+        <section class="col-12 col-lg-4">
         <div class="home-section-heading">At a glance</div>
-        <div class="row row-cols-2 row-cols-md-3 row-cols-xl-6 g-3 mb-4">
+        <div class="row row-cols-2 row-cols-md-3 row-cols-lg-2 g-3">
             <div class="col">
                 <a class="home-kpi" href="library">
                     <span class="home-kpi-icon" style="background:#eef2ff;color:#4f46e5;"><i class="bi bi-collection-play"></i></span>
@@ -609,8 +730,10 @@
                 </div>
             </div>
         </div>
+        </section>
 
-        <div class="home-stat-card mb-4">
+        <div class="col-12 col-lg-8">
+        <div class="home-stat-card h-100">
             <div class="d-flex flex-column flex-lg-row justify-content-between gap-3 align-items-lg-start">
                 <div>
                     <h2 class="home-card-title"><i class="bi bi-bar-chart-fill me-2" style="color:#10b981;"></i>Marked watched in @SelectedYear</h2>
@@ -638,6 +761,9 @@
                             }
                         </select>
                     }
+                    <button type="button" class="home-see-more ms-1" @onclick='() => OpenExpandedStats(StatsSection.Activity)'>
+                        See more <i class="bi bi-arrows-angle-expand" aria-hidden="true"></i>
+                    </button>
                 </div>
             </div>
 
@@ -658,13 +784,20 @@
                 </div>
             </div>
         </div>
+        </div>
+        </div>
 
         <div class="row g-4 mb-4">
             <div class="col-12 col-lg-7">
                 <div class="home-stat-card">
-                    <div>
-                        <h2 class="home-card-title"><i class="bi bi-star-fill me-2" style="color:#f59e0b;"></i>Rating distribution</h2>
-                        <div class="home-card-subtitle">How your ratings are spread across watched titles. Select a range to open it in the library.</div>
+                    <div class="d-flex justify-content-between align-items-start gap-3">
+                        <div>
+                            <h2 class="home-card-title"><i class="bi bi-star-fill me-2" style="color:#f59e0b;"></i>Rating distribution</h2>
+                            <div class="home-card-subtitle">How your ratings are spread across watched titles. Select a range to open it in the library.</div>
+                        </div>
+                        <button type="button" class="home-see-more" @onclick='() => OpenExpandedStats(StatsSection.Ratings)'>
+                            See more <i class="bi bi-arrows-angle-expand" aria-hidden="true"></i>
+                        </button>
                     </div>
 
                     <div class="home-rating-summary">
@@ -712,8 +845,15 @@
 
             <div class="col-12 col-lg-5">
                 <div class="home-stat-card">
-                    <h2 class="home-card-title"><i class="bi bi-hand-thumbs-up-fill me-2" style="color:#22c55e;"></i>Reactions</h2>
-                    <div class="home-card-subtitle">Likes and dislikes across your whole library.</div>
+                    <div class="d-flex justify-content-between align-items-start gap-3">
+                        <div>
+                            <h2 class="home-card-title"><i class="bi bi-hand-thumbs-up-fill me-2" style="color:#22c55e;"></i>Reactions</h2>
+                            <div class="home-card-subtitle">Likes and dislikes across your whole library.</div>
+                        </div>
+                        <button type="button" class="home-see-more" @onclick='() => OpenExpandedStats(StatsSection.Reactions)'>
+                            See more <i class="bi bi-arrows-angle-expand" aria-hidden="true"></i>
+                        </button>
+                    </div>
 
                     <div class="home-reaction-bar" role="img" aria-label="@LikedCount liked, @DislikedCount disliked, @UnmarkedCount unmarked">
                         @if (LikedCount > 0)
@@ -754,8 +894,15 @@
         <div class="row g-4 mb-4">
             <div class="col-12 col-lg-6">
                 <div class="home-stat-card">
-                    <h2 class="home-card-title"><i class="bi bi-tags-fill me-2" style="color:#6366f1;"></i>Most watched genres</h2>
-                    <div class="home-card-subtitle">Volume, average rating, and like rate among reacted titles. Select a genre to open it in Watched.</div>
+                    <div class="d-flex justify-content-between align-items-start gap-3">
+                        <div>
+                            <h2 class="home-card-title"><i class="bi bi-tags-fill me-2" style="color:#6366f1;"></i>Most watched genres</h2>
+                            <div class="home-card-subtitle">Volume, average rating, and like rate among reacted titles. Select a genre to open it in Watched.</div>
+                        </div>
+                        <button type="button" class="home-see-more" @onclick='() => OpenExpandedStats(StatsSection.Genres)'>
+                            See more <i class="bi bi-arrows-angle-expand" aria-hidden="true"></i>
+                        </button>
+                    </div>
 
                     @if (GenreInsights.Any())
                     {
@@ -792,8 +939,15 @@
 
             <div class="col-12 col-lg-6">
                 <div class="home-stat-card">
-                    <h2 class="home-card-title"><i class="bi bi-person-video2 me-2" style="color:#0ea5e9;"></i>Most watched directors</h2>
-                    <div class="home-card-subtitle">Counts, rating samples, and like rates among reacted titles are shown together.</div>
+                    <div class="d-flex justify-content-between align-items-start gap-3">
+                        <div>
+                            <h2 class="home-card-title"><i class="bi bi-person-video2 me-2" style="color:#0ea5e9;"></i>Most watched directors</h2>
+                            <div class="home-card-subtitle">Counts, rating samples, and like rates among reacted titles are shown together.</div>
+                        </div>
+                        <button type="button" class="home-see-more" @onclick='() => OpenExpandedStats(StatsSection.Directors)'>
+                            See more <i class="bi bi-arrows-angle-expand" aria-hidden="true"></i>
+                        </button>
+                    </div>
 
                     @if (DirectorInsights.Any())
                     {
@@ -839,10 +993,15 @@
                     <h2 class="home-card-title"><i class="bi bi-grid-1x2-fill me-2" style="color:#8b5cf6;"></i>Library profile</h2>
                     <div class="home-card-subtitle">A compact view of the release eras, runtimes, and title types you have watched.</div>
                 </div>
-                <div class="home-profile-tabs" role="tablist" aria-label="Library profile view">
-                    <button role="tab" aria-selected="@(_profileView == "decades")" class="home-profile-tab @(_profileView == "decades" ? "active" : "")" @onclick='() => _profileView = "decades"'>Decades</button>
-                    <button role="tab" aria-selected="@(_profileView == "runtime")" class="home-profile-tab @(_profileView == "runtime" ? "active" : "")" @onclick='() => _profileView = "runtime"'>Runtime</button>
-                    <button role="tab" aria-selected="@(_profileView == "types")" class="home-profile-tab @(_profileView == "types" ? "active" : "")" @onclick='() => _profileView = "types"'>Title type</button>
+                <div class="d-flex flex-column align-items-lg-end gap-2">
+                    <div class="home-profile-tabs" role="tablist" aria-label="Library profile view">
+                        <button role="tab" aria-selected="@(_profileView == "decades")" class="home-profile-tab @(_profileView == "decades" ? "active" : "")" @onclick='() => _profileView = "decades"'>Decades</button>
+                        <button role="tab" aria-selected="@(_profileView == "runtime")" class="home-profile-tab @(_profileView == "runtime" ? "active" : "")" @onclick='() => _profileView = "runtime"'>Runtime</button>
+                        <button role="tab" aria-selected="@(_profileView == "types")" class="home-profile-tab @(_profileView == "types" ? "active" : "")" @onclick='() => _profileView = "types"'>Title type</button>
+                    </div>
+                    <button type="button" class="home-see-more" @onclick='() => OpenExpandedStats(StatsSection.Profile)'>
+                        See more <i class="bi bi-arrows-angle-expand" aria-hidden="true"></i>
+                    </button>
                 </div>
             </div>
 
@@ -865,6 +1024,222 @@
                 <div class="home-empty">No data is available for this view.</div>
             }
         </div>
+
+        @if (_expandedSection.HasValue)
+        {
+            <div class="home-stats-modal-backdrop"
+                 role="presentation"
+                 @onclick="CloseExpandedStats"
+                 @onkeydown="HandleModalKeyDown">
+                <section class="home-stats-modal"
+                         role="dialog"
+                         aria-modal="true"
+                         aria-labelledby="expanded-stats-title"
+                         tabindex="-1"
+                         @onclick:stopPropagation="true"
+                         @onkeydown="HandleModalKeyDown">
+                    <header class="home-stats-modal-header">
+                        <div>
+                            <h2 id="expanded-stats-title" class="home-card-title fs-5">@GetExpandedTitle(_expandedSection.Value)</h2>
+                            <div class="home-card-subtitle">@GetExpandedSubtitle(_expandedSection.Value)</div>
+                        </div>
+                        <button type="button" class="home-modal-close" aria-label="Close expanded statistics" autofocus @onclick="CloseExpandedStats">
+                            <i class="bi bi-x-lg" aria-hidden="true"></i>
+                        </button>
+                    </header>
+
+                    <div class="home-stats-modal-body">
+                        @switch (_expandedSection.Value)
+                        {
+                            case StatsSection.Activity:
+                                <div class="home-modal-kpis">
+                                    <div class="home-modal-kpi"><strong>@YearlyTotal</strong><span>Watched in @SelectedYear</span></div>
+                                    <div class="home-modal-kpi"><strong>@MonthlyAverage.ToString("0.0")</strong><span>Monthly average</span></div>
+                                    <div class="home-modal-kpi"><strong>@BusiestMonth</strong><span>Busiest month</span></div>
+                                    <div class="home-modal-kpi"><strong>@ActiveMonthCount</strong><span>Active months</span></div>
+                                </div>
+
+                                <div class="home-chart-scroll">
+                                    @{ var modalMaxMonth = MoviesPerMonth.Any() ? MoviesPerMonth.Max(x => x.Value) : 0; }
+                                    <div class="home-activity-chart" role="img" aria-label="Expanded monthly watched activity for @SelectedYear">
+                                        @foreach (var month in MoviesPerMonth)
+                                        {
+                                            var height = modalMaxMonth > 0 ? month.Value * 100d / modalMaxMonth : 0;
+                                            <div class="home-activity-column" title="@month.Key @SelectedYear: @month.Value marked watched">
+                                                <div class="home-activity-count">@(month.Value > 0 ? month.Value.ToString() : "")</div>
+                                                <div class="home-activity-track"><div class="home-activity-bar @(month.Value == 0 ? "empty" : "")" style="height:@CssPercent(height);"></div></div>
+                                                <div class="home-chart-label">@month.Key</div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+
+                                <h3 class="home-modal-section-title">Year comparison</h3>
+                                <div class="home-modal-table">
+                                    <div class="home-modal-table-row header"><span>Year</span><span>Watched</span><span>Avg / month</span><span>Busiest</span></div>
+                                    @foreach (var year in ActivityByYear)
+                                    {
+                                        <div class="home-modal-table-row">
+                                            <span class="home-modal-table-name">@year.Year · @year.ActiveMonths active months</span>
+                                            <span class="home-modal-table-value">@year.Count</span>
+                                            <span class="home-modal-table-value">@year.MonthlyAverage.ToString("0.0")</span>
+                                            <span class="home-modal-table-value">@year.BusiestMonth</span>
+                                        </div>
+                                    }
+                                </div>
+                                break;
+
+                            case StatsSection.Ratings:
+                                <div class="home-modal-kpis">
+                                    <div class="home-modal-kpi"><strong style="color:@Visuals.GetRatingColor(AvgRating);">@(RatedCount > 0 ? AvgRating.ToString("0.0") : "—")</strong><span>Average</span></div>
+                                    <div class="home-modal-kpi"><strong style="color:@Visuals.GetRatingColor(MedianRating);">@(RatedCount > 0 ? MedianRating.ToString("0.0") : "—")</strong><span>Median</span></div>
+                                    <div class="home-modal-kpi"><strong>@(RatedCount > 0 ? HighestRating : "—")</strong><span>Highest</span></div>
+                                    <div class="home-modal-kpi"><strong>@(RatedCount > 0 ? LowestRating : "—")</strong><span>Lowest</span></div>
+                                </div>
+
+                                @if (RatedCount > 0)
+                                {
+                                    var modalMaxRating = RatingDistribution.Max(x => x.Count);
+                                    <div class="home-histogram" role="group" aria-label="Expanded rating distribution">
+                                        @foreach (var bucket in RatingDistribution)
+                                        {
+                                            var height = modalMaxRating > 0 ? bucket.Count * 100d / modalMaxRating : 0;
+                                            <button class="home-histogram-column cursor-pointer" title="@bucket.Label: @bucket.Count titles" disabled="@(bucket.Count == 0)" @onclick="() => OpenRatingRange(bucket.Lower, bucket.Upper)">
+                                                <span class="home-histogram-count">@(bucket.Count > 0 ? bucket.Count.ToString() : "")</span>
+                                                <span class="home-histogram-track"><span class="home-histogram-fill" style="height:@CssPercent(height);background:@Visuals.GetRatingColor(bucket.Upper);"></span></span>
+                                                <span class="home-histogram-label">@bucket.ShortLabel</span>
+                                            </button>
+                                        }
+                                    </div>
+                                }
+
+                                <h3 class="home-modal-section-title">Rating bands · @RatingCoveragePercent% of watched titles rated</h3>
+                                <div class="home-modal-table">
+                                    <div class="home-modal-table-row header"><span>Band</span><span>Range</span><span>Titles</span><span>Share</span></div>
+                                    @foreach (var band in RatingBands)
+                                    {
+                                        <div class="home-modal-table-row">
+                                            <span class="home-modal-table-name">@band.Name</span>
+                                            <span class="home-modal-table-value">@band.Range</span>
+                                            <span class="home-modal-table-value">@band.Count</span>
+                                            <span class="home-modal-table-value">@FormatPercent(Percentage(band.Count, RatedCount))</span>
+                                        </div>
+                                    }
+                                </div>
+                                break;
+
+                            case StatsSection.Reactions:
+                                <div class="home-modal-kpis">
+                                    <div class="home-modal-kpi"><strong>@LikedCount</strong><span>Liked · @FormatPercent(LikePercentage)</span></div>
+                                    <div class="home-modal-kpi"><strong>@DislikedCount</strong><span>Disliked · @FormatPercent(DislikePercentage)</span></div>
+                                    <div class="home-modal-kpi"><strong>@ReactionCoveragePercent%</strong><span>Reaction coverage</span></div>
+                                    <div class="home-modal-kpi"><strong>@UnmarkedCount</strong><span>No reaction</span></div>
+                                </div>
+
+                                <div class="home-reaction-bar" role="img" aria-label="Expanded reaction distribution">
+                                    <div class="home-reaction-liked" style="width:@CssPercent(LikePercentage);"></div>
+                                    <div class="home-reaction-disliked" style="width:@CssPercent(DislikePercentage);"></div>
+                                    <div class="home-reaction-unmarked" style="width:@CssPercent(UnmarkedPercentage);"></div>
+                                </div>
+
+                                <h3 class="home-modal-section-title">Reactions by library status</h3>
+                                <div class="home-modal-table">
+                                    <div class="home-modal-table-row header" style="grid-template-columns:minmax(110px,1.4fr) repeat(4,minmax(62px,.7fr));"><span>Status</span><span>Total</span><span>Liked</span><span>Disliked</span><span>None</span></div>
+                                    @foreach (var status in ReactionByStatus)
+                                    {
+                                        <div class="home-modal-table-row" style="grid-template-columns:minmax(110px,1.4fr) repeat(4,minmax(62px,.7fr));">
+                                            <span class="home-modal-table-name">@status.Name</span>
+                                            <span class="home-modal-table-value">@status.Total</span>
+                                            <span class="home-modal-table-value">@status.Liked</span>
+                                            <span class="home-modal-table-value">@status.Disliked</span>
+                                            <span class="home-modal-table-value">@status.Unmarked</span>
+                                        </div>
+                                    }
+                                </div>
+                                break;
+
+                            case StatsSection.Genres:
+                                <div class="home-modal-kpis">
+                                    <div class="home-modal-kpi"><strong>@AllGenreInsights.Count</strong><span>Genres</span></div>
+                                    <div class="home-modal-kpi"><strong>@(AllGenreInsights.FirstOrDefault()?.Name ?? "—")</strong><span>Most watched</span></div>
+                                    <div class="home-modal-kpi"><strong>@(AllGenreInsights.FirstOrDefault()?.Count ?? 0)</strong><span>Top genre titles</span></div>
+                                    <div class="home-modal-kpi"><strong>@WatchedCount</strong><span>Watched titles</span></div>
+                                </div>
+                                <div class="home-modal-table">
+                                    <div class="home-modal-table-row header"><span>Genre</span><span>Watched</span><span>Average</span><span>Liked</span></div>
+                                    @foreach (var genre in AllGenreInsights)
+                                    {
+                                        <div class="home-modal-table-row">
+                                            <button class="home-modal-table-name" @onclick="() => OpenGenre(genre.Name)">@genre.Name</button>
+                                            <span class="home-modal-table-value">@genre.Count</span>
+                                            <span class="home-modal-table-value">@(genre.AverageRating?.ToString("0.0") ?? "—") <small>(@genre.RatedCount)</small></span>
+                                            <span class="home-modal-table-value">@(genre.ReactionCount > 0 ? $"{genre.LikePercent:0}%" : "—")</span>
+                                        </div>
+                                    }
+                                </div>
+                                break;
+
+                            case StatsSection.Directors:
+                                <div class="home-modal-kpis">
+                                    <div class="home-modal-kpi"><strong>@AllDirectorInsights.Count</strong><span>Directors</span></div>
+                                    <div class="home-modal-kpi"><strong>@(AllDirectorInsights.FirstOrDefault()?.Name ?? "—")</strong><span>Most watched</span></div>
+                                    <div class="home-modal-kpi"><strong>@(AllDirectorInsights.FirstOrDefault()?.Count ?? 0)</strong><span>Top director titles</span></div>
+                                    <div class="home-modal-kpi"><strong>@WatchedCount</strong><span>Watched titles</span></div>
+                                </div>
+                                <div class="home-modal-table">
+                                    <div class="home-modal-table-row header"><span>Director</span><span>Watched</span><span>Average</span><span>Liked</span></div>
+                                    @foreach (var director in AllDirectorInsights)
+                                    {
+                                        <div class="home-modal-table-row">
+                                            <a class="home-modal-table-name" href="@GetPersonNameUrl(director.Name)">@director.Name</a>
+                                            <span class="home-modal-table-value">@director.Count</span>
+                                            <span class="home-modal-table-value">@(director.AverageRating?.ToString("0.0") ?? "—") <small>(@director.RatedCount)</small></span>
+                                            <span class="home-modal-table-value">@(director.ReactionCount > 0 ? $"{director.LikePercent:0}%" : "—")</span>
+                                        </div>
+                                    }
+                                </div>
+                                break;
+
+                            case StatsSection.Profile:
+                                <div class="home-modal-kpis">
+                                    <div class="home-modal-kpi"><strong>@DecadeDistribution.Count</strong><span>Release decades</span></div>
+                                    <div class="home-modal-kpi"><strong>@RuntimeDistribution.Count</strong><span>Runtime groups</span></div>
+                                    <div class="home-modal-kpi"><strong>@TitleTypeDistribution.Count</strong><span>Title types</span></div>
+                                    <div class="home-modal-kpi"><strong>@WatchedCount</strong><span>Watched titles</span></div>
+                                </div>
+
+                                <h3 class="home-modal-section-title">Release decades</h3>
+                                <div class="home-profile-grid">
+                                    @{ var maxDecade = DecadeDistribution.Any() ? DecadeDistribution.Max(x => x.Value) : 0; }
+                                    @foreach (var entry in DecadeDistribution)
+                                    {
+                                        <div class="home-profile-row"><span class="home-profile-label">@entry.Key</span><div class="home-progress-track"><div class="home-progress-fill" style="width:@CssPercent(maxDecade > 0 ? entry.Value * 100d / maxDecade : 0);"></div></div><span class="home-profile-count">@entry.Value</span></div>
+                                    }
+                                </div>
+
+                                <h3 class="home-modal-section-title">Runtime</h3>
+                                <div class="home-profile-grid">
+                                    @{ var maxRuntime = RuntimeDistribution.Any() ? RuntimeDistribution.Max(x => x.Value) : 0; }
+                                    @foreach (var entry in RuntimeDistribution)
+                                    {
+                                        <div class="home-profile-row"><span class="home-profile-label">@entry.Key</span><div class="home-progress-track"><div class="home-progress-fill" style="width:@CssPercent(maxRuntime > 0 ? entry.Value * 100d / maxRuntime : 0);background:linear-gradient(90deg,#38bdf8,#0ea5e9);"></div></div><span class="home-profile-count">@entry.Value</span></div>
+                                    }
+                                </div>
+
+                                <h3 class="home-modal-section-title">Title types</h3>
+                                <div class="home-profile-grid">
+                                    @{ var maxType = TitleTypeDistribution.Any() ? TitleTypeDistribution.Max(x => x.Value) : 0; }
+                                    @foreach (var entry in TitleTypeDistribution)
+                                    {
+                                        <div class="home-profile-row"><span class="home-profile-label">@entry.Key</span><div class="home-progress-track"><div class="home-progress-fill" style="width:@CssPercent(maxType > 0 ? entry.Value * 100d / maxType : 0);background:linear-gradient(90deg,#a78bfa,#7c3aed);"></div></div><span class="home-profile-count">@entry.Value</span></div>
+                                    }
+                                </div>
+                                break;
+                        }
+                    </div>
+                </section>
+            </div>
+        }
     }
 </div>
 
@@ -881,6 +1256,8 @@
     private double LikePercentage => Percentage(LikedCount, TotalCount);
     private double DislikePercentage => Percentage(DislikedCount, TotalCount);
     private double UnmarkedPercentage => Percentage(UnmarkedCount, TotalCount);
+    private int ReactionCoveragePercent => TotalCount > 0 ? (int)Math.Round((LikedCount + DislikedCount) * 100d / TotalCount) : 0;
+    private int ActiveMonthCount => MoviesPerMonth.Count(month => month.Value > 0);
 
     private int SelectedYear = DateTime.Now.Year;
     private int YearlyTotal;
@@ -898,13 +1275,20 @@
 
     private double AvgRating;
     private double MedianRating;
+    private int HighestRating;
+    private int LowestRating;
     private List<RatingBucket> RatingDistribution = new();
+    private List<RatingBand> RatingBands = new();
     private List<TasteInsight> GenreInsights = new();
     private List<TasteInsight> DirectorInsights = new();
+    private List<TasteInsight> AllGenreInsights = new();
+    private List<TasteInsight> AllDirectorInsights = new();
+    private List<YearActivityInsight> ActivityByYear = new();
     private List<KeyValuePair<string, int>> DecadeDistribution = new();
     private List<KeyValuePair<string, int>> RuntimeDistribution = new();
     private List<KeyValuePair<string, int>> TitleTypeDistribution = new();
     private string _profileView = "decades";
+    private StatsSection? _expandedSection;
     private IReadOnlyList<KeyValuePair<string, int>> CurrentProfileDistribution => _profileView switch
     {
         "runtime" => RuntimeDistribution,
@@ -938,6 +1322,36 @@
         }
     }
 
+    private void OpenExpandedStats(StatsSection section) => _expandedSection = section;
+    private void CloseExpandedStats() => _expandedSection = null;
+
+    private void HandleModalKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape") CloseExpandedStats();
+    }
+
+    private static string GetExpandedTitle(StatsSection section) => section switch
+    {
+        StatsSection.Activity => "Viewing activity",
+        StatsSection.Ratings => "Rating statistics",
+        StatsSection.Reactions => "Reaction statistics",
+        StatsSection.Genres => "Genre statistics",
+        StatsSection.Directors => "Director statistics",
+        StatsSection.Profile => "Full library profile",
+        _ => "Statistics"
+    };
+
+    private static string GetExpandedSubtitle(StatsSection section) => section switch
+    {
+        StatsSection.Activity => "Monthly activity and year-by-year comparison.",
+        StatsSection.Ratings => "Your full score distribution, range, and rating coverage.",
+        StatsSection.Reactions => "Likes and dislikes across each part of your library.",
+        StatsSection.Genres => "Every watched genre with volume, rating sample, and like rate.",
+        StatsSection.Directors => "Every watched director with volume, rating sample, and like rate.",
+        StatsSection.Profile => "Release decades, runtime groups, and title types together.",
+        _ => "Expanded library statistics."
+    };
+
     private void CalculateStats()
     {
         var watched = Watchlist.Items.Where(i => i.Status == WatchlistStatus.Watched).ToList();
@@ -955,9 +1369,28 @@
 
         CalculateActivity(watched);
 
+        ActivityByYear = AvailableYears
+            .Select(year =>
+            {
+                var yearItems = watched.Where(item => item.DateAdded.Year == year).ToList();
+                var monthlyCounts = Enumerable.Range(1, 12)
+                    .Select(month => yearItems.Count(item => item.DateAdded.Month == month))
+                    .ToList();
+                var busiestIndex = monthlyCounts.Count > 0 ? monthlyCounts.IndexOf(monthlyCounts.Max()) : -1;
+                var busiest = busiestIndex >= 0 && monthlyCounts[busiestIndex] > 0
+                    ? new DateTime(year, busiestIndex + 1, 1).ToString("MMM")
+                    : "—";
+                var elapsedMonths = year == DateTime.Now.Year ? DateTime.Now.Month : 12;
+                return new YearActivityInsight(year, yearItems.Count, monthlyCounts.Count(count => count > 0),
+                    yearItems.Count / (double)Math.Max(1, elapsedMonths), busiest);
+            })
+            .ToList();
+
         var ratedMovies = watched.Where(item => item.Rating20.HasValue).ToList();
         RatedCount = ratedMovies.Count;
         AvgRating = ratedMovies.Count > 0 ? ratedMovies.Average(item => item.Rating20!.Value) : 0;
+        HighestRating = ratedMovies.Count > 0 ? ratedMovies.Max(item => item.Rating20!.Value) : 0;
+        LowestRating = ratedMovies.Count > 0 ? ratedMovies.Min(item => item.Rating20!.Value) : 0;
 
         var sortedRatings = ratedMovies.Select(item => item.Rating20!.Value).OrderBy(rating => rating).ToList();
         MedianRating = sortedRatings.Count switch
@@ -977,7 +1410,15 @@
             })
             .ToList();
 
-        GenreInsights = watched
+        RatingBands = new List<RatingBand>
+        {
+            new("Excellent", "80–100", ratedMovies.Count(item => item.Rating20 is >= 80 and <= 100)),
+            new("Good", "60–79", ratedMovies.Count(item => item.Rating20 is >= 60 and < 80)),
+            new("Mixed", "40–59", ratedMovies.Count(item => item.Rating20 is >= 40 and < 60)),
+            new("Low", "1–39", ratedMovies.Count(item => item.Rating20 is >= 1 and < 40))
+        };
+
+        AllGenreInsights = watched
             .Where(item => !string.IsNullOrWhiteSpace(item.Genres))
             .SelectMany(item => item.Genres.Split(',', StringSplitOptions.RemoveEmptyEntries)
                 .Select(genre => new NamedMovie(genre.Trim(), item)))
@@ -985,11 +1426,11 @@
             .GroupBy(entry => entry.Name, StringComparer.OrdinalIgnoreCase)
             .OrderByDescending(group => group.Count())
             .ThenBy(group => group.Key)
-            .Take(6)
             .Select(group => CreateTasteInsight(group.Key, group.Select(entry => entry.Movie)))
             .ToList();
+        GenreInsights = AllGenreInsights.Take(6).ToList();
 
-        DirectorInsights = watched
+        AllDirectorInsights = watched
             .Where(item => !string.IsNullOrWhiteSpace(item.Director))
             .SelectMany(item => item.Director!.Split(',', StringSplitOptions.RemoveEmptyEntries)
                 .Select(director => new NamedMovie(director.Trim(), item)))
@@ -997,9 +1438,9 @@
             .GroupBy(entry => entry.Name, StringComparer.OrdinalIgnoreCase)
             .OrderByDescending(group => group.Count())
             .ThenBy(group => group.Key)
-            .Take(6)
             .Select(group => CreateTasteInsight(group.Key, group.Select(entry => entry.Movie)))
             .ToList();
+        DirectorInsights = AllDirectorInsights.Take(6).ToList();
 
         DecadeDistribution = watched
             .Where(item => item.ParsedYear > 0)
@@ -1065,6 +1506,24 @@
             likePercent);
     }
 
+    private IReadOnlyList<ReactionStatusInsight> ReactionByStatus => new[]
+    {
+        CreateReactionStatusInsight("Watchlist", Watchlist.Items.Where(item => item.Status == WatchlistStatus.Pending)),
+        CreateReactionStatusInsight("Watching", Watchlist.Items.Where(item => item.Status == WatchlistStatus.Watching)),
+        CreateReactionStatusInsight("Watched", Watchlist.Items.Where(item => item.Status == WatchlistStatus.Watched))
+    };
+
+    private static ReactionStatusInsight CreateReactionStatusInsight(string name, IEnumerable<WatchlistItem> source)
+    {
+        var items = source.ToList();
+        return new ReactionStatusInsight(
+            name,
+            items.Count,
+            items.Count(item => item.IsLiked == true),
+            items.Count(item => item.IsLiked == false),
+            items.Count(item => !item.IsLiked.HasValue));
+    }
+
     private void OpenGenre(string genre)
     {
         PrepareWatchedDrilldown();
@@ -1123,6 +1582,19 @@
     }
 
     private sealed record RatingBucket(string Label, string ShortLabel, int Lower, int Upper, int Count);
+    private sealed record RatingBand(string Name, string Range, int Count);
     private sealed record NamedMovie(string Name, WatchlistItem Movie);
     private sealed record TasteInsight(string Name, int Count, int RatedCount, double? AverageRating, int ReactionCount, double LikePercent);
+    private sealed record YearActivityInsight(int Year, int Count, int ActiveMonths, double MonthlyAverage, string BusiestMonth);
+    private sealed record ReactionStatusInsight(string Name, int Total, int Liked, int Disliked, int Unmarked);
+
+    private enum StatsSection
+    {
+        Activity,
+        Ratings,
+        Reactions,
+        Genres,
+        Directors,
+        Profile
+    }
 }
